@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Button } from '@/components/ui/button';
-import { Home, Pencil } from 'lucide-react';
+import { Home, LogIn } from 'lucide-react';
 import Link from 'next/link';
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
@@ -28,7 +28,12 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
           <div className="flex-1 flex justify-end">
-            {/* The admin link was here. It will be re-added once authentication is in place. */}
+            <Link href="/login">
+                <Button variant="ghost">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Sign In
+                </Button>
+            </Link>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6">{children}</main>
