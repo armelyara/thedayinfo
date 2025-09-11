@@ -28,12 +28,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
           <div className="flex-1 flex justify-end">
-            <Link href="/admin">
-              <Button>
-                <Pencil className="mr-2 h-4 w-4" />
-                Writer Dashboard
-              </Button>
-            </Link>
+            {/* The admin link was here. It will be re-added once authentication is in place. */}
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6">{children}</main>
