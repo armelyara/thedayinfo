@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Button } from '@/components/ui/button';
-import { Home } from 'lucide-react';
+import { Home, Pencil } from 'lucide-react';
 import Link from 'next/link';
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
@@ -27,8 +27,13 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
               </Button>
             </Link>
           </div>
-          <div className="flex-1">
-             {/* Can add breadcrumbs or page title here */}
+          <div className="flex-1 flex justify-end">
+            <Link href="/admin/create-article">
+              <Button>
+                <Pencil className="mr-2 h-4 w-4" />
+                Write Article
+              </Button>
+            </Link>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6">{children}</main>
