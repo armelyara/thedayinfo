@@ -1,3 +1,41 @@
+
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "1",
+      "description": "Abstract AI visualization",
+      "imageUrl": "https://picsum.photos/seed/1/600/400",
+      "imageHint": "abstract AI"
+    },
+    {
+      "id": "2",
+      "description": "A colorful nebula in deep space",
+      "imageUrl": "https://picsum.photos/seed/2/600/400",
+      "imageHint": "nebula space"
+    },
+    {
+      "id": "3",
+      "description": "A person meditating peacefully outdoors",
+      "imageUrl": "https://picsum.photos/seed/3/600/400",
+      "imageHint": "meditation nature"
+    },
+    {
+      "id": "4",
+      "description": "A green plant growing out of a pile of coins",
+      "imageUrl": "https://picsum.photos/seed/4/600/400",
+      "imageHint": "sustainable finance"
+    },
+    {
+      "id": "5",
+      "description": "A vibrant and complex graffiti mural on a brick wall",
+      "imageUrl": "https://picsum.photos/seed/5/600/400",
+      "imageHint": "graffiti wall"
+    },
+    {
+      "id": "6",
+      "description": "Abstract representation of quantum bits",
+      "imageUrl": "https://picsum.photos/seed/6/600/400",
+      "imageHint": "quantum computing"
+    }
+  ]
 }
