@@ -28,10 +28,10 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
           <div className="flex-1 flex justify-end">
-            <Link href="/admin/create-article">
+            <Link href="/admin">
               <Button>
                 <Pencil className="mr-2 h-4 w-4" />
-                Write Article
+                Writer Dashboard
               </Button>
             </Link>
           </div>
