@@ -26,7 +26,7 @@ export const categories: Category[] = [
   { name: 'Culture', slug: 'culture' },
 ];
 
-export const articles: Article[] = [
+export let articles: Article[] = [
   {
     slug: 'the-future-of-ai-in-tech',
     title: 'The Future of Artificial Intelligence and Its Impact on Technology',
@@ -88,7 +88,7 @@ export const articles: Article[] = [
       'A new paradigm is emerging in the corporate world, one where success is measured not just in financial returns, but also in social and environmental impact. Sustainable business practices are moving from the periphery to the core of corporate strategy as companies recognize the long-term value of environmental stewardship and social responsibility. This article examines the key drivers behind this shift, from changing consumer expectations to the increasing risks posed by climate change. We spotlight innovative companies that are leading the way in sustainability and offer insights for businesses looking to integrate purpose into their profit-making endeavors.',
   },
   {
-    slug: 'the-evolution-of-street-art',
+    slug: 'from-graffiti-to-galleries',
     title: 'From Graffiti to Galleries: The Evolution of Street Art',
     author: 'Sarah Green',
     category: 'Culture',
@@ -136,3 +136,20 @@ export const searchArticles = (query: string) => {
         article.content.toLowerCase().includes(query.toLowerCase())
     );
 };
+
+export const addArticle = (article: Omit<Article, 'slug' | 'publicationDate' | 'image'>) => {
+  const slug = article.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+  const newArticle: Article = {
+    ...article,
+    slug,
+    publicationDate: new Date().toISOString().split('T')[0],
+    image: {
+      id: String(articles.length + 1),
+      src: `https://picsum.photos/seed/${articles.length + 1}/600/400`,
+      alt: article.title,
+      aiHint: 'placeholder image'
+    }
+  };
+  articles.unshift(newArticle);
+  return newArticle;
+}
