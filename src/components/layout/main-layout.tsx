@@ -3,12 +3,10 @@ import {
   Sidebar,
   SidebarInset,
   SidebarTrigger,
-  SidebarHeader,
-  SidebarFooter,
 } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Button } from '@/components/ui/button';
-import { Home, LogIn } from 'lucide-react';
+import { Home } from 'lucide-react';
 import Link from 'next/link';
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
@@ -28,12 +26,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
           <div className="flex-1 flex justify-end">
-            <Link href="/login">
-                <Button variant="ghost">
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Sign In
-                </Button>
-            </Link>
+            {/* The Sign In button will be added back later with appropriate logic */}
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6">{children}</main>

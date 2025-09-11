@@ -3,6 +3,8 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { MainLayout } from '@/components/layout/main-layout';
 import { cn } from '@/lib/utils';
+import { headers } from 'next/headers';
+import LoginPage from './login/page';
 
 export const metadata: Metadata = {
   title: 'The Day Info',
@@ -14,6 +16,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = headers();
+  const host = headersList.get('host');
+  const isAdmin = host?.startsWith('admin.');
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -30,7 +36,7 @@ export default function RootLayout({
           'font-body'
         )}
       >
-        <MainLayout>{children}</MainLayout>
+        {isAdmin ? <>{children}</> : <MainLayout>{children}</MainLayout>}
         <Toaster />
       </body>
     </html>
