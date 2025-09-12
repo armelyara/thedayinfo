@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { articles, categories, Comment as CommentType, Article } from '@/lib/data';
-import { Book, LayoutGrid, Users, Edit, ThumbsUp, ThumbsDown, MessageSquare, Send, CalendarDays } from 'lucide-react';
+import { Book, LayoutGrid, Users, Edit, ThumbsUp, ThumbsDown, MessageSquare, Send, CalendarDays, Reply } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import Link from 'next/link';
@@ -20,24 +20,46 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 function CommentSection({ articleId, initialComments }: { articleId: string, initialComments: CommentType[] }) {
     const [comments, setComments] = useState<CommentType[]>(initialComments);
+    const [replyingTo, setReplyingTo] = useState<number | null>(null);
     const [replyText, setReplyText] = useState('');
     
-    const handleReplySubmit = (e: React.FormEvent) => {
+    const handleReplySubmit = (e: React.FormEvent, parentCommentId: number) => {
         e.preventDefault();
         if (replyText.trim()) {
+            const parentComment = comments.find(c => c.id === parentCommentId);
+            if (!parentComment) return;
+
             const newComment: CommentType = {
                 id: Date.now(),
                 author: 'L\'Auteur', 
-                text: replyText.trim(),
+                text: `En réponse à ${parentComment.author}: ${replyText.trim()}`,
                 avatar: 'https://picsum.photos/seed/author-pic/40/40' 
             };
-            setComments(prevComments => [...prevComments, newComment]);
-            setReplyText('');
+            
+            const parentIndex = comments.findIndex(c => c.id === parentCommentId);
+            const newComments = [...comments];
+            newComments.splice(parentIndex + 1, 0, newComment);
+
+            setComments(newComments);
 
             const article = articles.find(a => a.slug === articleId);
             if(article) {
-                article.comments.push(newComment);
+                // This is a mock update, it won't persist
+                article.comments = newComments;
             }
+
+            setReplyText('');
+            setReplyingTo(null);
+        }
+    };
+
+    const toggleReply = (commentId: number) => {
+        if (replyingTo === commentId) {
+            setReplyingTo(null);
+            setReplyText('');
+        } else {
+            setReplyingTo(commentId);
+            setReplyText('');
         }
     };
 
@@ -45,30 +67,45 @@ function CommentSection({ articleId, initialComments }: { articleId: string, ini
         <div className="p-4">
              <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto pr-4">
                 {comments.length > 0 ? comments.map(comment => (
-                    <div key={comment.id} className="flex items-start gap-3">
-                        <Avatar className="h-8 w-8 border">
-                            <AvatarImage src={comment.avatar} />
-                            <AvatarFallback><User size={16}/></AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 bg-muted/50 p-3 rounded-md">
-                            <p className="font-semibold text-sm">{comment.author}</p>
-                            <p className="text-sm text-muted-foreground">{comment.text}</p>
+                    <div key={comment.id}>
+                        <div className="flex items-start gap-3">
+                            <Avatar className="h-8 w-8 border">
+                                <AvatarImage src={comment.avatar} />
+                                <AvatarFallback><User size={16}/></AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 bg-muted/50 p-3 rounded-md">
+                                <p className="font-semibold text-sm">{comment.author}</p>
+                                <p className="text-sm text-muted-foreground">{comment.text}</p>
+                                 <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="mt-2 text-xs h-auto px-2 py-1"
+                                    onClick={() => toggleReply(comment.id)}
+                                >
+                                    <Reply className="mr-1 h-3 w-3" />
+                                    Répondre
+                                </Button>
+                            </div>
                         </div>
+
+                        {replyingTo === comment.id && (
+                             <form onSubmit={(e) => handleReplySubmit(e, comment.id)} className="flex gap-2 items-start mt-2 ml-11">
+                                <Textarea
+                                    placeholder={`Répondre à ${comment.author}...`}
+                                    value={replyText}
+                                    onChange={(e) => setReplyText(e.target.value)}
+                                    className="flex-1"
+                                    rows={2}
+                                />
+                                <Button type="submit" size="sm" disabled={!replyText.trim()}>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Envoyer
+                                </Button>
+                            </form>
+                        )}
                     </div>
                 )) : <p className="text-sm text-muted-foreground">Aucun commentaire pour cet article.</p>}
             </div>
-            <form onSubmit={handleReplySubmit} className="flex gap-4 border-t pt-4">
-                <Textarea
-                    placeholder="Répondre en tant que L'Auteur..."
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    className="flex-1"
-                />
-                <Button type="submit" disabled={!replyText.trim()}>
-                    <Send className="mr-2 h-4 w-4" />
-                    Envoyer
-                </Button>
-            </form>
         </div>
     );
 }
@@ -287,5 +324,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-    
