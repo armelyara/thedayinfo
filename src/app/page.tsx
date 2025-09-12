@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { User, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { Separator } from '@/components/ui/separator';
 
 export default function Home() {
   const authorName = 'The Author';
@@ -24,35 +25,39 @@ export default function Home() {
         </p>
       </header>
 
-      <section className="mb-16 rounded-lg bg-card p-8 text-center shadow-sm">
-        <Avatar className="h-24 w-24 mx-auto mb-4 border-4 border-primary/20">
-            <AvatarImage 
-                src="https://picsum.photos/seed/author-pic/150/150"
-                alt={`A portrait of ${authorName}`}
-                data-ai-hint="author portrait"
-            />
-            <AvatarFallback>
-                <User className="h-12 w-12 text-muted-foreground" />
-            </AvatarFallback>
-        </Avatar>
-        <h2 className="text-2xl font-headline font-bold mb-2">About the Author</h2>
-        <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
-          {shortBio}
-        </p>
-        <Button asChild>
-          <Link href="/about">
-            Learn More <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </section>
+      <div className="grid grid-cols-1 lg:grid-cols-4 lg:gap-12">
+        <aside className="lg:col-span-1 mb-12 lg:mb-0">
+          <div className="sticky top-20 rounded-lg bg-card p-6 text-center shadow-sm">
+            <Avatar className="h-24 w-24 mx-auto mb-4 border-4 border-primary/20">
+                <AvatarImage 
+                    src="https://picsum.photos/seed/author-pic/150/150"
+                    alt={`A portrait of ${authorName}`}
+                    data-ai-hint="author portrait"
+                />
+                <AvatarFallback>
+                    <User className="h-12 w-12 text-muted-foreground" />
+                </AvatarFallback>
+            </Avatar>
+            <h2 className="text-xl font-headline font-bold mb-2">About the Author</h2>
+            <p className="text-sm text-muted-foreground max-w-2xl mx-auto mb-4">
+              {shortBio}
+            </p>
+            <Button asChild size="sm">
+              <Link href="/about">
+                Learn More <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </aside>
 
-      <main>
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {articles.map((article) => (
-            <ArticleCard key={article.slug} article={article} />
-          ))}
-        </div>
-      </main>
+        <main className="lg:col-span-3">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            {articles.map((article) => (
+              <ArticleCard key={article.slug} article={article} />
+            ))}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
