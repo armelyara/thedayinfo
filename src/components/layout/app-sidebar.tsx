@@ -12,6 +12,9 @@ import { SearchInput } from '@/components/search-input';
 import { LogoIcon } from '@/components/icons';
 import Link from 'next/link';
 import * as Lucide from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Button } from '../ui/button';
+import { ArrowRight } from 'lucide-react';
 
 const categoryIcons: { [key: string]: keyof typeof Lucide } = {
   Technology: 'Cpu',
@@ -22,6 +25,11 @@ const categoryIcons: { [key: string]: keyof typeof Lucide } = {
 };
 
 export function AppSidebar() {
+  const authorName = 'The Author';
+  const shortBio = `
+    Passionate writer dedicated to exploring technology, science, and culture.
+  `;
+
   return (
     <>
       <SidebarHeader>
@@ -35,17 +43,28 @@ export function AppSidebar() {
           <SearchInput />
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>About</SidebarGroupLabel>
-          <SidebarMenu>
-             <SidebarMenuItem>
+            <div className="flex flex-col items-center text-center p-2">
+                <Avatar className="h-20 w-20 mx-auto mb-3 border-4 border-primary/20">
+                    <AvatarImage 
+                        src="https://picsum.photos/seed/author-pic/150/150"
+                        alt={`A portrait of ${authorName}`}
+                        data-ai-hint="author portrait"
+                    />
+                    <AvatarFallback>
+                        <Lucide.User className="h-10 w-10 text-muted-foreground" />
+                    </AvatarFallback>
+                </Avatar>
+                <h3 className="text-md font-headline font-bold">The Author</h3>
+                <p className="text-xs text-muted-foreground mt-1 mb-3">
+                    {shortBio}
+                </p>
                 <Link href="/about" className="w-full">
-                <SidebarMenuButton tooltip="About">
-                    <Lucide.User />
-                    <span>About the Author</span>
-                </SidebarMenuButton>
+                    <Button variant="outline" size="sm" className="w-full">
+                        Read More 
+                        <ArrowRight className="ml-1 h-3 w-3" />
+                    </Button>
                 </Link>
-            </SidebarMenuItem>
-          </SidebarMenu>
+            </div>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Categories</SidebarGroupLabel>
