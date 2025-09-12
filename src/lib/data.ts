@@ -150,4 +150,24 @@ export const addArticle = (article: Omit<Article, 'slug' | 'publicationDate' | '
   };
   articles.unshift(newArticle);
   return newArticle;
+};
+
+export const updateArticle = (slug: string, data: Partial<Omit<Article, 'slug' | 'publicationDate' | 'image'>>) => {
+  const articleIndex = articles.findIndex(a => a.slug === slug);
+  if (articleIndex === -1) {
+    return null;
+  }
+
+  const existingArticle = articles[articleIndex];
+
+  // If title changes, slug should change too.
+  const newSlug = data.title ? data.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '') : slug;
+
+  const updatedArticle: Article = {
+    ...existingArticle,
+    ...data,
+    slug: newSlug,
+  };
+  articles[articleIndex] = updatedArticle;
+  return updatedArticle;
 }

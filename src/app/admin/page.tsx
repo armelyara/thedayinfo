@@ -3,11 +3,20 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { articles, categories } from '@/lib/data';
-import { Book, LayoutGrid, Users } from 'lucide-react';
+import { Book, LayoutGrid, Users, Edit } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 export default function AdminDashboard() {
   const totalArticles = articles.length;
@@ -70,6 +79,43 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Articles Publiés</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Titre</TableHead>
+                  <TableHead>Auteur</TableHead>
+                  <TableHead>Catégorie</TableHead>
+                  <TableHead>Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {articles.map((article) => (
+                  <TableRow key={article.slug}>
+                    <TableCell className="font-medium">{article.title}</TableCell>
+                    <TableCell>{article.author}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{article.category}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/admin/edit/${article.slug}`}>
+                        <Button variant="outline" size="sm">
+                          <Edit className="mr-2 h-4 w-4" />
+                          Modifier
+                        </Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
