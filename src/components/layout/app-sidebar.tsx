@@ -57,7 +57,7 @@ export function AppSidebar() {
                     {shortBio}
                 </p>
                 <Link href="/about" className="w-full">
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button variant="secondary" size="sm" className="w-full">
                         Lire la suite
                         <ArrowRight className="ml-1 h-3 w-3" />
                     </Button>
