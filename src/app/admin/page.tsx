@@ -166,11 +166,13 @@ export default function AdminDashboard() {
                 </TableHeader>
                 <TableBody>
                   {articles.map((article) => (
-                    <AccordionItem value={article.slug} key={article.slug}>
-                      <AccordionTrigger asChild>
-                         <TableRow className="cursor-pointer hover:bg-muted/50">
+                    <AccordionItem value={article.slug} key={article.slug} asChild>
+                       <>
+                        <TableRow>
                             <TableCell>
-                                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                <AccordionTrigger>
+                                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                </AccordionTrigger>
                             </TableCell>
                             <TableCell className="font-medium">{article.title}</TableCell>
                             <TableCell>
@@ -200,15 +202,15 @@ export default function AdminDashboard() {
                                     </Button>
                                 </Link>
                             </TableCell>
-                         </TableRow>
-                      </AccordionTrigger>
-                      <AccordionContent asChild>
-                         <tr>
-                            <td colSpan={5}>
-                                <CommentSection articleId={article.slug} initialComments={article.comments} />
-                            </td>
-                         </tr>
-                      </AccordionContent>
+                        </TableRow>
+                        <AccordionContent asChild>
+                            <tr>
+                                <td colSpan={5}>
+                                    <CommentSection articleId={article.slug} initialComments={article.comments} />
+                                </td>
+                            </tr>
+                        </AccordionContent>
+                      </>
                     </AccordionItem>
                   ))}
                 </TableBody>
