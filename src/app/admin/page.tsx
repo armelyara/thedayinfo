@@ -171,7 +171,7 @@ export default function AdminDashboard() {
                         <TableRow>
                             <TableCell>
                                 <AccordionTrigger>
-                                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                     <ChevronDown className="h-4 w-4 transition-transform duration-200" />
                                 </AccordionTrigger>
                             </TableCell>
                             <TableCell className="font-medium">{article.title}</TableCell>
