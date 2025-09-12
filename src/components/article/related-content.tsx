@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { suggestRelatedContent } from '@/ai/flows/related-content-suggestions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,7 +46,7 @@ export default async function RelatedContent({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-headline">
           <BookText />
-          <span>You Might Also Like</span>
+          <span>Vous Pourriez Aussi Aimer</span>
         </CardTitle>
       </CardHeader>
       <CardContent>

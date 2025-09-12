@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -35,7 +36,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
         </CardContent>
         <CardFooter className="p-6 pt-0">
             <div className="flex items-center text-sm font-semibold text-primary">
-                Read More
+                Lire la suite
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
             </div>
         </CardFooter>

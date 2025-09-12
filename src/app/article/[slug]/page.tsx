@@ -1,3 +1,4 @@
+
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { getArticleBySlug, articles } from '@/lib/data';
@@ -47,7 +48,7 @@ export default function ArticlePage({ params }: ArticlePageProps) {
           <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             <time dateTime={article.publicationDate}>
-              {new Date(article.publicationDate).toLocaleDateString('en-US', {
+              {new Date(article.publicationDate).toLocaleDateString('fr-FR', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',

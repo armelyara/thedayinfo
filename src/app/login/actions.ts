@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -15,7 +16,7 @@ export async function login(values: z.infer<typeof formSchema>) {
   const validatedFields = formSchema.safeParse(values);
 
   if (!validatedFields.success) {
-    return { error: 'Invalid fields!' };
+    return { error: 'Champs invalides !' };
   }
 
   const { email, password } = validatedFields.data;
@@ -24,7 +25,7 @@ export async function login(values: z.infer<typeof formSchema>) {
   if (email === 'admin@example.com' && password === 'password') {
     // In a real app, you would create a session here.
   } else {
-    return { error: 'Invalid email or password' };
+    return { error: 'Email ou mot de passe invalide' };
   }
   
   // On successful login, redirect to the admin dashboard.

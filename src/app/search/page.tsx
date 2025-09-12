@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -14,12 +15,12 @@ function SearchResults() {
     <div className="container mx-auto px-4 py-8">
       <header className="mb-12 border-b pb-6">
         <h1 className="text-4xl font-headline font-bold tracking-tight text-foreground sm:text-5xl">
-          Search Results
+          Résultats de la Recherche
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
           {results.length > 0
-            ? `${results.length} article(s) found for `
-            : `No articles found for `}
+            ? `${results.length} article(s) trouvé(s) pour `
+            : `Aucun article trouvé pour `}
           <span className="font-semibold text-primary">"{query}"</span>
         </p>
       </header>
@@ -32,9 +33,9 @@ function SearchResults() {
           </div>
         ) : (
           <div className="text-center py-16">
-            <h2 className="text-2xl font-semibold">Nothing Found</h2>
+            <h2 className="text-2xl font-semibold">Rien n'a été trouvé</h2>
             <p className="text-muted-foreground mt-2">
-              Try searching for something else.
+              Essayez de rechercher autre chose.
             </p>
           </div>
         )}
@@ -45,7 +46,7 @@ function SearchResults() {
 
 export default function SearchPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div>Chargement...</div>}>
             <SearchResults />
         </Suspense>
     )

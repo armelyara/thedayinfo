@@ -30,16 +30,16 @@ import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   title: z.string().min(10, {
-    message: 'Title must be at least 10 characters.',
+    message: 'Le titre doit comporter au moins 10 caractères.',
   }),
   author: z.string().min(2, {
-    message: 'Author must be at least 2 characters.',
+    message: 'L\'auteur doit comporter au moins 2 caractères.',
   }),
   category: z.string({
-    required_error: 'Please select a category.',
+    required_error: 'Veuillez sélectionner une catégorie.',
   }),
   content: z.string().min(100, {
-    message: 'Content must be at least 100 characters.',
+    message: 'Le contenu doit comporter au moins 100 caractères.',
   }),
 });
 
@@ -60,15 +60,15 @@ export default function CreateArticlePage() {
     try {
       const newArticle = await createArticle(values);
       toast({
-        title: 'Article Published!',
-        description: 'Your new article has been successfully published.',
+        title: 'Article Publié !',
+        description: 'Votre nouvel article a été publié avec succès.',
       });
       router.push(`/article/${newArticle.slug}`);
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
-        description: 'There was a problem with your request.',
+        title: 'Oh oh ! Quelque chose s\'est mal passé.',
+        description: 'Un problème est survenu avec votre demande.',
       });
     }
   }
@@ -76,9 +76,9 @@ export default function CreateArticlePage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8">
-        <h1 className="text-4xl font-headline font-bold">Write a New Article</h1>
+        <h1 className="text-4xl font-headline font-bold">Écrire un Nouvel Article</h1>
         <p className="text-muted-foreground mt-2">
-          Fill out the form below to publish a new article to The Day Info.
+          Remplissez le formulaire ci-dessous pour publier un nouvel article sur The Day Info.
         </p>
       </header>
       <main>
@@ -89,12 +89,12 @@ export default function CreateArticlePage() {
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>Titre</FormLabel>
                   <FormControl>
-                    <Input placeholder="The Future of AI" {...field} />
+                    <Input placeholder="L'avenir de l'IA" {...field} />
                   </FormControl>
                   <FormDescription>
-                    This is your article's title.
+                    Ceci est le titre de votre article.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -105,11 +105,11 @@ export default function CreateArticlePage() {
               name="author"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Author</FormLabel>
+                  <FormLabel>Auteur</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input placeholder="Jean Dupont" {...field} />
                   </FormControl>
-                  <FormDescription>The name of the author.</FormDescription>
+                  <FormDescription>Le nom de l'auteur.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -119,14 +119,14 @@ export default function CreateArticlePage() {
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel>Catégorie</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
+                        <SelectValue placeholder="Sélectionnez une catégorie" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -138,7 +138,7 @@ export default function CreateArticlePage() {
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Choose the category that best fits your article.
+                    Choisissez la catégorie qui correspond le mieux à votre article.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -149,22 +149,22 @@ export default function CreateArticlePage() {
               name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Content</FormLabel>
+                  <FormLabel>Contenu</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Tell your story..."
+                      placeholder="Racontez votre histoire..."
                       className="min-h-[200px]"
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    Write the main content of your article here.
+                    Écrivez ici le contenu principal de votre article.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit">Publish Article</Button>
+            <Button type="submit">Publier l'Article</Button>
           </form>
         </Form>
       </main>

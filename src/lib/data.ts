@@ -1,3 +1,4 @@
+
 export type Article = {
   slug: string;
   title: string;
@@ -19,100 +20,100 @@ export type Category = {
 };
 
 export const categories: Category[] = [
-  { name: 'Technology', slug: 'technology' },
-  { name: 'Actuality', slug: 'actuality' },
+  { name: 'Technologie', slug: 'technologie' },
+  { name: 'Actualité', slug: 'actualite' },
 ];
 
 export let articles: Article[] = [
   {
-    slug: 'the-future-of-ai-in-tech',
-    title: 'The Future of Artificial Intelligence and Its Impact on Technology',
+    slug: 'le-futur-de-lia-dans-la-technologie',
+    title: 'L\'Avenir de l\'Intelligence Artificielle et son Impact sur la Technologie',
     author: 'Jane Doe',
-    category: 'Technology',
+    category: 'Technologie',
     publicationDate: '2023-10-26',
     image: {
       id: "1",
       src: 'https://picsum.photos/seed/1/600/400',
-      alt: 'Abstract AI visualization',
+      alt: 'Visualisation abstraite de l\'IA',
       aiHint: 'abstract AI'
     },
     content:
-      'Artificial Intelligence is no longer a concept of science fiction; it\'s a reality that is reshaping our world. From machine learning algorithms that predict consumer behavior to natural language processing that powers our voice assistants, AI is at the heart of the most significant technological advancements of our time. This article explores the trajectory of AI development, its current applications across various industries, and the ethical considerations we must navigate as we move into an increasingly automated future. We will delve into deep learning, neural networks, and the quest for Artificial General Intelligence (AGI), providing a comprehensive overview for both tech enthusiasts and curious newcomers.',
+      'L\'Intelligence Artificielle n\'est plus un concept de science-fiction ; c\'est une réalité qui remodèle notre monde. Des algorithmes d\'apprentissage automatique qui prédisent le comportement des consommateurs au traitement du langage naturel qui alimente nos assistants vocaux, l\'IA est au cœur des avancées technologiques les plus significatives de notre époque. Cet article explore la trajectoire du développement de l\'IA, ses applications actuelles dans diverses industries et les considérations éthiques que nous devons aborder alors que nous nous dirigeons vers un avenir de plus en plus automatisé. Nous nous pencherons sur l\'apprentissage profond, les réseaux de neurones et la quête de l\'Intelligence Générale Artificielle (AGI), offrant un aperçu complet pour les passionnés de technologie comme pour les nouveaux venus curieux.',
   },
   {
-    slug: 'exploring-the-cosmos',
-    title: 'Exploring the Cosmos: New Discoveries in Space Exploration',
+    slug: 'exploration-du-cosmos',
+    title: 'Exploration du Cosmos : Nouvelles Découvertes en Exploration Spatiale',
     author: 'John Smith',
-    category: 'Actuality',
+    category: 'Actualité',
     publicationDate: '2023-10-25',
     image: {
       id: "2",
       src: 'https://picsum.photos/seed/2/600/400',
-      alt: 'A colorful nebula in deep space',
+      alt: 'Une nébuleuse colorée dans l\'espace lointain',
       aiHint: 'nebula space'
     },
     content:
-      'The final frontier continues to captivate our imagination, and recent advancements in space exploration have brought us closer to understanding the universe than ever before. This month, the James Webb Space Telescope has sent back breathtaking images of distant galaxies, revealing the birth of stars in stunning detail. Meanwhile, missions to Mars are uncovering more about the planet\'s watery past, fueling speculation about the possibility of extraterrestrial life. Join us as we journey through the latest findings, from the icy moons of Jupiter to the mysteries of dark matter, and celebrate the human ingenuity that makes these discoveries possible.',
+      'La dernière frontière continue de captiver notre imagination, et les récentes avancées en exploration spatiale nous ont rapprochés de la compréhension de l\'univers comme jamais auparavant. Ce mois-ci, le télescope spatial James Webb a renvoyé des images époustouflantes de galaxies lointaines, révélant la naissance d\'étoiles avec des détails saisissants. Pendant ce temps, les missions vers Mars en découvrent davantage sur le passé aquatique de la planète, alimentant les spéculations sur la possibilité d\'une vie extraterrestre. Rejoignez-nous pour un voyage à travers les dernières découvertes, des lunes glacées de Jupiter aux mystères de la matière noire, et célébrez l\'ingéniosité humaine qui rend ces découvertes possibles.',
   },
   {
-    slug: 'mindfulness-in-the-digital-age',
-    title: 'Mindfulness in the Digital Age: A Guide to Well-being',
+    slug: 'la-pleine-conscience-a-lere-numerique',
+    title: 'La Pleine Conscience à l\'Ère Numérique : Un Guide pour le Bien-être',
     author: 'Emily White',
-    category: 'Actuality',
+    category: 'Actualité',
     publicationDate: '2023-10-24',
     image: {
       id: "3",
       src: 'https://picsum.photos/seed/3/600/400',
-      alt: 'A person meditating peacefully outdoors',
+      alt: 'Une personne méditant paisiblement en plein air',
       aiHint: 'meditation nature'
     },
     content:
-      'In a world of constant notifications and digital distractions, finding a moment of peace can feel like a monumental task. Mindfulness, the practice of being present and fully aware of the current moment, offers a powerful antidote to the stress of modern life. This guide provides practical tips and techniques for incorporating mindfulness into your daily routine. We cover everything from simple breathing exercises and guided meditations to digital detox strategies and mindful technology use. Learn how to reduce anxiety, improve focus, and cultivate a deeper sense of well-being, even when you\'re surrounded by screens.',
+      'Dans un monde de notifications constantes et de distractions numériques, trouver un moment de paix peut sembler une tâche monumentale. La pleine conscience, la pratique d\'être présent et pleinement conscient du moment présent, offre un antidote puissant au stress de la vie moderne. Ce guide fournit des conseils pratiques et des techniques pour intégrer la pleine conscience dans votre routine quotidienne. Nous couvrons tout, des exercices de respiration simples et des méditations guidées aux stratégies de désintoxication numérique et à l\'utilisation consciente de la technologie. Apprenez à réduire l\'anxiété, à améliorer votre concentration et à cultiver un sentiment de bien-être plus profond, même lorsque vous êtes entouré d\'écrans.',
   },
   {
-    slug: 'the-rise-of-sustainable-business',
-    title: 'The Rise of Sustainable Business: Profit Meets Purpose',
+    slug: 'lessor-de-lentreprise-durable',
+    title: 'L\'Essor de l\'Entreprise Durable : Le Profit Rencontre la Finalité',
     author: 'Michael Brown',
-    category: 'Actuality',
+    category: 'Actualité',
     publicationDate: '2023-10-23',
     image: {
       id: "4",
       src: 'https://picsum.photos/seed/4/600/400',
-      alt: 'A green plant growing out of a pile of coins',
+      alt: 'Une plante verte poussant sur un tas de pièces de monnaie',
       aiHint: 'sustainable finance'
     },
     content:
-      'A new paradigm is emerging in the corporate world, one where success is measured not just in financial returns, but also in social and environmental impact. Sustainable business practices are moving from the periphery to the core of corporate strategy as companies recognize the long-term value of environmental stewardship and social responsibility. This article examines the key drivers behind this shift, from changing consumer expectations to the increasing risks posed by climate change. We spotlight innovative companies that are leading the way in sustainability and offer insights for businesses looking to integrate purpose into their profit-making endeavors.',
+      'Un nouveau paradigme émerge dans le monde de l\'entreprise, où le succès se mesure non seulement en termes de rendements financiers, mais aussi en termes d\'impact social et environnemental. Les pratiques commerciales durables passent de la périphérie au cœur de la stratégie d\'entreprise, car les entreprises reconnaissent la valeur à long terme de la gérance de l\'environnement et de la responsabilité sociale. Cet article examine les principaux moteurs de ce changement, des attentes changeantes des consommateurs aux risques croissants posés par le changement climatique. Nous mettons en lumière les entreprises innovantes qui ouvrent la voie en matière de durabilité et offrons des perspectives aux entreprises qui cherchent à intégrer une finalité dans leurs activités lucratives.',
   },
   {
-    slug: 'from-graffiti-to-galleries',
-    title: 'From Graffiti to Galleries: The Evolution of Street Art',
+    slug: 'du-graffiti-aux-galeries',
+    title: 'Du Graffiti aux Galeries : L\'Évolution de l\'Art de Rue',
     author: 'Sarah Green',
-    category: 'Actuality',
+    category: 'Actualité',
     publicationDate: '2023-10-22',
     image: {
       id: "5",
       src: 'https://picsum.photos/seed/5/600/400',
-      alt: 'A vibrant and complex graffiti mural on a brick wall',
+      alt: 'Une fresque de graffiti vibrante et complexe sur un mur de briques',
       aiHint: 'graffiti wall'
     },
     content:
-      'Once dismissed as vandalism, street art has undergone a remarkable transformation, evolving into a globally recognized and celebrated art form. Artists who once operated in the shadows are now commissioned for massive public murals and featured in prestigious art galleries. This cultural shift reflects a broader change in our perception of public space and artistic expression. We trace the history of street art from its origins in the graffiti subcultures of the 1970s to its current status as a powerful medium for social commentary and aesthetic innovation. Explore the works of pioneering artists and the movements that have defined this dynamic and accessible art form.',
+      'Autrefois considéré comme du vandalisme, l\'art de rue a subi une transformation remarquable, évoluant pour devenir une forme d\'art mondialement reconnue et célébrée. Les artistes qui opéraient autrefois dans l\'ombre sont maintenant mandatés pour des peintures murales publiques massives et exposés dans des galeries d\'art prestigieuses. Ce changement culturel reflète un changement plus large dans notre perception de l\'espace public et de l\'expression artistique. Nous retraçons l\'histoire de l\'art de rue depuis ses origines dans les sous-cultures du graffiti des années 1970 jusqu\'à son statut actuel de médium puissant pour le commentaire social et l\'innovation esthétique. Explorez les œuvres d\'artistes pionniers et les mouvements qui ont défini cette forme d\'art dynamique et accessible.',
   },
   {
-    slug: 'quantum-computing-explained',
-    title: 'Quantum Computing Explained: The Next Tech Revolution',
+    slug: 'informatique-quantique-expliquee',
+    title: 'L\'Informatique Quantique Expliquée : La Prochaine Révolution Technologique',
     author: 'David Chen',
-    category: 'Technology',
+    category: 'Technologie',
     publicationDate: '2023-10-21',
     image: {
       id: "6",
       src: 'https://picsum.photos/seed/6/600/400',
-      alt: 'Abstract representation of quantum bits',
+      alt: 'Représentation abstraite de bits quantiques',
       aiHint: 'quantum computing'
     },
     content:
-      'Quantum computing promises to solve complex problems that are currently intractable for even the most powerful supercomputers. By harnessing the strange principles of quantum mechanics, such as superposition and entanglement, these machines operate in a fundamentally different way from classical computers. In this article, we break down the core concepts of quantum computing, explaining qubits, quantum gates, and quantum algorithms in accessible terms. We also discuss the potential applications, from developing new medicines and materials to revolutionizing finance and artificial intelligence, and look at the current state of the race to build a scalable, fault-tolerant quantum computer.',
+      'L\'informatique quantique promet de résoudre des problèmes complexes qui sont actuellement insolubles même pour les superordinateurs les plus puissants. En exploitant les étranges principes de la mécanique quantique, tels que la superposition et l\'intrication, ces machines fonctionnent de manière fondamentalement différente des ordinateurs classiques. Dans cet article, nous décomposons les concepts fondamentaux de l\'informatique quantique, en expliquant les qubits, les portes quantiques et les algorithmes quantiques en des termes accessibles. Nous discutons également des applications potentielles, du développement de nouveaux médicaments et matériaux à la révolution de la finance et de l\'intelligence artificielle, et examinons l\'état actuel de la course pour construire un ordinateur quantique évolutif et tolérant aux pannes.',
   },
 ];
 

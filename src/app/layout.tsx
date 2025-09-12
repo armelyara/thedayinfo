@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -8,7 +9,7 @@ import LoginPage from './login/page';
 
 export const metadata: Metadata = {
   title: 'The Day Info',
-  description: 'Your daily dose of information.',
+  description: 'Votre dose quotidienne d\'information.',
 };
 
 export default function RootLayout({
@@ -21,7 +22,7 @@ export default function RootLayout({
   const isAdmin = host?.startsWith('admin.');
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

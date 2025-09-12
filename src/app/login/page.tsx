@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,10 +21,10 @@ import { useState } from 'react';
 
 const formSchema = z.object({
   email: z.string().email({
-    message: 'Please enter a valid email address.',
+    message: 'Veuillez entrer une adresse e-mail valide.',
   }),
   password: z.string().min(6, {
-    message: 'Password must be at least 6 characters.',
+    message: 'Le mot de passe doit comporter au moins 6 caractères.',
   }),
 });
 
@@ -47,16 +48,16 @@ export default function LoginPage() {
         setError(result.error);
         toast({
             variant: 'destructive',
-            title: 'Login Failed',
+            title: 'Échec de la Connexion',
             description: result.error,
         });
       }
     } catch (e: any) {
-        setError('An unexpected error occurred.');
+        setError('Une erreur inattendue est survenue.');
         toast({
             variant: 'destructive',
-            title: 'Uh oh! Something went wrong.',
-            description: 'There was a problem with your request.',
+            title: 'Oh oh ! Quelque chose s\'est mal passé.',
+            description: 'Un problème est survenu avec votre demande.',
         });
     }
   }
@@ -65,9 +66,9 @@ export default function LoginPage() {
     <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Admin Sign In</CardTitle>
+          <CardTitle>Connexion Administrateur</CardTitle>
           <CardDescription>
-            Enter your credentials to access the writer dashboard.
+            Entrez vos identifiants pour accéder au tableau de bord de l'auteur.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -78,7 +79,7 @@ export default function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>E-mail</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
@@ -95,7 +96,7 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>Mot de passe</FormLabel>
                     <FormControl>
                       <Input
                         type="password"
@@ -108,7 +109,7 @@ export default function LoginPage() {
                 )}
               />
               <Button type="submit" className="w-full">
-                Sign In
+                Se Connecter
               </Button>
             </form>
           </Form>

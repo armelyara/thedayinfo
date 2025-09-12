@@ -1,3 +1,4 @@
+
 import {
   SidebarContent,
   SidebarGroup,
@@ -17,14 +18,14 @@ import { Button } from '../ui/button';
 import { ArrowRight } from 'lucide-react';
 
 const categoryIcons: { [key: string]: keyof typeof Lucide } = {
-  Technology: 'Cpu',
-  Actuality: 'Newspaper',
+  Technologie: 'Cpu',
+  Actualité: 'Newspaper',
 };
 
 export function AppSidebar() {
-  const authorName = 'The Author';
+  const authorName = 'L\'Auteur';
   const shortBio = `
-    Passionate writer dedicated to exploring technology, science, and culture.
+    Écrivain passionné dédié à l'exploration de la technologie, de la science et de la culture.
   `;
 
   return (
@@ -44,27 +45,27 @@ export function AppSidebar() {
                 <Avatar className="h-20 w-20 mx-auto mb-3 border-4 border-primary/20">
                     <AvatarImage 
                         src="https://picsum.photos/seed/author-pic/150/150"
-                        alt={`A portrait of ${authorName}`}
-                        data-ai-hint="author portrait"
+                        alt={`Un portrait de ${authorName}`}
+                        data-ai-hint="portrait auteur"
                     />
                     <AvatarFallback>
                         <Lucide.User className="h-10 w-10 text-muted-foreground" />
                     </AvatarFallback>
                 </Avatar>
-                <h3 className="text-md font-headline font-bold">The Author</h3>
+                <h3 className="text-md font-headline font-bold">L'Auteur</h3>
                 <p className="text-xs text-muted-foreground mt-1 mb-3">
                     {shortBio}
                 </p>
                 <Link href="/about" className="w-full">
                     <Button variant="outline" size="sm" className="w-full">
-                        Read More 
+                        Lire la suite
                         <ArrowRight className="ml-1 h-3 w-3" />
                     </Button>
                 </Link>
             </div>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Categories</SidebarGroupLabel>
+          <SidebarGroupLabel>Catégories</SidebarGroupLabel>
           <SidebarMenu>
             {categories.map((category) => {
               const Icon = Lucide[categoryIcons[category.name] || 'Folder'] as React.ElementType;

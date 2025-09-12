@@ -1,3 +1,4 @@
+
 import { notFound } from 'next/navigation';
 import { getArticlesByCategory, categories } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
@@ -27,10 +28,10 @@ export default function CategoryPage({ params }: CategoryPageProps) {
     <div className="container mx-auto px-4 py-8">
       <header className="mb-12 border-b pb-6">
         <h1 className="text-4xl font-headline font-bold tracking-tight text-foreground sm:text-5xl">
-          Category: <span className="text-primary">{category.name}</span>
+          Catégorie : <span className="text-primary">{category.name}</span>
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Browsing {articlesInCategory.length} articles in the "{category.name}" category.
+          Affichage de {articlesInCategory.length} articles dans la catégorie "{category.name}".
         </p>
       </header>
       <main>
@@ -42,9 +43,9 @@ export default function CategoryPage({ params }: CategoryPageProps) {
           </div>
         ) : (
           <div className="text-center py-16">
-            <h2 className="text-2xl font-semibold">No Articles Found</h2>
+            <h2 className="text-2xl font-semibold">Aucun Article Trouvé</h2>
             <p className="text-muted-foreground mt-2">
-              There are no articles in this category yet. Check back soon!
+              Il n'y a pas encore d'articles dans cette catégorie. Revenez bientôt !
             </p>
           </div>
         )}

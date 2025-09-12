@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -20,7 +21,7 @@ export function SearchInput() {
     <form onSubmit={handleSearch} className="relative">
       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       <SidebarInput
-        placeholder="Search articles..."
+        placeholder="Rechercher des articles..."
         className="pl-8"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}

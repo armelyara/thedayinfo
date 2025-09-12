@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -34,15 +35,15 @@ export default function Feedback() {
     if (commentText.trim()) {
       const newComment: Comment = {
         id: Date.now(),
-        author: 'Guest User',
+        author: 'Visiteur',
         text: commentText.trim(),
         avatar: `https://i.pravatar.cc/40?u=${Date.now()}`
       };
       setComments([newComment, ...comments]);
       setCommentText('');
       toast({
-        title: 'Comment Posted',
-        description: 'Thank you for your feedback!',
+        title: 'Commentaire Posté',
+        description: 'Merci pour votre retour !',
       });
     }
   };
@@ -50,8 +51,8 @@ export default function Feedback() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Was this article helpful?</CardTitle>
-        <CardDescription>Let us know what you think.</CardDescription>
+        <CardTitle className="font-headline">Cet article vous a-t-il été utile ?</CardTitle>
+        <CardDescription>Faites-nous savoir ce que vous en pensez.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex gap-4">
@@ -61,27 +62,27 @@ export default function Feedback() {
             className={cn(reaction === 'like' && 'bg-green-500 hover:bg-green-600')}
           >
             <ThumbsUp className="mr-2 h-4 w-4" />
-            Like
+            J'aime
           </Button>
           <Button
             variant={reaction === 'dislike' ? 'destructive' : 'outline'}
             onClick={() => handleReaction('dislike')}
           >
             <ThumbsDown className="mr-2 h-4 w-4" />
-            Dislike
+            Je n'aime pas
           </Button>
         </div>
         <div className="space-y-4">
-          <h4 className="font-semibold font-headline">Leave a Comment</h4>
+          <h4 className="font-semibold font-headline">Laisser un Commentaire</h4>
           <form onSubmit={handleCommentSubmit} className="space-y-4">
             <Textarea
-              placeholder="Share your thoughts..."
+              placeholder="Partagez vos réflexions..."
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
             />
             <Button type="submit" disabled={!commentText.trim()}>
               <Send className="mr-2 h-4 w-4" />
-              Post Comment
+              Poster le Commentaire
             </Button>
           </form>
           <div className="space-y-4 pt-4">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,20 +31,20 @@ export default function AdminDashboard() {
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8 flex justify-between items-center">
         <div>
-          <h1 className="text-4xl font-headline font-bold">Admin Dashboard</h1>
+          <h1 className="text-4xl font-headline font-bold">Tableau de Bord Admin</h1>
           <p className="text-muted-foreground mt-2">
-            An overview of your published content.
+            Un aperçu de votre contenu publié.
           </p>
         </div>
         <Link href="/admin/create-article">
-          <Button>Write a New Article</Button>
+          <Button>Écrire un Nouvel Article</Button>
         </Link>
       </header>
       <main className="grid gap-8">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Articles</CardTitle>
+              <CardTitle className="text-sm font-medium">Total des Articles</CardTitle>
               <Book className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -52,7 +53,7 @@ export default function AdminDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Categories</CardTitle>
+              <CardTitle className="text-sm font-medium">Catégories</CardTitle>
               <LayoutGrid className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -61,7 +62,7 @@ export default function AdminDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Authors</CardTitle>
+              <CardTitle className="text-sm font-medium">Total des Auteurs</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -72,7 +73,7 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Articles per Category</CardTitle>
+            <CardTitle>Articles par Catégorie</CardTitle>
           </CardHeader>
           <CardContent>
              <ChartContainer config={chartConfig} className="min-h-[200px] w-full">

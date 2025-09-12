@@ -12,7 +12,7 @@ export default function Home() {
           The Day Info
         </h1>
         <p className="mt-3 text-lg text-muted-foreground sm:text-xl">
-          Your daily dose of information, curated for the curious mind.
+          Votre dose quotidienne d'information, organisée pour les esprits curieux.
         </p>
       </header>
 
