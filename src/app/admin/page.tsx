@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { articles, categories, Comment as CommentType, Article } from '@/lib/data';
-import { Book, LayoutGrid, Users, Edit, ThumbsUp, ThumbsDown, MessageSquare, Send } from 'lucide-react';
+import { Book, LayoutGrid, Users, Edit, ThumbsUp, ThumbsDown, MessageSquare, Send, CalendarDays } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import Link from 'next/link';
@@ -96,7 +96,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <header className="mb-8 flex justify-between items-center">
+      <header className="mb-8 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-4xl font-headline font-bold">Tableau de Bord Admin</h1>
           <p className="text-muted-foreground mt-2">
@@ -104,7 +104,7 @@ export default function AdminDashboard() {
           </p>
         </div>
         <Link href="/admin/create-article">
-          <Button>Écrire un Nouvel Article</Button>
+          <Button className="w-full sm:w-auto">Écrire un Nouvel Article</Button>
         </Link>
       </header>
       <main className="grid gap-8">
@@ -144,57 +144,110 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="border rounded-lg">
-                <div className="grid grid-cols-12 items-center p-4 font-medium text-muted-foreground text-sm border-b">
+                {/*-- Desktop Header --*/}
+                <div className="hidden md:grid grid-cols-12 items-center p-4 font-medium text-muted-foreground text-sm border-b">
                   <div className="col-span-5">Titre</div>
                   <div className="col-span-2">Catégorie</div>
                   <div className="col-span-2">Publication</div>
                   <div className="col-span-2 text-center">Statistiques</div>
                   <div className="col-span-1 text-right">Action</div>
                 </div>
-                {sortedArticles.map((article) => (
-                  <div key={article.slug} className="grid grid-cols-12 items-center p-4 border-b last:border-b-0 hover:bg-muted/50">
-                      <div className="col-span-5 text-left font-medium">
-                          {article.title}
-                          <Badge variant={article.status === 'published' ? 'secondary' : 'default'} className="ml-2">
-                              {article.status === 'published' ? 'Publié' : 'Programmé'}
-                          </Badge>
-                      </div>
-                      <div className="col-span-2 text-left">
-                          <Badge variant="outline">{article.category}</Badge>
-                      </div>
-                      <div className="col-span-2 text-left">
-                          {format(new Date(article.publicationDate), 'd MMM yyyy', { locale: fr })}
-                      </div>
-                      <div className="col-span-2">
-                          <div className="flex justify-center items-center gap-4 text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                  <ThumbsUp className="h-4 w-4 text-green-500" />
-                                  <span className="text-sm font-semibold">{article.likes}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                  <ThumbsDown className="h-4 w-4 text-red-500" />
-                                  <span className="text-sm font-semibold">{article.dislikes}</span>
-                              </div>
-                                <Dialog onOpenChange={(isOpen) => !isOpen && setViewingCommentsOf(null)}>
-                                  <DialogTrigger asChild>
-                                      <button onClick={() => setViewingCommentsOf(article)} className="flex items-center gap-1 cursor-pointer hover:text-primary">
-                                        <MessageSquare className="h-4 w-4 text-blue-500" />
-                                        <span className="text-sm font-semibold">{article.comments.length}</span>
-                                      </button>
-                                  </DialogTrigger>
-                                </Dialog>
-                          </div>
-                      </div>
-                      <div className="col-span-1 text-right">
-                          <Link href={`/admin/edit/${article.slug}`}>
-                              <Button variant="outline" size="sm">
-                                <Edit className="mr-2 h-4 w-4" />
-                                Modifier
-                              </Button>
-                          </Link>
-                      </div>
-                  </div>
-                ))}
+
+                {/*-- Article List --*/}
+                <div className="divide-y md:divide-y-0">
+                    {sortedArticles.map((article) => (
+                        <div key={article.slug} className="p-4 md:grid md:grid-cols-12 md:items-center hover:bg-muted/50">
+                            
+                            {/*-- Mobile Layout --*/}
+                            <div className="md:hidden space-y-4">
+                                <div>
+                                    <h3 className="font-medium text-lg leading-tight">{article.title}</h3>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Badge variant={article.status === 'published' ? 'secondary' : 'default'} className="text-xs">
+                                            {article.status === 'published' ? 'Publié' : 'Programmé'}
+                                        </Badge>
+                                         <Badge variant="outline">{article.category}</Badge>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                                    <CalendarDays className="h-4 w-4" />
+                                    <span>{format(new Date(article.publicationDate), 'd MMM yyyy', { locale: fr })}</span>
+                                </div>
+                                
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4 text-muted-foreground">
+                                        <div className="flex items-center gap-1">
+                                            <ThumbsUp className="h-4 w-4 text-green-500" />
+                                            <span className="text-sm font-semibold">{article.likes}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <ThumbsDown className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm font-semibold">{article.dislikes}</span>
+                                        </div>
+                                        <Dialog onOpenChange={(isOpen) => !isOpen && setViewingCommentsOf(null)}>
+                                        <DialogTrigger asChild>
+                                            <button onClick={() => setViewingCommentsOf(article)} className="flex items-center gap-1 cursor-pointer hover:text-primary">
+                                                <MessageSquare className="h-4 w-4 text-blue-500" />
+                                                <span className="text-sm font-semibold">{article.comments.length}</span>
+                                            </button>
+                                        </DialogTrigger>
+                                        </Dialog>
+                                    </div>
+
+                                    <Link href={`/admin/edit/${article.slug}`}>
+                                        <Button variant="outline" size="sm">
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            Modifier
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </div>
+                            
+                            {/*-- Desktop Layout --*/}
+                            <div className="hidden md:col-span-5 md:flex items-center">
+                                <span className="font-medium">{article.title}</span>
+                                <Badge variant={article.status === 'published' ? 'secondary' : 'default'} className="ml-2">
+                                    {article.status === 'published' ? 'Publié' : 'Programmé'}
+                                </Badge>
+                            </div>
+                            <div className="hidden md:col-span-2 md:block">
+                                <Badge variant="outline">{article.category}</Badge>
+                            </div>
+                            <div className="hidden md:col-span-2 md:block">
+                                {format(new Date(article.publicationDate), 'd MMM yyyy', { locale: fr })}
+                            </div>
+                            <div className="hidden md:col-span-2 md:flex justify-center">
+                                <div className="flex items-center gap-4 text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                        <ThumbsUp className="h-4 w-4 text-green-500" />
+                                        <span className="text-sm font-semibold">{article.likes}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <ThumbsDown className="h-4 w-4 text-red-500" />
+                                        <span className="text-sm font-semibold">{article.dislikes}</span>
+                                    </div>
+                                    <Dialog onOpenChange={(isOpen) => !isOpen && setViewingCommentsOf(null)}>
+                                        <DialogTrigger asChild>
+                                            <button onClick={() => setViewingCommentsOf(article)} className="flex items-center gap-1 cursor-pointer hover:text-primary">
+                                                <MessageSquare className="h-4 w-4 text-blue-500" />
+                                                <span className="text-sm font-semibold">{article.comments.length}</span>
+                                            </button>
+                                        </DialogTrigger>
+                                    </Dialog>
+                                </div>
+                            </div>
+                            <div className="hidden md:col-span-1 md:flex justify-end">
+                                <Link href={`/admin/edit/${article.slug}`}>
+                                    <Button variant="outline" size="sm">
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Modifier
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
           </CardContent>
         </Card>
@@ -234,3 +287,5 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+    
