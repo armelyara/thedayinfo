@@ -15,15 +15,14 @@ import type { Comment as CommentType } from '@/lib/data';
 type Reaction = 'like' | 'dislike' | null;
 
 type FeedbackProps = {
-    initialLikes: number;
-    initialDislikes: number;
+    initialViews: number;
     initialComments: CommentType[];
 };
 
-export default function Feedback({ initialLikes, initialDislikes, initialComments }: FeedbackProps) {
+export default function Feedback({ initialViews, initialComments }: FeedbackProps) {
   const [reaction, setReaction] = useState<Reaction>(null);
-  const [likes, setLikes] = useState(initialLikes);
-  const [dislikes, setDislikes] = useState(initialDislikes);
+  const [likes, setLikes] = useState(0); // Likes/dislikes are local now
+  const [dislikes, setDislikes] = useState(0);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<CommentType[]>(initialComments);
   const { toast } = useToast();

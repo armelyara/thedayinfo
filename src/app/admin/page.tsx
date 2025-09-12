@@ -4,10 +4,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { articles, categories, Comment as CommentType, Article } from '@/lib/data';
-import { Book, LayoutGrid, Users, Edit, ThumbsUp, ThumbsDown, MessageSquare, Send, CalendarDays, Reply } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Book, LayoutGrid, Users, FilePenLine, Trash2, Eye, BarChart2, MessageSquare, Send, Reply } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,7 +16,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+  } from "@/components/ui/alert-dialog"
 
 function CommentSection({ articleId, initialComments }: { articleId: string, initialComments: CommentType[] }) {
     const [comments, setComments] = useState<CommentType[]>(initialComments);
@@ -118,18 +127,6 @@ export default function AdminDashboard() {
   const authors = new Set(articles.map((a) => a.author));
   const totalAuthors = authors.size;
 
-  const articlesPerCategory = categories.map((category) => ({
-    name: category.name,
-    count: articles.filter((article) => article.category === category.name).length,
-  }));
-
-  const chartConfig = {
-    count: {
-      label: 'Articles',
-      color: 'hsl(var(--primary))',
-    },
-  };
-
   const sortedArticles = [...articles].sort((a, b) => parseISO(b.publicationDate).getTime() - parseISO(a.publicationDate).getTime());
 
   return (
@@ -177,117 +174,90 @@ export default function AdminDashboard() {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Articles Publiés</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="border rounded-lg">
-                {/*-- Desktop Header --*/}
-                <div className="hidden md:grid grid-cols-12 items-center p-4 font-medium text-muted-foreground text-sm border-b">
-                  <div className="col-span-5">Titre</div>
-                  <div className="col-span-2">Catégorie</div>
-                  <div className="col-span-2">Publication</div>
-                  <div className="col-span-2 text-center">Statistiques</div>
-                  <div className="col-span-1 text-right">Action</div>
-                </div>
-
-                {/*-- Article List --*/}
-                <div className="divide-y md:divide-y-0">
-                    {sortedArticles.map((article) => (
-                        <div key={article.slug} className="p-4 md:grid md:grid-cols-12 md:items-center hover:bg-muted/50">
-                            
-                            {/*-- Mobile Layout --*/}
-                            <div className="md:hidden space-y-4">
-                                <div>
-                                    <h3 className="font-medium text-lg leading-tight">{article.title}</h3>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <Badge variant={article.status === 'published' ? 'secondary' : 'default'} className="text-xs">
-                                            {article.status === 'published' ? 'Publié' : 'Programmé'}
-                                        </Badge>
-                                         <Badge variant="outline">{article.category}</Badge>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                                    <CalendarDays className="h-4 w-4" />
-                                    <span>{format(parseISO(article.publicationDate), 'd MMM yyyy', { locale: fr })}</span>
-                                </div>
-                                
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4 text-muted-foreground">
-                                        <div className="flex items-center gap-1">
-                                            <ThumbsUp className="h-4 w-4 text-green-500" />
-                                            <span className="text-sm font-semibold">{article.likes}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <ThumbsDown className="h-4 w-4 text-red-500" />
-                                            <span className="text-sm font-semibold">{article.dislikes}</span>
-                                        </div>
-                                        <Dialog onOpenChange={(isOpen) => !isOpen && setViewingCommentsOf(null)}>
-                                        <DialogTrigger asChild>
-                                            <button onClick={() => setViewingCommentsOf(article)} className="flex items-center gap-1 cursor-pointer hover:text-primary">
-                                                <MessageSquare className="h-4 w-4 text-blue-500" />
-                                                <span className="text-sm font-semibold">{article.comments.length}</span>
-                                            </button>
-                                        </DialogTrigger>
-                                        </Dialog>
-                                    </div>
-
-                                    <Link href={`/admin/edit/${article.slug}`}>
-                                        <Button variant="outline" size="sm">
-                                            <Edit className="mr-2 h-4 w-4" />
-                                            Modifier
-                                        </Button>
-                                    </Link>
-                                </div>
-                            </div>
-                            
-                            {/*-- Desktop Layout --*/}
-                            <div className="hidden md:col-span-5 md:flex items-center">
-                                <span className="font-medium">{article.title}</span>
-                                <Badge variant={article.status === 'published' ? 'secondary' : 'default'} className="ml-2">
+            <CardHeader>
+                <CardTitle>Articles Publiés</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {sortedArticles.map((article) => (
+                    <div key={article.slug} className="group flex items-center gap-4 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                        <Link href={`/article/${article.slug}`} className="flex-shrink-0">
+                            <Image
+                                src={article.image.src}
+                                alt={article.image.alt}
+                                width={80}
+                                height={60}
+                                className="rounded-md object-cover aspect-[4/3]"
+                            />
+                        </Link>
+                        <div className="flex-1">
+                            <Link href={`/article/${article.slug}`} className="hover:underline">
+                                <h3 className="font-medium">{article.title}</h3>
+                            </Link>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                <span>{format(parseISO(article.publicationDate), 'd MMM yyyy', { locale: fr })}</span>
+                                &middot;
+                                <span>{article.category}</span>
+                                &middot;
+                                <Badge variant={article.status === 'published' ? 'secondary' : 'default'} className="text-xs px-1.5 py-0">
                                     {article.status === 'published' ? 'Publié' : 'Programmé'}
                                 </Badge>
                             </div>
-                            <div className="hidden md:col-span-2 md:block">
-                                <Badge variant="outline">{article.category}</Badge>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            {/* Stats */}
+                            <div className="flex items-center gap-1" title="Vues">
+                                <BarChart2 className="h-4 w-4" />
+                                <span>{article.views}</span>
                             </div>
-                            <div className="hidden md:col-span-2 md:block">
-                                {format(parseISO(article.publicationDate), 'd MMM yyyy', { locale: fr })}
-                            </div>
-                            <div className="hidden md:col-span-2 md:flex justify-center">
-                                <div className="flex items-center gap-4 text-muted-foreground">
-                                    <div className="flex items-center gap-1">
-                                        <ThumbsUp className="h-4 w-4 text-green-500" />
-                                        <span className="text-sm font-semibold">{article.likes}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <ThumbsDown className="h-4 w-4 text-red-500" />
-                                        <span className="text-sm font-semibold">{article.dislikes}</span>
-                                    </div>
-                                    <Dialog onOpenChange={(isOpen) => !isOpen && setViewingCommentsOf(null)}>
-                                        <DialogTrigger asChild>
-                                            <button onClick={() => setViewingCommentsOf(article)} className="flex items-center gap-1 cursor-pointer hover:text-primary">
-                                                <MessageSquare className="h-4 w-4 text-blue-500" />
-                                                <span className="text-sm font-semibold">{article.comments.length}</span>
-                                            </button>
-                                        </DialogTrigger>
-                                    </Dialog>
-                                </div>
-                            </div>
-                            <div className="hidden md:col-span-1 md:flex justify-end">
-                                <Link href={`/admin/edit/${article.slug}`}>
-                                    <Button variant="outline" size="sm">
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        Modifier
+                           
+                            <Dialog onOpenChange={(isOpen) => !isOpen && setViewingCommentsOf(null)}>
+                                <DialogTrigger asChild>
+                                    <button onClick={() => setViewingCommentsOf(article)} className="flex items-center gap-1 cursor-pointer hover:text-primary" title="Commentaires">
+                                        <MessageSquare className="h-4 w-4" />
+                                        <span>{article.comments.length}</span>
+                                    </button>
+                                </DialogTrigger>
+                            </Dialog>
+
+                            {/* Hover Actions */}
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Link href={`/article/${article.slug}`} title="Voir l'article">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <Eye className="h-4 w-4" />
                                     </Button>
                                 </Link>
+                                <Link href={`/admin/edit/${article.slug}`} title="Modifier l'article">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <FilePenLine className="h-4 w-4" />
+                                    </Button>
+                                </Link>
+
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Supprimer l'article">
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Cette action ne peut pas être annulée. Cela supprimera définitivement
+                                            l'article et effacera ses données de nos serveurs.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                        <AlertDialogAction>Continuer</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </div>
                         </div>
-                    ))}
-                </div>
-            </div>
-          </CardContent>
+                    </div>
+                ))}
+            </CardContent>
         </Card>
         
         {viewingCommentsOf && (
@@ -300,27 +270,6 @@ export default function AdminDashboard() {
                 </DialogContent>
             </Dialog>
         )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Articles par Catégorie</CardTitle>
-          </CardHeader>
-          <CardContent>
-             <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-                <BarChart accessibilityLayer data={articlesPerCategory}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                    dataKey="name"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="count" fill="var(--color-count)" radius={4} />
-                </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
       </main>
     </div>
   );

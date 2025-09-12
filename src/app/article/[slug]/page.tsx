@@ -84,14 +84,10 @@ export default function ArticlePage({ params }: ArticlePageProps) {
           articleContent={article.content}
         />
         <Feedback 
-            initialLikes={article.likes}
-            initialDislikes={article.dislikes}
+            initialViews={article.views}
             initialComments={article.comments}
         />
       </section>
     </article>
   );
 }
-
-
-    
