@@ -172,7 +172,7 @@ export default function AdminDashboard() {
 
                                 <div className="flex items-center gap-2 text-muted-foreground text-sm">
                                     <CalendarDays className="h-4 w-4" />
-                                    <span>{format(new Date(article.publicationDate), 'd MMM yyyy', { locale: fr })}</span>
+                                    <span>{format(new Date(`${article.publicationDate}T00:00:00Z`), 'd MMM yyyy', { locale: fr })}</span>
                                 </div>
                                 
                                 <div className="flex items-center justify-between">
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
                                 <Badge variant="outline">{article.category}</Badge>
                             </div>
                             <div className="hidden md:col-span-2 md:block">
-                                {format(new Date(article.publicationDate), 'd MMM yyyy', { locale: fr })}
+                                {format(new Date(`${article.publicationDate}T00:00:00Z`), 'd MMM yyyy', { locale: fr })}
                             </div>
                             <div className="hidden md:col-span-2 md:flex justify-center">
                                 <div className="flex items-center gap-4 text-muted-foreground">
@@ -287,5 +287,7 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+    
 
     
