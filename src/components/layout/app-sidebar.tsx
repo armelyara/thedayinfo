@@ -38,9 +38,9 @@ export function AppSidebar() {
           <SidebarMenu>
              <SidebarMenuItem>
                 <Link href="/about" className="w-full">
-                <SidebarMenuButton tooltip="About Me">
+                <SidebarMenuButton tooltip="About">
                     <Lucide.User />
-                    <span>About Me</span>
+                    <span>About</span>
                 </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
