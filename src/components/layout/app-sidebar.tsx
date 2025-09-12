@@ -35,6 +35,18 @@ export function AppSidebar() {
           <SearchInput />
         </SidebarGroup>
         <SidebarGroup>
+          <SidebarMenu>
+             <SidebarMenuItem>
+                <Link href="/about" className="w-full">
+                <SidebarMenuButton tooltip="About Me">
+                    <Lucide.User />
+                    <span>About Me</span>
+                </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup>
           <SidebarGroupLabel>Categories</SidebarGroupLabel>
           <SidebarMenu>
             {categories.map((category) => {
