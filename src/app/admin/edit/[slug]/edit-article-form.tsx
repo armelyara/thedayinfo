@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -91,123 +90,121 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
   }
 
   return (
-     <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
+          control={form.control}
+          name="title"
+          render={({ field }) => (
             <FormItem>
-                <FormLabel>Titre</FormLabel>
-                <FormControl>
+              <FormLabel>Titre</FormLabel>
+              <FormControl>
                 <Input placeholder="L'avenir de l'IA" {...field} />
-                </FormControl>
-                <FormMessage />
+              </FormControl>
+              <FormMessage />
             </FormItem>
-            )}
+          )}
         />
         <FormField
-            control={form.control}
-            name="author"
-            render={({ field }) => (
+          control={form.control}
+          name="author"
+          render={({ field }) => (
             <FormItem>
-                <FormLabel>Auteur</FormLabel>
-                <FormControl>
+              <FormLabel>Auteur</FormLabel>
+              <FormControl>
                 <Input placeholder="Jean Dupont" {...field} />
-                </FormControl>
-                <FormMessage />
+              </FormControl>
+              <FormMessage />
             </FormItem>
-            )}
+          )}
         />
         <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
+          control={form.control}
+          name="category"
+          render={({ field }) => (
             <FormItem>
-                <FormLabel>Catégorie</FormLabel>
-                <Select
+              <FormLabel>Catégorie</FormLabel>
+              <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value}
-                >
+              >
                 <FormControl>
-                    <SelectTrigger>
+                  <SelectTrigger>
                     <SelectValue placeholder="Sélectionnez une catégorie" />
-                    </Trigger>
+                  </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                    {categories.map((category) => (
+                  {categories.map((category) => (
                     <SelectItem key={category.slug} value={category.name}>
-                        {category.name}
+                      {category.name}
                     </SelectItem>
-                    ))}
+                  ))}
                 </SelectContent>
-                </Select>
-                <FormMessage />
+              </Select>
+              <FormMessage />
             </FormItem>
-            )}
+          )}
         />
-         <FormField
-              control={form.control}
-              name="scheduledFor"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Programmer la Publication</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={'outline'}
-                          className={cn(
-                            'w-[240px] pl-3 text-left font-normal',
-                            !field.value && 'text-muted-foreground'
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, 'PPP', { locale: fr })
-                          ) : (
-                            <span>Choisissez une date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                            date < new Date(new Date().setHours(0, 0, 0, 0))
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
         <FormField
-            control={form.control}
-            name="content"
-            render={({ field }) => (
-            <FormItem>
-                <FormLabel>Contenu</FormLabel>
-                <FormControl>
-                <Textarea
-                    placeholder="Racontez votre histoire..."
-                    className="min-h-[200px]"
-                    {...field}
-                />
-                </FormControl>
-                <FormMessage />
+          control={form.control}
+          name="scheduledFor"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Programmer la Publication</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={'outline'}
+                      className={cn(
+                        'w-[240px] pl-3 text-left font-normal',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, 'PPP', { locale: fr })
+                      ) : (
+                        <span>Choisissez une date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) =>
+                      date < new Date(new Date().setHours(0, 0, 0, 0))
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
             </FormItem>
-            )}
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="content"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Contenu</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Racontez votre histoire..."
+                  className="min-h-[200px]"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
         <Button type="submit">Mettre à Jour l'Article</Button>
-        </form>
+      </form>
     </Form>
   );
 }
-
-    
