@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { articles, categories } from '@/lib/data';
-import { Book, LayoutGrid, Users, Edit } from 'lucide-react';
+import { Book, LayoutGrid, Users, Edit, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import Link from 'next/link';
@@ -89,20 +89,35 @@ export default function AdminDashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Titre</TableHead>
-                  <TableHead>Auteur</TableHead>
                   <TableHead>Catégorie</TableHead>
-                  <TableHead>Action</TableHead>
+                  <TableHead className="text-center">Statistiques</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {articles.map((article) => (
                   <TableRow key={article.slug}>
                     <TableCell className="font-medium">{article.title}</TableCell>
-                    <TableCell>{article.author}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{article.category}</Badge>
                     </TableCell>
                     <TableCell>
+                        <div className="flex justify-center items-center gap-4 text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                                <ThumbsUp className="h-4 w-4 text-green-500" />
+                                <span className="text-sm">{article.likes}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <ThumbsDown className="h-4 w-4 text-red-500" />
+                                <span className="text-sm">{article.dislikes}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <MessageSquare className="h-4 w-4 text-blue-500" />
+                                <span className="text-sm">{article.comments.length}</span>
+                            </div>
+                        </div>
+                    </TableCell>
+                    <TableCell className="text-right">
                       <Link href={`/admin/edit/${article.slug}`}>
                         <Button variant="outline" size="sm">
                           <Edit className="mr-2 h-4 w-4" />

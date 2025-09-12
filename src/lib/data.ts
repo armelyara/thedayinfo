@@ -1,4 +1,11 @@
 
+export type Comment = {
+  id: number;
+  author: string;
+  text: string;
+  avatar: string;
+};
+
 export type Article = {
   slug: string;
   title: string;
@@ -12,6 +19,9 @@ export type Article = {
     aiHint: string;
   };
   content: string;
+  likes: number;
+  dislikes: number;
+  comments: Comment[];
 };
 
 export type Category = {
@@ -39,6 +49,12 @@ export let articles: Article[] = [
     },
     content:
       'L\'Intelligence Artificielle n\'est plus un concept de science-fiction ; c\'est une réalité qui remodèle notre monde. Des algorithmes d\'apprentissage automatique qui prédisent le comportement des consommateurs au traitement du langage naturel qui alimente nos assistants vocaux, l\'IA est au cœur des avancées technologiques les plus significatives de notre époque. Cet article explore la trajectoire du développement de l\'IA, ses applications actuelles dans diverses industries et les considérations éthiques que nous devons aborder alors que nous nous dirigeons vers un avenir de plus en plus automatisé. Nous nous pencherons sur l\'apprentissage profond, les réseaux de neurones et la quête de l\'Intelligence Générale Artificielle (AGI), offrant un aperçu complet pour les passionnés de technologie comme pour les nouveaux venus curieux.',
+    likes: 120,
+    dislikes: 5,
+    comments: [
+      { id: 1, author: 'Alex', text: 'Super article ! Très instructif.', avatar: 'https://i.pravatar.cc/40?u=1' },
+      { id: 2, author: 'Marie', text: 'J\'ai hâte de voir ce que l\'avenir nous réserve.', avatar: 'https://i.pravatar.cc/40?u=2' }
+    ]
   },
   {
     slug: 'exploration-du-cosmos',
@@ -54,6 +70,9 @@ export let articles: Article[] = [
     },
     content:
       'La dernière frontière continue de captiver notre imagination, et les récentes avancées en exploration spatiale nous ont rapprochés de la compréhension de l\'univers comme jamais auparavant. Ce mois-ci, le télescope spatial James Webb a renvoyé des images époustouflantes de galaxies lointaines, révélant la naissance d\'étoiles avec des détails saisissants. Pendant ce temps, les missions vers Mars en découvrent davantage sur le passé aquatique de la planète, alimentant les spéculations sur la possibilité d\'une vie extraterrestre. Rejoignez-nous pour un voyage à travers les dernières découvertes, des lunes glacées de Jupiter aux mystères de la matière noire, et célébrez l\'ingéniosité humaine qui rend ces découvertes possibles.',
+    likes: 250,
+    dislikes: 2,
+    comments: []
   },
   {
     slug: 'la-pleine-conscience-a-lere-numerique',
@@ -69,6 +88,9 @@ export let articles: Article[] = [
     },
     content:
       'Dans un monde de notifications constantes et de distractions numériques, trouver un moment de paix peut sembler une tâche monumentale. La pleine conscience, la pratique d\'être présent et pleinement conscient du moment présent, offre un antidote puissant au stress de la vie moderne. Ce guide fournit des conseils pratiques et des techniques pour intégrer la pleine conscience dans votre routine quotidienne. Nous couvrons tout, des exercices de respiration simples et des méditations guidées aux stratégies de désintoxication numérique et à l\'utilisation consciente de la technologie. Apprenez à réduire l\'anxiété, à améliorer votre concentration et à cultiver un sentiment de bien-être plus profond, même lorsque vous êtes entouré d\'écrans.',
+    likes: 95,
+    dislikes: 12,
+    comments: []
   },
   {
     slug: 'lessor-de-lentreprise-durable',
@@ -84,6 +106,9 @@ export let articles: Article[] = [
     },
     content:
       'Un nouveau paradigme émerge dans le monde de l\'entreprise, où le succès se mesure non seulement en termes de rendements financiers, mais aussi en termes d\'impact social et environnemental. Les pratiques commerciales durables passent de la périphérie au cœur de la stratégie d\'entreprise, car les entreprises reconnaissent la valeur à long terme de la gérance de l\'environnement et de la responsabilité sociale. Cet article examine les principaux moteurs de ce changement, des attentes changeantes des consommateurs aux risques croissants posés par le changement climatique. Nous mettons en lumière les entreprises innovantes qui ouvrent la voie en matière de durabilité et offrons des perspectives aux entreprises qui cherchent à intégrer une finalité dans leurs activités lucratives.',
+    likes: 88,
+    dislikes: 4,
+    comments: []
   },
   {
     slug: 'du-graffiti-aux-galeries',
@@ -99,6 +124,9 @@ export let articles: Article[] = [
     },
     content:
       'Autrefois considéré comme du vandalisme, l\'art de rue a subi une transformation remarquable, évoluant pour devenir une forme d\'art mondialement reconnue et célébrée. Les artistes qui opéraient autrefois dans l\'ombre sont maintenant mandatés pour des peintures murales publiques massives et exposés dans des galeries d\'art prestigieuses. Ce changement culturel reflète un changement plus large dans notre perception de l\'espace public et de l\'expression artistique. Nous retraçons l\'histoire de l\'art de rue depuis ses origines dans les sous-cultures du graffiti des années 1970 jusqu\'à son statut actuel de médium puissant pour le commentaire social et l\'innovation esthétique. Explorez les œuvres d\'artistes pionniers et les mouvements qui ont défini cette forme d\'art dynamique et accessible.',
+    likes: 150,
+    dislikes: 20,
+    comments: []
   },
   {
     slug: 'informatique-quantique-expliquee',
@@ -114,6 +142,9 @@ export let articles: Article[] = [
     },
     content:
       'L\'informatique quantique promet de résoudre des problèmes complexes qui sont actuellement insolubles même pour les superordinateurs les plus puissants. En exploitant les étranges principes de la mécanique quantique, tels que la superposition et l\'intrication, ces machines fonctionnent de manière fondamentalement différente des ordinateurs classiques. Dans cet article, nous décomposons les concepts fondamentaux de l\'informatique quantique, en expliquant les qubits, les portes quantiques et les algorithmes quantiques en des termes accessibles. Nous discutons également des applications potentielles, du développement de nouveaux médicaments et matériaux à la révolution de la finance et de l\'intelligence artificielle, et examinons l\'état actuel de la course pour construire un ordinateur quantique évolutif et tolérant aux pannes.',
+    likes: 300,
+    dislikes: 1,
+    comments: []
   },
 ];
 
@@ -135,7 +166,7 @@ export const searchArticles = (query: string) => {
     );
 };
 
-export const addArticle = (article: Omit<Article, 'slug' | 'publicationDate' | 'image'>) => {
+export const addArticle = (article: Omit<Article, 'slug' | 'publicationDate' | 'image' | 'likes' | 'dislikes' | 'comments'>) => {
   const slug = article.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
   const newArticle: Article = {
     ...article,
@@ -146,7 +177,10 @@ export const addArticle = (article: Omit<Article, 'slug' | 'publicationDate' | '
       src: `https://picsum.photos/seed/${articles.length + 1}/600/400`,
       alt: article.title,
       aiHint: 'placeholder image'
-    }
+    },
+    likes: 0,
+    dislikes: 0,
+    comments: [],
   };
   articles.unshift(newArticle);
   return newArticle;

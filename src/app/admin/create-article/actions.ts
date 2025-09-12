@@ -23,6 +23,7 @@ export async function createArticle(values: z.infer<typeof formSchema>) {
 
   // Revalidate paths to show the new article immediately
   revalidatePath('/');
+  revalidatePath('/admin');
   revalidatePath('/article/[slug]', 'page');
   revalidatePath(`/category/${validatedFields.data.category.toLowerCase().replace(' & ', '-').replace(/\s+/g, '-')}`);
 

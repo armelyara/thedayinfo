@@ -10,30 +10,46 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { User } from 'lucide-react';
+import type { Comment as CommentType } from '@/lib/data';
 
 type Reaction = 'like' | 'dislike' | null;
 
-type Comment = {
-  id: number;
-  author: string;
-  text: string;
-  avatar: string;
+type FeedbackProps = {
+    initialLikes: number;
+    initialDislikes: number;
+    initialComments: CommentType[];
 };
 
-export default function Feedback() {
+export default function Feedback({ initialLikes, initialDislikes, initialComments }: FeedbackProps) {
   const [reaction, setReaction] = useState<Reaction>(null);
+  const [likes, setLikes] = useState(initialLikes);
+  const [dislikes, setDislikes] = useState(initialDislikes);
   const [commentText, setCommentText] = useState('');
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<CommentType[]>(initialComments);
   const { toast } = useToast();
 
   const handleReaction = (newReaction: 'like' | 'dislike') => {
-    setReaction(reaction === newReaction ? null : newReaction);
+    if (reaction === newReaction) {
+        // User is deselecting their reaction
+        setReaction(null);
+        if (newReaction === 'like') setLikes(l => l - 1);
+        if (newReaction === 'dislike') setDislikes(d => d - 1);
+    } else {
+        // Switching reaction or new reaction
+        if (reaction === 'like') setLikes(l => l - 1);
+        if (reaction === 'dislike') setDislikes(d => d - 1);
+
+        if (newReaction === 'like') setLikes(l => l + 1);
+        if (newReaction === 'dislike') setDislikes(d => d + 1);
+        
+        setReaction(newReaction);
+    }
   };
 
   const handleCommentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (commentText.trim()) {
-      const newComment: Comment = {
+      const newComment: CommentType = {
         id: Date.now(),
         author: 'Visiteur',
         text: commentText.trim(),
@@ -59,21 +75,24 @@ export default function Feedback() {
           <Button
             variant={reaction === 'like' ? 'default' : 'outline'}
             onClick={() => handleReaction('like')}
-            className={cn(reaction === 'like' && 'bg-green-500 hover:bg-green-600')}
+            className={cn('transition-all', reaction === 'like' && 'bg-green-500 hover:bg-green-600 scale-105')}
           >
             <ThumbsUp className="mr-2 h-4 w-4" />
-            J'aime
+            <span>J'aime</span>
+            <span className="ml-2 text-xs font-bold">{likes}</span>
           </Button>
           <Button
             variant={reaction === 'dislike' ? 'destructive' : 'outline'}
             onClick={() => handleReaction('dislike')}
+            className="transition-all"
           >
             <ThumbsDown className="mr-2 h-4 w-4" />
-            Je n'aime pas
+             <span>Je n'aime pas</span>
+            <span className="ml-2 text-xs font-bold">{dislikes}</span>
           </Button>
         </div>
         <div className="space-y-4">
-          <h4 className="font-semibold font-headline">Laisser un Commentaire</h4>
+          <h4 className="font-semibold font-headline">Laisser un Commentaire ({comments.length})</h4>
           <form onSubmit={handleCommentSubmit} className="space-y-4">
             <Textarea
               placeholder="Partagez vos réflexions..."
