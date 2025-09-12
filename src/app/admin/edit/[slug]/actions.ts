@@ -10,6 +10,7 @@ const formSchema = z.object({
   author: z.string(),
   category: z.string(),
   content: z.string(),
+  scheduledFor: z.string().optional(),
 });
 
 export async function updateArticleAction(slug: string, values: z.infer<typeof formSchema>) {

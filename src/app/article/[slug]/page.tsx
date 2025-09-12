@@ -1,7 +1,7 @@
 
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { getArticleBySlug, articles } from '@/lib/data';
+import { getArticleBySlug, articles, getPublishedArticles } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CalendarDays, User } from 'lucide-react';
@@ -16,7 +16,8 @@ type ArticlePageProps = {
 };
 
 export async function generateStaticParams() {
-  return articles.map((article) => ({
+  // Only generate static pages for published articles
+  return getPublishedArticles().map((article) => ({
     slug: article.slug,
   }));
 }
@@ -24,7 +25,8 @@ export async function generateStaticParams() {
 export default function ArticlePage({ params }: ArticlePageProps) {
   const article = getArticleBySlug(params.slug);
 
-  if (!article) {
+  // Block access to scheduled articles
+  if (!article || article.status === 'scheduled' && new Date(article.publicationDate) > new Date()) {
     notFound();
   }
 

@@ -1,9 +1,10 @@
 
-import { articles } from '@/lib/data';
+import { getPublishedArticles } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
 import { Separator } from '@/components/ui/separator';
 
 export default function Home() {
+  const publishedArticles = getPublishedArticles();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -18,7 +19,7 @@ export default function Home() {
 
       <main>
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {articles.map((article) => (
+          {publishedArticles.map((article) => (
             <ArticleCard key={article.slug} article={article} />
           ))}
         </div>

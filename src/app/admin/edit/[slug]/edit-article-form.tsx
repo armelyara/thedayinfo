@@ -27,6 +27,12 @@ import {
 import { updateArticleAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { Calendar } from '@/components/ui/calendar';
 
 const formSchema = z.object({
   title: z.string().min(10, {
@@ -41,6 +47,7 @@ const formSchema = z.object({
   content: z.string().min(100, {
     message: 'Le contenu doit comporter au moins 100 caractères.',
   }),
+  scheduledFor: z.date().optional(),
 });
 
 type EditArticleFormProps = {
@@ -58,12 +65,17 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
       author: article.author,
       category: article.category,
       content: article.content,
+      scheduledFor: article.scheduledFor ? new Date(article.scheduledFor) : undefined,
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const updatedArticle = await updateArticleAction(article.slug, values);
+      const submissionData = {
+        ...values,
+        scheduledFor: values.scheduledFor?.toISOString(),
+      };
+      const updatedArticle = await updateArticleAction(article.slug, submissionData);
       toast({
         title: 'Article Mis à Jour !',
         description: 'Votre article a été mis à jour avec succès.',
@@ -120,7 +132,7 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
                 <FormControl>
                     <SelectTrigger>
                     <SelectValue placeholder="Sélectionnez une catégorie" />
-                    </SelectTrigger>
+                    </Trigger>
                 </FormControl>
                 <SelectContent>
                     {categories.map((category) => (
@@ -134,6 +146,47 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
             </FormItem>
             )}
         />
+         <FormField
+              control={form.control}
+              name="scheduledFor"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Programmer la Publication</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-[240px] pl-3 text-left font-normal',
+                            !field.value && 'text-muted-foreground'
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, 'PPP', { locale: fr })
+                          ) : (
+                            <span>Choisissez une date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                            date < new Date(new Date().setHours(0, 0, 0, 0))
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
         <FormField
             control={form.control}
             name="content"

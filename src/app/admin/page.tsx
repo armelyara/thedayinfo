@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { articles, categories, Comment as CommentType } from '@/lib/data';
-import { Book, LayoutGrid, Users, Edit, ThumbsUp, ThumbsDown, MessageSquare, Send, ChevronDown } from 'lucide-react';
+import { Book, LayoutGrid, Users, Edit, ThumbsUp, ThumbsDown, MessageSquare, Send, ChevronDown, CalendarIcon } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import Link from 'next/link';
@@ -27,6 +27,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User } from 'lucide-react';
 import { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 function CommentSection({ articleId, initialComments }: { articleId: string, initialComments: CommentType[] }) {
     const [comments, setComments] = useState<CommentType[]>(initialComments);
@@ -104,6 +106,8 @@ export default function AdminDashboard() {
     },
   };
 
+  const sortedArticles = [...articles].sort((a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime());
+
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8 flex justify-between items-center">
@@ -160,23 +164,31 @@ export default function AdminDashboard() {
                     <TableHead className="w-[50px]"></TableHead>
                     <TableHead>Titre</TableHead>
                     <TableHead>Catégorie</TableHead>
+                    <TableHead>Publication</TableHead>
                     <TableHead className="text-center">Statistiques</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {articles.map((article) => (
-                    <AccordionItem value={article.slug} key={article.slug} asChild>
-                       <>
+                  {sortedArticles.map((article) => (
+                    <AccordionItem value={article.slug} key={article.slug}>
                         <TableRow>
                             <TableCell>
                                 <AccordionTrigger>
                                      <ChevronDown className="h-4 w-4 transition-transform duration-200" />
                                 </AccordionTrigger>
                             </TableCell>
-                            <TableCell className="font-medium">{article.title}</TableCell>
+                            <TableCell className="font-medium">
+                                {article.title}
+                                <Badge variant={article.status === 'published' ? 'secondary' : 'default'} className="ml-2">
+                                    {article.status === 'published' ? 'Publié' : 'Programmé'}
+                                </Badge>
+                            </TableCell>
                             <TableCell>
                                 <Badge variant="outline">{article.category}</Badge>
+                            </TableCell>
+                            <TableCell>
+                                {format(new Date(article.publicationDate), 'd MMM yyyy', { locale: fr })}
                             </TableCell>
                             <TableCell>
                                 <div className="flex justify-center items-center gap-4 text-muted-foreground">
@@ -205,12 +217,11 @@ export default function AdminDashboard() {
                         </TableRow>
                         <AccordionContent asChild>
                             <tr>
-                                <td colSpan={5}>
+                                <td colSpan={6}>
                                     <CommentSection articleId={article.slug} initialComments={article.comments} />
                                 </td>
                             </tr>
                         </AccordionContent>
-                      </>
                     </AccordionItem>
                   ))}
                 </TableBody>

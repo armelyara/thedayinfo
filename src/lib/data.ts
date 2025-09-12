@@ -12,6 +12,8 @@ export type Article = {
   author: string;
   category: string;
   publicationDate: string;
+  status: 'published' | 'scheduled';
+  scheduledFor?: string;
   image: {
     id: string;
     src: string;
@@ -41,6 +43,7 @@ export let articles: Article[] = [
     author: 'Jane Doe',
     category: 'Technologie',
     publicationDate: '2023-10-26',
+    status: 'published',
     image: {
       id: "1",
       src: 'https://picsum.photos/seed/1/600/400',
@@ -62,6 +65,7 @@ export let articles: Article[] = [
     author: 'John Smith',
     category: 'Actualité',
     publicationDate: '2023-10-25',
+    status: 'published',
     image: {
       id: "2",
       src: 'https://picsum.photos/seed/2/600/400',
@@ -80,6 +84,7 @@ export let articles: Article[] = [
     author: 'Emily White',
     category: 'Actualité',
     publicationDate: '2023-10-24',
+    status: 'published',
     image: {
       id: "3",
       src: 'https://picsum.photos/seed/3/600/400',
@@ -98,6 +103,7 @@ export let articles: Article[] = [
     author: 'Michael Brown',
     category: 'Actualité',
     publicationDate: '2023-10-23',
+    status: 'published',
     image: {
       id: "4",
       src: 'https://picsum.photos/seed/4/600/400',
@@ -116,6 +122,7 @@ export let articles: Article[] = [
     author: 'Sarah Green',
     category: 'Actualité',
     publicationDate: '2023-10-22',
+    status: 'published',
     image: {
       id: "5",
       src: 'https://picsum.photos/seed/5/600/400',
@@ -134,6 +141,7 @@ export let articles: Article[] = [
     author: 'David Chen',
     category: 'Technologie',
     publicationDate: '2023-10-21',
+    status: 'published',
     image: {
       id: "6",
       src: 'https://picsum.photos/seed/6/600/400',
@@ -148,6 +156,13 @@ export let articles: Article[] = [
   },
 ];
 
+export const getPublishedArticles = () => {
+    return articles
+      .filter(article => article.status === 'published' && new Date(article.publicationDate) <= new Date())
+      .sort((a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime());
+  };
+  
+
 export const getArticleBySlug = (slug: string) => {
   return articles.find((article) => article.slug === slug);
 };
@@ -155,23 +170,30 @@ export const getArticleBySlug = (slug: string) => {
 export const getArticlesByCategory = (categorySlug: string) => {
     const category = categories.find(c => c.slug === categorySlug);
     if (!category) return [];
-    return articles.filter((article) => article.category === category.name);
+    return getPublishedArticles().filter((article) => article.category === category.name);
 };
 
 export const searchArticles = (query: string) => {
     if (!query) return [];
-    return articles.filter(article => 
+    return getPublishedArticles().filter(article => 
         article.title.toLowerCase().includes(query.toLowerCase()) ||
         article.content.toLowerCase().includes(query.toLowerCase())
     );
 };
 
-export const addArticle = (article: Omit<Article, 'slug' | 'publicationDate' | 'image' | 'likes' | 'dislikes' | 'comments'>) => {
+export const addArticle = (article: Omit<Article, 'slug' | 'publicationDate' | 'image' | 'likes' | 'dislikes' | 'comments' | 'status'> & { scheduledFor?: string }) => {
   const slug = article.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+  const now = new Date();
+  const scheduledDate = article.scheduledFor ? new Date(article.scheduledFor) : null;
+
+  const isScheduled = scheduledDate && scheduledDate > now;
+
   const newArticle: Article = {
     ...article,
     slug,
-    publicationDate: new Date().toISOString().split('T')[0],
+    publicationDate: (isScheduled ? scheduledDate : now).toISOString().split('T')[0],
+    status: isScheduled ? 'scheduled' : 'published',
+    scheduledFor: article.scheduledFor,
     image: {
       id: String(articles.length + 1),
       src: `https://picsum.photos/seed/${articles.length + 1}/600/400`,
@@ -186,7 +208,7 @@ export const addArticle = (article: Omit<Article, 'slug' | 'publicationDate' | '
   return newArticle;
 };
 
-export const updateArticle = (slug: string, data: Partial<Omit<Article, 'slug' | 'publicationDate' | 'image'>>) => {
+export const updateArticle = (slug: string, data: Partial<Omit<Article, 'slug' | 'publicationDate' | 'image' | 'status'>> & { scheduledFor?: string }) => {
   const articleIndex = articles.findIndex(a => a.slug === slug);
   if (articleIndex === -1) {
     return null;
@@ -197,10 +219,18 @@ export const updateArticle = (slug: string, data: Partial<Omit<Article, 'slug' |
   // If title changes, slug should change too.
   const newSlug = data.title ? data.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '') : slug;
 
+  const now = new Date();
+  const scheduledDate = data.scheduledFor ? new Date(data.scheduledFor) : (existingArticle.scheduledFor ? new Date(existingArticle.scheduledFor) : null);
+
+  const isScheduled = scheduledDate && scheduledDate > now;
+  
   const updatedArticle: Article = {
     ...existingArticle,
     ...data,
     slug: newSlug,
+    status: isScheduled ? 'scheduled' : 'published',
+    publicationDate: (isScheduled ? scheduledDate : new Date(existingArticle.publicationDate)).toISOString().split('T')[0],
+    scheduledFor: data.scheduledFor || existingArticle.scheduledFor,
   };
   articles[articleIndex] = updatedArticle;
   return updatedArticle;
