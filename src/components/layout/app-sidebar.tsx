@@ -35,12 +35,13 @@ export function AppSidebar() {
           <SearchInput />
         </SidebarGroup>
         <SidebarGroup>
+          <SidebarGroupLabel>About</SidebarGroupLabel>
           <SidebarMenu>
              <SidebarMenuItem>
                 <Link href="/about" className="w-full">
                 <SidebarMenuButton tooltip="About">
                     <Lucide.User />
-                    <span>About</span>
+                    <span>About the Author</span>
                 </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
