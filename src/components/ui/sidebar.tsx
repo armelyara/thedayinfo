@@ -341,7 +341,7 @@ const SidebarInput = React.forwardRef<
       ref={ref}
       data-sidebar="input"
       className={cn(
-        "h-8 w-full bg-background shadow-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+        "h-8 w-full bg-sidebar-accent text-sidebar-accent-foreground shadow-none placeholder:text-sidebar-accent-foreground/60 focus-visible:ring-2 focus-visible:ring-sidebar-ring",
         className
       )}
       {...props}
@@ -761,3 +761,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    
