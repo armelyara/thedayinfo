@@ -1,4 +1,6 @@
 
+import { parseISO } from 'date-fns';
+
 export type Comment = {
   id: number;
   author: string;
@@ -42,7 +44,7 @@ export let articles: Article[] = [
     title: 'L\'Avenir de l\'Intelligence Artificielle et son Impact sur la Technologie',
     author: 'Jane Doe',
     category: 'Technologie',
-    publicationDate: '2023-10-26',
+    publicationDate: '2023-10-26T10:00:00.000Z',
     status: 'published',
     image: {
       id: "1",
@@ -64,7 +66,7 @@ export let articles: Article[] = [
     title: 'Exploration du Cosmos : Nouvelles Découvertes en Exploration Spatiale',
     author: 'John Smith',
     category: 'Actualité',
-    publicationDate: '2023-10-25',
+    publicationDate: '2023-10-25T10:00:00.000Z',
     status: 'published',
     image: {
       id: "2",
@@ -83,7 +85,7 @@ export let articles: Article[] = [
     title: 'La Pleine Conscience à l\'Ère Numérique : Un Guide pour le Bien-être',
     author: 'Emily White',
     category: 'Actualité',
-    publicationDate: '2023-10-24',
+    publicationDate: '2023-10-24T10:00:00.000Z',
     status: 'published',
     image: {
       id: "3",
@@ -102,7 +104,7 @@ export let articles: Article[] = [
     title: 'L\'Essor de l\'Entreprise Durable : Le Profit Rencontre la Finalité',
     author: 'Michael Brown',
     category: 'Actualité',
-    publicationDate: '2023-10-23',
+    publicationDate: '2023-10-23T10:00:00.000Z',
     status: 'published',
     image: {
       id: "4",
@@ -121,7 +123,7 @@ export let articles: Article[] = [
     title: 'Du Graffiti aux Galeries : L\'Évolution de l\'Art de Rue',
     author: 'Sarah Green',
     category: 'Actualité',
-    publicationDate: '2023-10-22',
+    publicationDate: '2023-10-22T10:00:00.000Z',
     status: 'published',
     image: {
       id: "5",
@@ -140,7 +142,7 @@ export let articles: Article[] = [
     title: 'L\'Informatique Quantique Expliquée : La Prochaine Révolution Technologique',
     author: 'David Chen',
     category: 'Technologie',
-    publicationDate: '2023-10-21',
+    publicationDate: '2023-10-21T10:00:00.000Z',
     status: 'published',
     image: {
       id: "6",
@@ -158,8 +160,8 @@ export let articles: Article[] = [
 
 export const getPublishedArticles = () => {
     return articles
-      .filter(article => article.status === 'published' && new Date(article.publicationDate) <= new Date())
-      .sort((a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime());
+      .filter(article => article.status === 'published' && parseISO(article.publicationDate) <= new Date())
+      .sort((a, b) => parseISO(b.publicationDate).getTime() - parseISO(a.publicationDate).getTime());
   };
   
 
@@ -191,7 +193,7 @@ export const addArticle = (article: Omit<Article, 'slug' | 'publicationDate' | '
   const newArticle: Article = {
     ...article,
     slug,
-    publicationDate: (isScheduled ? scheduledDate : now).toISOString().split('T')[0],
+    publicationDate: (isScheduled ? scheduledDate : now).toISOString(),
     status: isScheduled ? 'scheduled' : 'published',
     scheduledFor: article.scheduledFor,
     image: {
@@ -229,9 +231,12 @@ export const updateArticle = (slug: string, data: Partial<Omit<Article, 'slug' |
     ...data,
     slug: newSlug,
     status: isScheduled ? 'scheduled' : 'published',
-    publicationDate: (isScheduled ? scheduledDate : new Date(existingArticle.publicationDate)).toISOString().split('T')[0],
+    publicationDate: (isScheduled ? scheduledDate : parseISO(existingArticle.publicationDate)).toISOString(),
     scheduledFor: data.scheduledFor || existingArticle.scheduledFor,
   };
   articles[articleIndex] = updatedArticle;
   return updatedArticle;
 }
+
+
+    

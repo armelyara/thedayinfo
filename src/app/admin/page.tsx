@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User } from 'lucide-react';
 import { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
     },
   };
 
-  const sortedArticles = [...articles].sort((a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime());
+  const sortedArticles = [...articles].sort((a, b) => parseISO(b.publicationDate).getTime() - parseISO(a.publicationDate).getTime());
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
 
                                 <div className="flex items-center gap-2 text-muted-foreground text-sm">
                                     <CalendarDays className="h-4 w-4" />
-                                    <span>{format(new Date(`${article.publicationDate}T00:00:00Z`), 'd MMM yyyy', { locale: fr })}</span>
+                                    <span>{format(parseISO(article.publicationDate), 'd MMM yyyy', { locale: fr })}</span>
                                 </div>
                                 
                                 <div className="flex items-center justify-between">
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
                                 <Badge variant="outline">{article.category}</Badge>
                             </div>
                             <div className="hidden md:col-span-2 md:block">
-                                {format(new Date(`${article.publicationDate}T00:00:00Z`), 'd MMM yyyy', { locale: fr })}
+                                {format(parseISO(article.publicationDate), 'd MMM yyyy', { locale: fr })}
                             </div>
                             <div className="hidden md:col-span-2 md:flex justify-center">
                                 <div className="flex items-center gap-4 text-muted-foreground">
@@ -287,7 +287,5 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-    
 
     

@@ -8,6 +8,7 @@ import { CalendarDays, User } from 'lucide-react';
 import AiSummary from '@/components/article/ai-summary';
 import RelatedContent from '@/components/article/related-content';
 import Feedback from '@/components/article/feedback';
+import { parseISO } from 'date-fns';
 
 type ArticlePageProps = {
   params: {
@@ -26,7 +27,7 @@ export default function ArticlePage({ params }: ArticlePageProps) {
   const article = getArticleBySlug(params.slug);
 
   // Block access to scheduled articles
-  if (!article || article.status === 'scheduled' && new Date(article.publicationDate) > new Date()) {
+  if (!article || article.status === 'scheduled' && parseISO(article.publicationDate) > new Date()) {
     notFound();
   }
 
@@ -54,6 +55,7 @@ export default function ArticlePage({ params }: ArticlePageProps) {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
+                timeZone: 'UTC'
               })}
             </time>
           </div>
@@ -90,3 +92,6 @@ export default function ArticlePage({ params }: ArticlePageProps) {
     </article>
   );
 }
+
+
+    

@@ -30,7 +30,7 @@ import { useRouter } from 'next/navigation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 
@@ -65,7 +65,7 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
       author: article.author,
       category: article.category,
       content: article.content,
-      scheduledFor: article.scheduledFor ? new Date(article.scheduledFor) : undefined,
+      scheduledFor: article.scheduledFor ? parseISO(article.scheduledFor) : undefined,
     },
   });
 
@@ -209,3 +209,5 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
     </Form>
   );
 }
+
+    
