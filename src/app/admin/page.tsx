@@ -2,33 +2,21 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { articles, categories, Comment as CommentType } from '@/lib/data';
-import { Book, LayoutGrid, Users, Edit, ThumbsUp, ThumbsDown, MessageSquare, Send, ChevronDown } from 'lucide-react';
+import { articles, categories, Comment as CommentType, Article } from '@/lib/data';
+import { Book, LayoutGrid, Users, Edit, ThumbsUp, ThumbsDown, MessageSquare, Send } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User } from 'lucide-react';
 import { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+
 
 function CommentSection({ articleId, initialComments }: { articleId: string, initialComments: CommentType[] }) {
     const [comments, setComments] = useState<CommentType[]>(initialComments);
@@ -46,8 +34,6 @@ function CommentSection({ articleId, initialComments }: { articleId: string, ini
             setComments(prevComments => [...prevComments, newComment]);
             setReplyText('');
 
-            // Note: In a real app, you would also call a function here to persist the new comment to your backend.
-            // For example: `addCommentToArticle(articleId, newComment)`
             const article = articles.find(a => a.slug === articleId);
             if(article) {
                 article.comments.push(newComment);
@@ -56,23 +42,22 @@ function CommentSection({ articleId, initialComments }: { articleId: string, ini
     };
 
     return (
-        <div className="p-4 bg-muted/50">
-            <h4 className="font-semibold mb-4">Commentaires</h4>
-            <div className="space-y-4 mb-6">
+        <div className="p-4">
+             <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto pr-4">
                 {comments.length > 0 ? comments.map(comment => (
                     <div key={comment.id} className="flex items-start gap-3">
                         <Avatar className="h-8 w-8 border">
                             <AvatarImage src={comment.avatar} />
                             <AvatarFallback><User size={16}/></AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 bg-background p-3 rounded-md">
+                        <div className="flex-1 bg-muted/50 p-3 rounded-md">
                             <p className="font-semibold text-sm">{comment.author}</p>
                             <p className="text-sm text-muted-foreground">{comment.text}</p>
                         </div>
                     </div>
                 )) : <p className="text-sm text-muted-foreground">Aucun commentaire pour cet article.</p>}
             </div>
-            <form onSubmit={handleReplySubmit} className="flex gap-4">
+            <form onSubmit={handleReplySubmit} className="flex gap-4 border-t pt-4">
                 <Textarea
                     placeholder="Répondre en tant que L'Auteur..."
                     value={replyText}
@@ -89,6 +74,7 @@ function CommentSection({ articleId, initialComments }: { articleId: string, ini
 }
 
 export default function AdminDashboard() {
+  const [viewingCommentsOf, setViewingCommentsOf] = useState<Article | null>(null);
   const totalArticles = articles.length;
   const totalCategories = categories.length;
   const authors = new Set(articles.map((a) => a.author));
@@ -157,68 +143,72 @@ export default function AdminDashboard() {
             <CardTitle>Articles Publiés</CardTitle>
           </CardHeader>
           <CardContent>
-            <Accordion type="single" collapsible className="w-full">
-              <div className="border-b">
-                <div className="grid grid-cols-12 items-center p-4 font-medium text-muted-foreground text-sm">
-                  <div className="col-span-1"></div>
-                  <div className="col-span-4">Titre</div>
+            <div className="border rounded-lg">
+                <div className="grid grid-cols-12 items-center p-4 font-medium text-muted-foreground text-sm border-b">
+                  <div className="col-span-5">Titre</div>
                   <div className="col-span-2">Catégorie</div>
                   <div className="col-span-2">Publication</div>
                   <div className="col-span-2 text-center">Statistiques</div>
                   <div className="col-span-1 text-right">Action</div>
                 </div>
-              </div>
                 {sortedArticles.map((article) => (
-                  <AccordionItem value={article.slug} key={article.slug} className="border-b">
-                      <AccordionTrigger className="grid grid-cols-12 items-center p-4 hover:bg-muted/50 hover:no-underline">
-                          <div className="col-span-1">
-                              <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-                          </div>
-                          <div className="col-span-4 text-left font-medium">
-                              {article.title}
-                              <Badge variant={article.status === 'published' ? 'secondary' : 'default'} className="ml-2">
-                                  {article.status === 'published' ? 'Publié' : 'Programmé'}
-                              </Badge>
-                          </div>
-                          <div className="col-span-2 text-left">
-                              <Badge variant="outline">{article.category}</Badge>
-                          </div>
-                          <div className="col-span-2 text-left">
-                              {format(new Date(article.publicationDate), 'd MMM yyyy', { locale: fr })}
-                          </div>
-                          <div className="col-span-2">
-                              <div className="flex justify-center items-center gap-4 text-muted-foreground">
-                                  <div className="flex items-center gap-1">
-                                      <ThumbsUp className="h-4 w-4 text-green-500" />
-                                      <span className="text-sm">{article.likes}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                      <ThumbsDown className="h-4 w-4 text-red-500" />
-                                      <span className="text-sm">{article.dislikes}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                      <MessageSquare className="h-4 w-4 text-blue-500" />
-                                      <span className="text-sm">{article.comments.length}</span>
-                                  </div>
+                  <div key={article.slug} className="grid grid-cols-12 items-center p-4 border-b last:border-b-0 hover:bg-muted/50">
+                      <div className="col-span-5 text-left font-medium">
+                          {article.title}
+                          <Badge variant={article.status === 'published' ? 'secondary' : 'default'} className="ml-2">
+                              {article.status === 'published' ? 'Publié' : 'Programmé'}
+                          </Badge>
+                      </div>
+                      <div className="col-span-2 text-left">
+                          <Badge variant="outline">{article.category}</Badge>
+                      </div>
+                      <div className="col-span-2 text-left">
+                          {format(new Date(article.publicationDate), 'd MMM yyyy', { locale: fr })}
+                      </div>
+                      <div className="col-span-2">
+                          <div className="flex justify-center items-center gap-4 text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                  <ThumbsUp className="h-4 w-4 text-green-500" />
+                                  <span className="text-sm font-semibold">{article.likes}</span>
                               </div>
+                              <div className="flex items-center gap-1">
+                                  <ThumbsDown className="h-4 w-4 text-red-500" />
+                                  <span className="text-sm font-semibold">{article.dislikes}</span>
+                              </div>
+                                <Dialog onOpenChange={(isOpen) => !isOpen && setViewingCommentsOf(null)}>
+                                  <DialogTrigger asChild>
+                                      <button onClick={() => setViewingCommentsOf(article)} className="flex items-center gap-1 cursor-pointer hover:text-primary">
+                                        <MessageSquare className="h-4 w-4 text-blue-500" />
+                                        <span className="text-sm font-semibold">{article.comments.length}</span>
+                                      </button>
+                                  </DialogTrigger>
+                                </Dialog>
                           </div>
-                          <div className="col-span-1 text-right">
-                              <Link href={`/admin/edit/${article.slug}`} onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="outline" size="sm">
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Modifier
-                                  </Button>
-                              </Link>
-                          </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                          <CommentSection articleId={article.slug} initialComments={article.comments} />
-                      </AccordionContent>
-                  </AccordionItem>
+                      </div>
+                      <div className="col-span-1 text-right">
+                          <Link href={`/admin/edit/${article.slug}`}>
+                              <Button variant="outline" size="sm">
+                                <Edit className="mr-2 h-4 w-4" />
+                                Modifier
+                              </Button>
+                          </Link>
+                      </div>
+                  </div>
                 ))}
-            </Accordion>
+            </div>
           </CardContent>
         </Card>
+        
+        {viewingCommentsOf && (
+             <Dialog open onOpenChange={(isOpen) => !isOpen && setViewingCommentsOf(null)}>
+                <DialogContent className="sm:max-w-[625px]">
+                    <DialogHeader>
+                        <DialogTitle>Commentaires pour "{viewingCommentsOf.title}"</DialogTitle>
+                    </DialogHeader>
+                    <CommentSection articleId={viewingCommentsOf.slug} initialComments={viewingCommentsOf.comments} />
+                </DialogContent>
+            </Dialog>
+        )}
 
         <Card>
           <CardHeader>
