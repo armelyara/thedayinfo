@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { articles, categories, Comment as CommentType } from '@/lib/data';
-import { Book, LayoutGrid, Users, Edit, ThumbsUp, ThumbsDown, MessageSquare, Send, ChevronDown, CalendarIcon } from 'lucide-react';
+import { Book, LayoutGrid, Users, Edit, ThumbsUp, ThumbsDown, MessageSquare, Send, ChevronDown } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import Link from 'next/link';
@@ -158,74 +158,64 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <Accordion type="single" collapsible className="w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]"></TableHead>
-                    <TableHead>Titre</TableHead>
-                    <TableHead>Catégorie</TableHead>
-                    <TableHead>Publication</TableHead>
-                    <TableHead className="text-center">Statistiques</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedArticles.map((article) => (
-                    <AccordionItem value={article.slug} key={article.slug}>
-                        <TableRow>
-                            <TableCell>
-                                <AccordionTrigger>
-                                     <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-                                </AccordionTrigger>
-                            </TableCell>
-                            <TableCell className="font-medium">
-                                {article.title}
-                                <Badge variant={article.status === 'published' ? 'secondary' : 'default'} className="ml-2">
-                                    {article.status === 'published' ? 'Publié' : 'Programmé'}
-                                </Badge>
-                            </TableCell>
-                            <TableCell>
-                                <Badge variant="outline">{article.category}</Badge>
-                            </TableCell>
-                            <TableCell>
-                                {format(new Date(article.publicationDate), 'd MMM yyyy', { locale: fr })}
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex justify-center items-center gap-4 text-muted-foreground">
-                                    <div className="flex items-center gap-1">
-                                        <ThumbsUp className="h-4 w-4 text-green-500" />
-                                        <span className="text-sm">{article.likes}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <ThumbsDown className="h-4 w-4 text-red-500" />
-                                        <span className="text-sm">{article.dislikes}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <MessageSquare className="h-4 w-4 text-blue-500" />
-                                        <span className="text-sm">{article.comments.length}</span>
-                                    </div>
-                                </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <Link href={`/admin/edit/${article.slug}`} onClick={(e) => e.stopPropagation()}>
-                                    <Button variant="outline" size="sm">
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Modifier
-                                    </Button>
-                                </Link>
-                            </TableCell>
-                        </TableRow>
-                        <AccordionContent asChild>
-                            <tr>
-                                <td colSpan={6}>
-                                    <CommentSection articleId={article.slug} initialComments={article.comments} />
-                                </td>
-                            </tr>
-                        </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="border-b">
+                <div className="grid grid-cols-12 items-center p-4 font-medium text-muted-foreground text-sm">
+                  <div className="col-span-1"></div>
+                  <div className="col-span-4">Titre</div>
+                  <div className="col-span-2">Catégorie</div>
+                  <div className="col-span-2">Publication</div>
+                  <div className="col-span-2 text-center">Statistiques</div>
+                  <div className="col-span-1 text-right">Action</div>
+                </div>
+              </div>
+                {sortedArticles.map((article) => (
+                  <AccordionItem value={article.slug} key={article.slug} className="border-b">
+                      <AccordionTrigger className="grid grid-cols-12 items-center p-4 hover:bg-muted/50 hover:no-underline">
+                          <div className="col-span-1">
+                              <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                          </div>
+                          <div className="col-span-4 text-left font-medium">
+                              {article.title}
+                              <Badge variant={article.status === 'published' ? 'secondary' : 'default'} className="ml-2">
+                                  {article.status === 'published' ? 'Publié' : 'Programmé'}
+                              </Badge>
+                          </div>
+                          <div className="col-span-2 text-left">
+                              <Badge variant="outline">{article.category}</Badge>
+                          </div>
+                          <div className="col-span-2 text-left">
+                              {format(new Date(article.publicationDate), 'd MMM yyyy', { locale: fr })}
+                          </div>
+                          <div className="col-span-2">
+                              <div className="flex justify-center items-center gap-4 text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                      <ThumbsUp className="h-4 w-4 text-green-500" />
+                                      <span className="text-sm">{article.likes}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                      <ThumbsDown className="h-4 w-4 text-red-500" />
+                                      <span className="text-sm">{article.dislikes}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                      <MessageSquare className="h-4 w-4 text-blue-500" />
+                                      <span className="text-sm">{article.comments.length}</span>
+                                  </div>
+                              </div>
+                          </div>
+                          <div className="col-span-1 text-right">
+                              <Link href={`/admin/edit/${article.slug}`} onClick={(e) => e.stopPropagation()}>
+                                  <Button variant="outline" size="sm">
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Modifier
+                                  </Button>
+                              </Link>
+                          </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                          <CommentSection articleId={article.slug} initialComments={article.comments} />
+                      </AccordionContent>
+                  </AccordionItem>
+                ))}
             </Accordion>
           </CardContent>
         </Card>
