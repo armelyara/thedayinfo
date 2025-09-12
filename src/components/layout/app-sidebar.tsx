@@ -18,10 +18,7 @@ import { ArrowRight } from 'lucide-react';
 
 const categoryIcons: { [key: string]: keyof typeof Lucide } = {
   Technology: 'Cpu',
-  Science: 'FlaskConical',
-  'Health & Wellness': 'HeartPulse',
-  Business: 'Briefcase',
-  Culture: 'Palette',
+  Actuality: 'Newspaper',
 };
 
 export function AppSidebar() {

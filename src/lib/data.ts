@@ -20,10 +20,7 @@ export type Category = {
 
 export const categories: Category[] = [
   { name: 'Technology', slug: 'technology' },
-  { name: 'Science', slug: 'science' },
-  { name: 'Health & Wellness', slug: 'health-wellness' },
-  { name: 'Business', slug: 'business' },
-  { name: 'Culture', slug: 'culture' },
+  { name: 'Actuality', slug: 'actuality' },
 ];
 
 export let articles: Article[] = [
@@ -46,7 +43,7 @@ export let articles: Article[] = [
     slug: 'exploring-the-cosmos',
     title: 'Exploring the Cosmos: New Discoveries in Space Exploration',
     author: 'John Smith',
-    category: 'Science',
+    category: 'Actuality',
     publicationDate: '2023-10-25',
     image: {
       id: "2",
@@ -61,7 +58,7 @@ export let articles: Article[] = [
     slug: 'mindfulness-in-the-digital-age',
     title: 'Mindfulness in the Digital Age: A Guide to Well-being',
     author: 'Emily White',
-    category: 'Health & Wellness',
+    category: 'Actuality',
     publicationDate: '2023-10-24',
     image: {
       id: "3",
@@ -76,7 +73,7 @@ export let articles: Article[] = [
     slug: 'the-rise-of-sustainable-business',
     title: 'The Rise of Sustainable Business: Profit Meets Purpose',
     author: 'Michael Brown',
-    category: 'Business',
+    category: 'Actuality',
     publicationDate: '2023-10-23',
     image: {
       id: "4",
@@ -91,7 +88,7 @@ export let articles: Article[] = [
     slug: 'from-graffiti-to-galleries',
     title: 'From Graffiti to Galleries: The Evolution of Street Art',
     author: 'Sarah Green',
-    category: 'Culture',
+    category: 'Actuality',
     publicationDate: '2023-10-22',
     image: {
       id: "5",
