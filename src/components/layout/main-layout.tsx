@@ -29,7 +29,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             {/* The Sign In button will be added back later with appropriate logic */}
           </div>
         </header>
-        <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <div className="flex-1 p-4 sm:p-6">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );
