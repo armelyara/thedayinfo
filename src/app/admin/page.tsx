@@ -206,10 +206,10 @@ export default function AdminDashboard() {
 
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             {/* Stats */}
-                            <div className="flex items-center gap-1" title="Vues">
+                            <Link href={`/admin/stats/${article.slug}`} className="flex items-center gap-1 hover:text-primary" title="Vues">
                                 <BarChart2 className="h-4 w-4" />
                                 <span>{article.views}</span>
-                            </div>
+                            </Link>
                            
                             <Dialog onOpenChange={(isOpen) => !isOpen && setViewingCommentsOf(null)}>
                                 <DialogTrigger asChild>
