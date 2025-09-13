@@ -117,9 +117,6 @@ export async function searchArticles(queryText: string): Promise<Article[]> {
     if (!queryText) return [];
     const allArticles = await getPublishedArticles();
     
-    // Firestore doesn't support full-text search out of the box on the client SDK for server-side rendering easily.
-    // For a small number of articles, filtering after fetching is acceptable.
-    // For a larger scale app, a dedicated search service like Algolia or Elasticsearch is recommended.
     return allArticles.filter(article => 
         article.title.toLowerCase().includes(queryText.toLowerCase()) ||
         article.content.toLowerCase().includes(queryText.toLowerCase())
@@ -132,10 +129,12 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
     const scheduledDate = article.scheduledFor ? new Date(article.scheduledFor) : null;
   
     const isScheduled = scheduledDate && scheduledDate > now;
-  
-    const newArticleData = {
+    
+    const publicationTimestamp = isScheduled ? Timestamp.fromDate(scheduledDate!) : Timestamp.fromDate(now);
+
+    const newArticleData: Omit<Article, 'slug'> = {
       ...article,
-      publicationDate: isScheduled ? Timestamp.fromDate(scheduledDate) : Timestamp.fromDate(now),
+      publicationDate: '', // Will be replaced by serialized version
       status: isScheduled ? 'scheduled' : 'published',
       image: {
         id: String(Date.now()),
@@ -148,19 +147,37 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
       viewHistory: [],
     };
     
-    const docRef = doc(db, 'articles', slug);
-    await setDoc(docRef, newArticleData);
-    
-    return {
+    const dataForFirestore = {
         ...newArticleData,
-        slug,
-        publicationDate: (isScheduled ? scheduledDate ?? now : now).toISOString(),
-    };
+        publicationDate: publicationTimestamp,
+        scheduledFor: article.scheduledFor ? Timestamp.fromDate(new Date(article.scheduledFor)) : undefined,
+    }
+
+    const docRef = doc(db, 'articles', slug);
+    await setDoc(docRef, dataForFirestore);
+    
+    const createdArticle = await getArticleBySlug(slug);
+    if (!createdArticle) {
+        throw new Error("Failed to create and retrieve article.");
+    }
+    return createdArticle;
 };
 
-export async function updateArticle(slug: string, data: Partial<Article>): Promise<Article> {
+export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug'>>): Promise<Article> {
     const docRef = doc(db, 'articles', slug);
-    await updateDoc(docRef, data);
+    
+    const dataForFirestore = { ...data };
+
+    if (data.scheduledFor) {
+        dataForFirestore.scheduledFor = new Date(data.scheduledFor).toISOString();
+        dataForFirestore.publicationDate = new Date(data.scheduledFor).toISOString();
+    }
+     if (data.publicationDate) {
+        dataForFirestore.publicationDate = new Date(data.publicationDate).toISOString();
+    }
+
+    await updateDoc(docRef, dataForFirestore);
+
     const updatedArticle = await getArticleBySlug(slug);
     if (!updatedArticle) throw new Error("Failed to retrieve updated article");
     return updatedArticle;
