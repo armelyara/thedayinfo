@@ -29,24 +29,20 @@ import {
 import { deleteArticleAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { getAdminArticles } from '@/lib/data';
-import { updateArticleComments } from '@/lib/firestore';
+import { updateArticleComments } from '@/lib/data';
 
 
 function CommentSection({ article, onCommentsUpdate }: { article: Article, onCommentsUpdate: (slug: string, comments: CommentType[]) => void }) {
     const [replyingTo, setReplyingTo] = useState<number | null>(null);
     const [replyText, setReplyText] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitting, startTransition] = useTransition();
     
     const handleReplySubmit = async (e: React.FormEvent, parentCommentId: number) => {
         e.preventDefault();
         if (!replyText.trim()) return;
 
-        setIsSubmitting(true);
         const parentComment = article.comments.find(c => c.id === parentCommentId);
-        if (!parentComment) {
-            setIsSubmitting(false);
-            return;
-        }
+        if (!parentComment) return;
 
         const newComment: CommentType = {
             id: Date.now(),
@@ -59,17 +55,17 @@ function CommentSection({ article, onCommentsUpdate }: { article: Article, onCom
         const newComments = [...article.comments];
         newComments.splice(parentIndex + 1, 0, newComment);
         
-        try {
-            await updateArticleComments(article.slug, newComments);
-            onCommentsUpdate(article.slug, newComments);
-            setReplyText('');
-            setReplyingTo(null);
-        } catch (error) {
-            console.error("Failed to submit reply:", error);
-            // Optionally show a toast error
-        } finally {
-            setIsSubmitting(false);
-        }
+        startTransition(async () => {
+          try {
+              await updateArticleComments(article.slug, newComments);
+              onCommentsUpdate(article.slug, newComments);
+              setReplyText('');
+              setReplyingTo(null);
+          } catch (error) {
+              console.error("Failed to submit reply:", error);
+              // Optionally show a toast error
+          }
+        });
     };
 
     const toggleReply = (commentId: number) => {

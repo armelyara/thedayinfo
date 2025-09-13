@@ -1,5 +1,4 @@
 
-import { parseISO } from 'date-fns';
 import {
   addArticle as dbAddArticle,
   updateArticle as dbUpdateArticle,
@@ -8,7 +7,8 @@ import {
   getArticleBySlug as dbGetArticleBySlug,
   getArticlesByCategory as dbGetArticlesByCategory,
   searchArticles as dbSearchArticles,
-  getAllArticles
+  getAllArticles,
+  updateArticleComments as dbUpdateArticleComments
 } from './firestore';
 
 export type {
@@ -34,3 +34,4 @@ export const addArticle = dbAddArticle;
 export const updateArticle = dbUpdateArticle;
 export const deleteArticle = dbDeleteArticle;
 export const getAdminArticles = getAllArticles;
+export const updateArticleComments = dbUpdateArticleComments;

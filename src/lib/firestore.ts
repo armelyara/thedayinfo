@@ -1,8 +1,8 @@
 
 'use server';
 
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { db } from './firebase';
+import { collection, getDocs, query, where, orderBy, doc, getDoc, addDoc, setDoc, deleteDoc, updateDoc, Timestamp } from 'firebase/firestore';
 
 export type Comment = {
     id: number;
@@ -41,100 +41,88 @@ export type Category = {
     slug: string;
 };
 
-// Initialize Firebase Admin SDK
-try {
-    if (!getApps().length) {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string);
-        initializeApp({
-            credential: cert(serviceAccount)
-        });
-    }
-} catch (error) {
-    console.error("Failed to initialize Firebase Admin SDK", error);
-}
-
-const db = getFirestore();
-const articlesCollection = db.collection('articles');
+const articlesCollection = collection(db, 'articles');
 
 // Helper to convert Firestore Timestamps to ISO strings
 const convertTimestamps = (docData: any) => {
     const data = { ...docData };
-    for (const key in data) {
-        if (data[key] instanceof Timestamp) {
-            data[key] = data[key].toDate().toISOString();
-        } else if (key === 'scheduledFor' && data[key]) {
-            data[key] = (data[key] as Timestamp).toDate().toISOString();
-        }
+    if (data.publicationDate && data.publicationDate instanceof Timestamp) {
+        data.publicationDate = data.publicationDate.toDate().toISOString();
+    }
+    if (data.scheduledFor && data.scheduledFor instanceof Timestamp) {
+        data.scheduledFor = data.scheduledFor.toDate().toISOString();
     }
     return data as Article;
-}
-
+};
 
 export async function getAllArticles(): Promise<Article[]> {
-    const snapshot = await articlesCollection.orderBy('publicationDate', 'desc').get();
+    const q = query(articlesCollection, orderBy('publicationDate', 'desc'));
+    const snapshot = await getDocs(q);
     if (snapshot.empty) {
         return [];
     }
-    return snapshot.docs.map(doc => convertTimestamps(doc.data()));
+    return snapshot.docs.map(doc => convertTimestamps({ slug: doc.id, ...doc.data() }));
 }
 
 export async function getPublishedArticles(): Promise<Article[]> {
     const now = new Date();
-    const snapshot = await articlesCollection
-        .where('status', '==', 'published')
-        .where('publicationDate', '<=', now.toISOString())
-        .orderBy('publicationDate', 'desc')
-        .get();
+    const q = query(
+        articlesCollection,
+        where('status', '==', 'published'),
+        where('publicationDate', '<=', now.toISOString()),
+        orderBy('publicationDate', 'desc')
+    );
+    const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
         return [];
     }
-    return snapshot.docs.map(doc => convertTimestamps(doc.data()));
+    return snapshot.docs.map(doc => convertTimestamps({ slug: doc.id, ...doc.data() }));
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
-    const snapshot = await articlesCollection.where('slug', '==', slug).limit(1).get();
-    if (snapshot.empty) {
+    const docRef = doc(db, 'articles', slug);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) {
         return null;
     }
-    const doc = snapshot.docs[0];
-    return convertTimestamps(doc.data());
+    return convertTimestamps({ slug: docSnap.id, ...docSnap.data() });
 }
 
 export async function getArticlesByCategory(categorySlug: string): Promise<Article[]> {
-    // This assumes categories are stored by name in the articles.
-    // In a real app you might store slug as well.
-    const categories: Category[] = [
+    const categoriesList: Category[] = [
         { name: 'Technologie', slug: 'technologie' },
         { name: 'Actualité', slug: 'actualite' },
     ];
-    const category = categories.find(c => c.slug === categorySlug);
+    const category = categoriesList.find(c => c.slug === categorySlug);
     if (!category) return [];
 
     const now = new Date();
-    const snapshot = await articlesCollection
-        .where('category', '==', category.name)
-        .where('status', '==', 'published')
-        .where('publicationDate', '<=', now.toISOString())
-        .orderBy('publicationDate', 'desc')
-        .get();
+    const q = query(
+        articlesCollection,
+        where('category', '==', category.name),
+        where('status', '==', 'published'),
+        where('publicationDate', '<=', now.toISOString()),
+        orderBy('publicationDate', 'desc')
+    );
     
+    const snapshot = await getDocs(q);
     if (snapshot.empty) {
         return [];
     }
-    return snapshot.docs.map(doc => convertTimestamps(doc.data()));
+    return snapshot.docs.map(doc => convertTimestamps({ slug: doc.id, ...doc.data() }));
 }
 
-export async function searchArticles(query: string): Promise<Article[]> {
-    if (!query) return [];
+export async function searchArticles(queryText: string): Promise<Article[]> {
+    if (!queryText) return [];
     const allArticles = await getPublishedArticles();
     
-    // Firestore doesn't support full-text search out of the box.
-    // For a small number of articles, client-side filtering is acceptable.
+    // Firestore doesn't support full-text search out of the box on the client SDK for server-side rendering easily.
+    // For a small number of articles, filtering after fetching is acceptable.
     // For a larger scale app, a dedicated search service like Algolia or Elasticsearch is recommended.
     return allArticles.filter(article => 
-        article.title.toLowerCase().includes(query.toLowerCase()) ||
-        article.content.toLowerCase().includes(query.toLowerCase())
+        article.title.toLowerCase().includes(queryText.toLowerCase()) ||
+        article.content.toLowerCase().includes(queryText.toLowerCase())
     );
 }
 
@@ -145,10 +133,9 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
   
     const isScheduled = scheduledDate && scheduledDate > now;
   
-    const newArticle: Article = {
+    const newArticleData = {
       ...article,
-      slug,
-      publicationDate: (isScheduled ? scheduledDate : now).toISOString(),
+      publicationDate: isScheduled ? Timestamp.fromDate(scheduledDate) : Timestamp.fromDate(now),
       status: isScheduled ? 'scheduled' : 'published',
       image: {
         id: String(Date.now()),
@@ -161,60 +148,65 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
       viewHistory: [],
     };
     
-    await articlesCollection.doc(slug).set(newArticle);
-    return newArticle;
+    const docRef = doc(db, 'articles', slug);
+    await setDoc(docRef, newArticleData);
+    
+    return {
+        ...newArticleData,
+        slug,
+        publicationDate: (isScheduled ? scheduledDate : now).toISOString(),
+    };
 };
 
 export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug' | 'publicationDate' | 'image' | 'status' | 'views' | 'comments' | 'viewHistory'>> & { scheduledFor?: string }): Promise<Article> {
-    const existingArticle = await getArticleBySlug(slug);
-    if (!existingArticle) {
+    const docRef = doc(db, 'articles', slug);
+    const existingArticleSnap = await getDoc(docRef);
+    if (!existingArticleSnap.exists()) {
       throw new Error("Article not found");
     }
-  
+    const existingArticle = existingArticleSnap.data();
+
     const newSlug = data.title ? data.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '') : slug;
   
     const now = new Date();
-    const scheduledDate = data.scheduledFor ? new Date(data.scheduledFor) : (existingArticle.scheduledFor ? new Date(existingArticle.scheduledFor) : null);
+    const scheduledDate = data.scheduledFor ? new Date(data.scheduledFor) : (existingArticle.scheduledFor ? (existingArticle.scheduledFor as Timestamp).toDate() : null);
   
     const isScheduled = scheduledDate && scheduledDate > now;
     
-    const updatedData = {
-      ...data,
-      slug: newSlug,
-      status: isScheduled ? 'scheduled' : 'published',
-      publicationDate: (isScheduled && scheduledDate ? scheduledDate : new Date(existingArticle.publicationDate)).toISOString(),
-      scheduledFor: data.scheduledFor || existingArticle.scheduledFor,
-    };
-  
-    const docRef = articlesCollection.doc(slug);
-    await docRef.update(updatedData);
+    const updatedData: any = { ...data };
+    updatedData.status = isScheduled ? 'scheduled' : 'published';
+    updatedData.publicationDate = (isScheduled && scheduledDate) ? Timestamp.fromDate(scheduledDate) : existingArticle.publicationDate;
+    updatedData.scheduledFor = data.scheduledFor ? Timestamp.fromDate(new Date(data.scheduledFor)) : (existingArticle.scheduledFor || null);
 
-    // If slug changed, we need to rename the document
+    await updateDoc(docRef, updatedData);
+
+    let finalSlug = slug;
     if (newSlug !== slug) {
-        const newDocRef = articlesCollection.doc(newSlug);
-        const currentDoc = await docRef.get();
-        await newDocRef.set(currentDoc.data()!);
-        await docRef.delete();
+        const newDocRef = doc(db, 'articles', newSlug);
+        await setDoc(newDocRef, (await getDoc(docRef)).data()!);
+        await deleteDoc(docRef);
+        finalSlug = newSlug;
     }
   
-    const updatedArticle = await getArticleBySlug(newSlug);
+    const updatedArticle = await getArticleBySlug(finalSlug);
     if (!updatedArticle) throw new Error("Failed to retrieve updated article");
 
     return updatedArticle;
 }
 
 export async function deleteArticle(slug: string): Promise<boolean> {
-    const snapshot = await articlesCollection.where('slug', '==', slug).limit(1).get();
-    if (snapshot.empty) {
+    const docRef = doc(db, 'articles', slug);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) {
         return false;
     }
-    await snapshot.docs[0].ref.delete();
+    await deleteDoc(docRef);
     return true;
 }
 
 export async function updateArticleComments(slug: string, comments: Comment[]): Promise<Article> {
-    const docRef = articlesCollection.doc(slug);
-    await docRef.update({ comments });
+    const docRef = doc(db, 'articles', slug);
+    await updateDoc(docRef, { comments });
     const updatedArticle = await getArticleBySlug(slug);
     if (!updatedArticle) throw new Error("Failed to retrieve updated article");
     return updatedArticle;

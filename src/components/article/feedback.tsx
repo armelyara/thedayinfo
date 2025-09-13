@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { User } from 'lucide-react';
 import type { Comment as CommentType } from '@/lib/data';
-import { updateArticleComments } from '@/lib/firestore';
+import { updateArticleComments } from '@/lib/data';
 
 type Reaction = 'like' | 'dislike' | null;
 
@@ -58,19 +58,19 @@ export default function Feedback({ articleSlug, initialViews, initialComments }:
     };
 
     const updatedComments = [newComment, ...comments];
-    setComments(updatedComments);
-    setCommentText('');
-
+    
     startTransition(async () => {
         try {
             await updateArticleComments(articleSlug, updatedComments);
+            setComments(updatedComments);
+            setCommentText('');
             toast({
                 title: 'Commentaire Posté',
                 description: 'Merci pour votre retour !',
             });
         } catch (error) {
             console.error("Failed to post comment:", error);
-            setComments(comments); // Revert optimistic update on error
+            // Revert optimistic update on error is handled by not setting state before success
             toast({
                 variant: 'destructive',
                 title: 'Erreur',

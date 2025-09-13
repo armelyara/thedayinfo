@@ -16,9 +16,15 @@ function SearchResults() {
     async function performSearch() {
       if (query) {
         setIsLoading(true);
-        const articles = await searchArticles(query);
-        setResults(articles);
-        setIsLoading(false);
+        try {
+          const articles = await searchArticles(query);
+          setResults(articles);
+        } catch (error) {
+          console.error("Search failed:", error);
+          setResults([]);
+        } finally {
+          setIsLoading(false);
+        }
       } else {
         setResults([]);
         setIsLoading(false);
