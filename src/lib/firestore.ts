@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from './firebase';
-import { collection, getDocs, query, where, orderBy, doc, getDoc, setDoc, deleteDoc, updateDoc, Timestamp, writeBatch, deleteField as firestoreDeleteField } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, doc, getDoc, setDoc, deleteDoc, updateDoc, Timestamp, writeBatch, deleteField } from 'firebase/firestore';
 
 export type Comment = {
     id: number;
@@ -174,7 +174,7 @@ export async function updateArticle(slug: string, data: Partial<Omit<Article, 's
             dataForFirestore.status = scheduledDate > now ? 'scheduled' : 'published';
         } else {
             // Un-scheduling: publish now and remove scheduledFor field
-            dataForFirestore.scheduledFor = firestoreDeleteField();
+            dataForFirestore.scheduledFor = deleteField();
             dataForFirestore.status = 'published';
             dataForFirestore.publicationDate = Timestamp.fromDate(new Date());
         }
