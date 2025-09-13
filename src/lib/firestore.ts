@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from './firebase';
-import { collection, getDocs, query, where, orderBy, doc, getDoc, setDoc, deleteDoc, updateDoc, Timestamp, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, doc, getDoc, setDoc, deleteDoc, updateDoc, Timestamp, writeBatch, deleteField as firestoreDeleteField } from 'firebase/firestore';
 
 export type Comment = {
     id: number;
@@ -165,7 +165,6 @@ export async function updateArticle(slug: string, data: Partial<Omit<Article, 's
     const docRef = doc(db, 'articles', slug);
     const dataForFirestore: { [key: string]: any } = { ...data };
 
-    // Handle scheduledFor separately
     if (data.hasOwnProperty('scheduledFor')) {
         const scheduledDate = data.scheduledFor;
         if (scheduledDate) {
@@ -174,18 +173,13 @@ export async function updateArticle(slug: string, data: Partial<Omit<Article, 's
             dataForFirestore.publicationDate = Timestamp.fromDate(scheduledDate);
             dataForFirestore.status = scheduledDate > now ? 'scheduled' : 'published';
         } else {
-            // Un-scheduling: publish now
-            dataForFirestore.scheduledFor = deleteField(); // Remove the field
+            // Un-scheduling: publish now and remove scheduledFor field
+            dataForFirestore.scheduledFor = firestoreDeleteField();
             dataForFirestore.status = 'published';
             dataForFirestore.publicationDate = Timestamp.fromDate(new Date());
         }
     }
     
-    // Remove the Date object from dataForFirestore before updating
-    delete dataForFirestore.scheduledFor;
-
-
-    // Update the document
     await updateDoc(docRef, dataForFirestore);
 
     const updatedArticle = await getArticleBySlug(slug);
@@ -215,13 +209,4 @@ export async function updateArticleComments(slug: string, comments: Comment[]): 
         console.error("Failed to update comments in Firestore:", error);
         return false;
     }
-}
-
-// Helper to delete a field in Firestore
-function deleteField() {
-    // This is a special sentinel value from the Firestore SDK
-    // but we can't import the entire 'firebase-admin' here.
-    // So we return a special string that we can check for.
-    // In a real app, you'd import `FieldValue.delete()`
-    return 'DELETE_FIELD';
 }
