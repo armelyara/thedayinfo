@@ -65,11 +65,7 @@ export default function CreateArticlePage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const submissionData = {
-        ...values,
-        scheduledFor: values.scheduledFor?.toISOString(),
-      };
-      const newArticle = await createArticle(submissionData);
+      const newArticle = await createArticle(values);
       toast({
         title: 'Article Publié !',
         description: 'Votre nouvel article a été publié avec succès.',

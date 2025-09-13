@@ -10,7 +10,7 @@ const formSchema = z.object({
   author: z.string(),
   category: z.string(),
   content: z.string(),
-  scheduledFor: z.string().optional(),
+  scheduledFor: z.date().optional(),
 });
 
 export async function createArticle(values: z.infer<typeof formSchema>) {
@@ -20,7 +20,12 @@ export async function createArticle(values: z.infer<typeof formSchema>) {
     throw new Error('Invalid form data');
   }
 
-  const newArticle = await addArticle(validatedFields.data);
+  const submissionData = {
+      ...validatedFields.data,
+      scheduledFor: validatedFields.data.scheduledFor?.toISOString(),
+  };
+
+  const newArticle = await addArticle(submissionData);
 
   // Revalidate paths to show the new article immediately
   revalidatePath('/');
