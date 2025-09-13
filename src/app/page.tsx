@@ -3,8 +3,8 @@ import { getPublishedArticles } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
 import { Separator } from '@/components/ui/separator';
 
-export default function Home() {
-  const publishedArticles = getPublishedArticles();
+export default async function Home() {
+  const publishedArticles = await getPublishedArticles();
 
   return (
     <div className="container mx-auto px-4 py-8">

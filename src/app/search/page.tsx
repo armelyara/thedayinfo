@@ -2,14 +2,34 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { searchArticles } from '@/lib/data';
+import { searchArticles, type Article } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 function SearchResults() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
-  const results = searchArticles(query);
+  const [results, setResults] = useState<Article[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function performSearch() {
+      if (query) {
+        setIsLoading(true);
+        const articles = await searchArticles(query);
+        setResults(articles);
+        setIsLoading(false);
+      } else {
+        setResults([]);
+        setIsLoading(false);
+      }
+    }
+    performSearch();
+  }, [query]);
+
+  if (isLoading) {
+    return <div className="container mx-auto px-4 py-8">Recherche en cours...</div>
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

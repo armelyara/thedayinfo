@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,30 +11,31 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { User } from 'lucide-react';
 import type { Comment as CommentType } from '@/lib/data';
+import { updateArticleComments } from '@/lib/firestore';
 
 type Reaction = 'like' | 'dislike' | null;
 
 type FeedbackProps = {
+    articleSlug: string;
     initialViews: number;
     initialComments: CommentType[];
 };
 
-export default function Feedback({ initialViews, initialComments }: FeedbackProps) {
+export default function Feedback({ articleSlug, initialViews, initialComments }: FeedbackProps) {
   const [reaction, setReaction] = useState<Reaction>(null);
-  const [likes, setLikes] = useState(0); // Likes/dislikes are local now
+  const [likes, setLikes] = useState(0); 
   const [dislikes, setDislikes] = useState(0);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<CommentType[]>(initialComments);
+  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const handleReaction = (newReaction: 'like' | 'dislike') => {
     if (reaction === newReaction) {
-        // User is deselecting their reaction
         setReaction(null);
         if (newReaction === 'like') setLikes(l => l - 1);
         if (newReaction === 'dislike') setDislikes(d => d - 1);
     } else {
-        // Switching reaction or new reaction
         if (reaction === 'like') setLikes(l => l - 1);
         if (reaction === 'dislike') setDislikes(d => d - 1);
 
@@ -47,20 +48,36 @@ export default function Feedback({ initialViews, initialComments }: FeedbackProp
 
   const handleCommentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (commentText.trim()) {
-      const newComment: CommentType = {
-        id: Date.now(),
-        author: 'Visiteur',
-        text: commentText.trim(),
-        avatar: `https://i.pravatar.cc/40?u=${Date.now()}`
-      };
-      setComments([newComment, ...comments]);
-      setCommentText('');
-      toast({
-        title: 'Commentaire Posté',
-        description: 'Merci pour votre retour !',
-      });
-    }
+    if (!commentText.trim()) return;
+
+    const newComment: CommentType = {
+      id: Date.now(),
+      author: 'Visiteur',
+      text: commentText.trim(),
+      avatar: `https://i.pravatar.cc/40?u=${Date.now()}`
+    };
+
+    const updatedComments = [newComment, ...comments];
+    setComments(updatedComments);
+    setCommentText('');
+
+    startTransition(async () => {
+        try {
+            await updateArticleComments(articleSlug, updatedComments);
+            toast({
+                title: 'Commentaire Posté',
+                description: 'Merci pour votre retour !',
+            });
+        } catch (error) {
+            console.error("Failed to post comment:", error);
+            setComments(comments); // Revert optimistic update on error
+            toast({
+                variant: 'destructive',
+                title: 'Erreur',
+                description: 'Impossible de poster le commentaire.',
+            });
+        }
+    });
   };
 
   return (
@@ -98,9 +115,9 @@ export default function Feedback({ initialViews, initialComments }: FeedbackProp
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
             />
-            <Button type="submit" disabled={!commentText.trim()}>
+            <Button type="submit" disabled={!commentText.trim() || isPending}>
               <Send className="mr-2 h-4 w-4" />
-              Poster le Commentaire
+              {isPending ? 'Envoi...' : 'Poster le Commentaire'}
             </Button>
           </form>
           <div className="space-y-4 pt-4">

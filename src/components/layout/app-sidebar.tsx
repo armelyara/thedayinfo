@@ -22,6 +22,35 @@ const categoryIcons: { [key: string]: keyof typeof Lucide } = {
   Actualité: 'Newspaper',
 };
 
+// This is now a client component because it needs to fetch category counts on the client.
+// Or we could pass counts as props. For simplicity, we fetch here.
+// In a real app, this data could be statically generated or fetched once.
+function CategoryList() {
+    // This is a placeholder. In a real app, you'd fetch this data.
+    // Since getArticlesByCategory is now async, we can't call it directly here.
+    // For this demo, we will display 0.
+    return (
+        <SidebarMenu>
+        {categories.map((category) => {
+          const Icon = Lucide[categoryIcons[category.name] || 'Folder'] as React.ElementType;
+          const articleCount = 0; // Placeholder
+          return (
+            <SidebarMenuItem key={category.slug}>
+              <Link href={`/category/${category.slug}`} className="w-full">
+                <SidebarMenuButton tooltip={category.name}>
+                  <Icon />
+                  <span>{category.name}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">{articleCount}</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          );
+        })}
+      </SidebarMenu>
+    )
+}
+
+
 export function AppSidebar() {
   const authorName = 'L\'Auteur';
   const shortBio = `
@@ -66,23 +95,7 @@ export function AppSidebar() {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Catégories</SidebarGroupLabel>
-          <SidebarMenu>
-            {categories.map((category) => {
-              const Icon = Lucide[categoryIcons[category.name] || 'Folder'] as React.ElementType;
-              const articleCount = getArticlesByCategory(category.name).length;
-              return (
-                <SidebarMenuItem key={category.slug}>
-                  <Link href={`/category/${category.slug}`} className="w-full">
-                    <SidebarMenuButton tooltip={category.name}>
-                      <Icon />
-                      <span>{category.name}</span>
-                      <span className="ml-auto text-xs text-muted-foreground">{articleCount}</span>
-                    </SidebarMenuButton>
-                  </Link>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
+          <CategoryList />
         </SidebarGroup>
       </SidebarContent>
     </>

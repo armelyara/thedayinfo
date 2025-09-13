@@ -16,9 +16,9 @@ export async function generateStaticParams() {
   }));
 }
 
-export default function CategoryPage({ params }: CategoryPageProps) {
+export default async function CategoryPage({ params }: CategoryPageProps) {
   const category = categories.find(c => c.slug === params.name);
-  const articlesInCategory = getArticlesByCategory(params.name);
+  const articlesInCategory = await getArticlesByCategory(params.name);
 
   if (!category) {
     notFound();

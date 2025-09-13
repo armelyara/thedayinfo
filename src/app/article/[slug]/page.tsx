@@ -1,7 +1,7 @@
 
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { getArticleBySlug, articles, getPublishedArticles } from '@/lib/data';
+import { getArticleBySlug, getPublishedArticles } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CalendarDays, User } from 'lucide-react';
@@ -9,6 +9,7 @@ import AiSummary from '@/components/article/ai-summary';
 import RelatedContent from '@/components/article/related-content';
 import Feedback from '@/components/article/feedback';
 import { parseISO } from 'date-fns';
+import type { Article } from '@/lib/data';
 
 type ArticlePageProps = {
   params: {
@@ -17,22 +18,21 @@ type ArticlePageProps = {
 };
 
 export async function generateStaticParams() {
-  // Only generate static pages for published articles
-  return getPublishedArticles().map((article) => ({
+  const articles = await getPublishedArticles();
+  return articles.map((article) => ({
     slug: article.slug,
   }));
 }
 
-export default function ArticlePage({ params }: ArticlePageProps) {
-  const article = getArticleBySlug(params.slug);
+export default async function ArticlePage({ params }: ArticlePageProps) {
+  const article = await getArticleBySlug(params.slug);
 
-  // Block access to scheduled articles
-  if (!article || article.status === 'scheduled' && parseISO(article.publicationDate) > new Date()) {
+  if (!article || (article.status === 'scheduled' && parseISO(article.publicationDate) > new Date())) {
     notFound();
   }
 
   return (
-    <article className="max-w-4xl mx-auto py-8">
+    <article className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <header className="mb-8">
         <Badge variant="secondary" className="mb-4">{article.category}</Badge>
         <h1 className="text-4xl font-headline font-extrabold tracking-tight lg:text-5xl mb-4">
@@ -73,9 +73,8 @@ export default function ArticlePage({ params }: ArticlePageProps) {
         />
       </div>
 
-      <div className="prose prose-lg dark:prose-invert max-w-none mb-12">
-        <p>{article.content}</p>
-      </div>
+      <div className="prose prose-lg dark:prose-invert max-w-none mb-12"
+           dangerouslySetInnerHTML={{ __html: article.content }} />
 
       <section className="space-y-12">
         <AiSummary articleContent={article.content} />
@@ -84,6 +83,7 @@ export default function ArticlePage({ params }: ArticlePageProps) {
           articleContent={article.content}
         />
         <Feedback 
+            articleSlug={article.slug}
             initialViews={article.views}
             initialComments={article.comments}
         />

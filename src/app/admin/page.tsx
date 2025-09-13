@@ -1,9 +1,8 @@
 
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { articles as initialArticles, categories, Comment as CommentType, Article } from '@/lib/data';
+import { categories, type Comment as CommentType, type Article } from '@/lib/data';
 import { Book, LayoutGrid, Users, FilePenLine, Trash2, Eye, BarChart2, MessageSquare, Send, Reply } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -11,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User } from 'lucide-react';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -26,59 +25,66 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
-  } from "@/components/ui/alert-dialog"
+  } from "@/components/ui/alert-dialog";
 import { deleteArticleAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
+import { getAdminArticles } from '@/lib/data';
+import { updateArticleComments } from '@/lib/firestore';
 
 
-function CommentSection({ articleId, initialComments, allArticles, onCommentsUpdate }: { articleId: string, initialComments: CommentType[], allArticles: Article[], onCommentsUpdate: (slug: string, comments: CommentType[]) => void }) {
+function CommentSection({ article, onCommentsUpdate }: { article: Article, onCommentsUpdate: (slug: string, comments: CommentType[]) => void }) {
     const [replyingTo, setReplyingTo] = useState<number | null>(null);
     const [replyText, setReplyText] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
-    const handleReplySubmit = (e: React.FormEvent, parentCommentId: number) => {
+    const handleReplySubmit = async (e: React.FormEvent, parentCommentId: number) => {
         e.preventDefault();
-        if (replyText.trim()) {
-            const articleToUpdate = allArticles.find(a => a.slug === articleId);
-            if (!articleToUpdate) return;
-            
-            const parentComment = articleToUpdate.comments.find(c => c.id === parentCommentId);
-            if (!parentComment) return;
+        if (!replyText.trim()) return;
 
-            const newComment: CommentType = {
-                id: Date.now(),
-                author: 'L\'Auteur', 
-                text: `En réponse à ${parentComment.author}: ${replyText.trim()}`,
-                avatar: 'https://picsum.photos/seed/author-pic/40/40' 
-            };
-            
-            const parentIndex = articleToUpdate.comments.findIndex(c => c.id === parentCommentId);
-            const newComments = [...articleToUpdate.comments];
-            newComments.splice(parentIndex + 1, 0, newComment);
+        setIsSubmitting(true);
+        const parentComment = article.comments.find(c => c.id === parentCommentId);
+        if (!parentComment) {
+            setIsSubmitting(false);
+            return;
+        }
 
-            onCommentsUpdate(articleId, newComments);
-
+        const newComment: CommentType = {
+            id: Date.now(),
+            author: 'L\'Auteur', 
+            text: `En réponse à ${parentComment.author}: ${replyText.trim()}`,
+            avatar: 'https://picsum.photos/seed/author-pic/40/40' 
+        };
+        
+        const parentIndex = article.comments.findIndex(c => c.id === parentCommentId);
+        const newComments = [...article.comments];
+        newComments.splice(parentIndex + 1, 0, newComment);
+        
+        try {
+            await updateArticleComments(article.slug, newComments);
+            onCommentsUpdate(article.slug, newComments);
             setReplyText('');
             setReplyingTo(null);
+        } catch (error) {
+            console.error("Failed to submit reply:", error);
+            // Optionally show a toast error
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const toggleReply = (commentId: number) => {
         if (replyingTo === commentId) {
             setReplyingTo(null);
-            setReplyText('');
         } else {
             setReplyingTo(commentId);
             setReplyText('');
         }
     };
 
-    const currentArticle = allArticles.find(a => a.slug === articleId);
-    const comments = currentArticle ? currentArticle.comments : [];
-
     return (
         <div className="p-4">
              <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto pr-4">
-                {comments.length > 0 ? comments.map(comment => (
+                {article.comments.length > 0 ? article.comments.map(comment => (
                     <div key={comment.id}>
                         <div className="flex items-start gap-3">
                             <Avatar className="h-8 w-8 border">
@@ -109,9 +115,9 @@ function CommentSection({ articleId, initialComments, allArticles, onCommentsUpd
                                     className="flex-1"
                                     rows={2}
                                 />
-                                <Button type="submit" size="sm" disabled={!replyText.trim()}>
+                                <Button type="submit" size="sm" disabled={!replyText.trim() || isSubmitting}>
                                     <Send className="mr-2 h-4 w-4" />
-                                    Envoyer
+                                    {isSubmitting ? 'Envoi...' : 'Envoyer'}
                                 </Button>
                             </form>
                         )}
@@ -123,10 +129,30 @@ function CommentSection({ articleId, initialComments, allArticles, onCommentsUpd
 }
 
 export default function AdminDashboard() {
-  const [articles, setArticles] = useState(initialArticles);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [viewingCommentsOf, setViewingCommentsOf] = useState<Article | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+
+  useEffect(() => {
+    async function fetchArticles() {
+      try {
+        const fetchedArticles = await getAdminArticles();
+        setArticles(fetchedArticles);
+      } catch (error) {
+        console.error("Failed to fetch articles:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Erreur de chargement',
+            description: 'Impossible de charger les articles depuis la base de données.',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchArticles();
+  }, [toast]);
   
   const totalArticles = articles.length;
   const totalCategories = categories.length;
@@ -141,6 +167,10 @@ export default function AdminDashboard() {
         a.slug === slug ? { ...a, comments: updatedComments } : a
       )
     );
+    // Also update the article in the dialog
+    if (viewingCommentsOf?.slug === slug) {
+        setViewingCommentsOf(prev => prev ? {...prev, comments: updatedComments} : null);
+    }
   };
 
   const handleDelete = (slug: string) => {
@@ -161,6 +191,14 @@ export default function AdminDashboard() {
         }
     });
   };
+
+  if (isLoading) {
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <h1 className="text-4xl font-headline font-bold mb-8">Chargement du Tableau de Bord...</h1>
+        </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -302,9 +340,7 @@ export default function AdminDashboard() {
                         <DialogTitle>Commentaires pour "{viewingCommentsOf.title}"</DialogTitle>
                     </DialogHeader>
                     <CommentSection 
-                        articleId={viewingCommentsOf.slug} 
-                        initialComments={viewingCommentsOf.comments}
-                        allArticles={articles}
+                        article={viewingCommentsOf}
                         onCommentsUpdate={handleCommentsUpdate}
                     />
                 </DialogContent>

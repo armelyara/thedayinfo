@@ -1,9 +1,8 @@
 
-
 'use client';
 
 import { notFound } from 'next/navigation';
-import { getArticleBySlug, Article } from '@/lib/data';
+import { type Article, getArticleBySlug } from '@/lib/data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
@@ -11,6 +10,7 @@ import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 type StatsPageProps = {
   params: {
@@ -19,7 +19,23 @@ type StatsPageProps = {
 };
 
 export default function StatsPage({ params }: StatsPageProps) {
-  const article = getArticleBySlug(params.slug);
+  const [article, setArticle] = useState<Article | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchArticle() {
+        const fetchedArticle = await getArticleBySlug(params.slug);
+        if (fetchedArticle) {
+            setArticle(fetchedArticle);
+        }
+        setIsLoading(false);
+    }
+    fetchArticle();
+  }, [params.slug]);
+
+  if (isLoading) {
+    return <div className="container mx-auto px-4 py-8">Chargement des statistiques...</div>
+  }
 
   if (!article) {
     notFound();

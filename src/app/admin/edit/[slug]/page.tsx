@@ -9,8 +9,8 @@ type EditArticlePageProps = {
   };
 };
 
-export default function EditArticlePage({ params }: EditArticlePageProps) {
-  const article = getArticleBySlug(params.slug);
+export default async function EditArticlePage({ params }: EditArticlePageProps) {
+  const article = await getArticleBySlug(params.slug);
 
   if (!article) {
     notFound();
