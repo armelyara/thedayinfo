@@ -121,7 +121,7 @@ export async function searchArticles(queryText: string): Promise<Article[]> {
     );
 }
 
-export async function addArticle(article: Omit<Article, 'slug' | 'publicationDate' | 'image' | 'views' | 'comments' | 'status' | 'viewHistory'> & { scheduledFor?: Date }): Promise<Article> {
+export async function addArticle(article: { title: string, author: string, category: string, content: string, scheduledFor?: Date }): Promise<Article> {
     const slug = article.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
     const now = new Date();
     const scheduledDate = article.scheduledFor;
@@ -130,7 +130,10 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
     const publicationDate = isScheduled ? scheduledDate : now;
 
     const dataForFirestore: any = {
-      ...article,
+      title: article.title,
+      author: article.author,
+      category: article.category,
+      content: article.content,
       publicationDate: Timestamp.fromDate(publicationDate),
       status: isScheduled ? 'scheduled' : 'published',
       image: {
@@ -146,8 +149,6 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
     
     if (scheduledDate) {
         dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
-    } else {
-        delete dataForFirestore.scheduledFor;
     }
 
     const docRef = doc(db, 'articles', slug);
@@ -172,10 +173,9 @@ export async function updateArticle(slug: string, data: Partial<Omit<Article, 's
         dataForFirestore.publicationDate = Timestamp.fromDate(scheduledDate);
         dataForFirestore.status = scheduledDate > now ? 'scheduled' : 'published';
     } else {
-        // Handle case where scheduledFor is removed
         if (data.hasOwnProperty('scheduledFor')) {
-            dataForFirestore.scheduledFor = null;
-            dataForFirestore.status = 'published';
+             delete dataForFirestore.scheduledFor; // Firestore doesn't like undefined
+             dataForFirestore.status = 'published';
         }
     }
 
