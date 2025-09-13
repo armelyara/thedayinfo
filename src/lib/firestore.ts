@@ -1,9 +1,8 @@
 
-
 'use server';
 
 import { db } from './firebase';
-import { collection, getDocs, query, where, orderBy, doc, getDoc, addDoc, setDoc, deleteDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, doc, getDoc, setDoc, deleteDoc, updateDoc, Timestamp, writeBatch } from 'firebase/firestore';
 
 export type Comment = {
     id: number;
@@ -21,7 +20,6 @@ export type Article = {
     slug: string;
     title: string;
     author: string;
-
     category: string;
     publicationDate: string;
     status: 'published' | 'scheduled';
@@ -45,17 +43,15 @@ export type Category = {
 
 const articlesCollection = collection(db, 'articles');
 
-// Helper to convert Firestore Timestamps to ISO strings
-const convertTimestamps = (docData: any) => {
-    const data = { ...docData };
-    if (data.publicationDate && data.publicationDate instanceof Timestamp) {
-        data.publicationDate = data.publicationDate.toDate().toISOString();
-    }
-    if (data.scheduledFor && data.scheduledFor instanceof Timestamp) {
-        data.scheduledFor = data.scheduledFor.toDate().toISOString();
-    }
-    return data as Article;
-};
+const convertDocToArticle = (doc: any): Article => {
+    const data = doc.data();
+    return {
+        slug: doc.id,
+        ...data,
+        publicationDate: data.publicationDate instanceof Timestamp ? data.publicationDate.toDate().toISOString() : data.publicationDate,
+        scheduledFor: data.scheduledFor instanceof Timestamp ? data.scheduledFor.toDate().toISOString() : data.scheduledFor,
+    } as Article;
+}
 
 export async function getAllArticles(): Promise<Article[]> {
     const q = query(articlesCollection, orderBy('publicationDate', 'desc'));
@@ -63,7 +59,7 @@ export async function getAllArticles(): Promise<Article[]> {
     if (snapshot.empty) {
         return [];
     }
-    return snapshot.docs.map(doc => convertTimestamps({ slug: doc.id, ...doc.data() }));
+    return snapshot.docs.map(convertDocToArticle);
 }
 
 export async function getPublishedArticles(): Promise<Article[]> {
@@ -71,7 +67,7 @@ export async function getPublishedArticles(): Promise<Article[]> {
     const q = query(
         articlesCollection,
         where('status', '==', 'published'),
-        where('publicationDate', '<=', now.toISOString()),
+        where('publicationDate', '<=', now.toISOString().split('T')[0] + 'T23:59:59.999Z'),
         orderBy('publicationDate', 'desc')
     );
     const snapshot = await getDocs(q);
@@ -79,7 +75,7 @@ export async function getPublishedArticles(): Promise<Article[]> {
     if (snapshot.empty) {
         return [];
     }
-    return snapshot.docs.map(doc => convertTimestamps({ slug: doc.id, ...doc.data() }));
+    return snapshot.docs.map(convertDocToArticle);
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
@@ -88,7 +84,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     if (!docSnap.exists()) {
         return null;
     }
-    return convertTimestamps({ slug: docSnap.id, ...docSnap.data() });
+    return convertDocToArticle(docSnap);
 }
 
 export async function getArticlesByCategory(categorySlug: string): Promise<Article[]> {
@@ -112,7 +108,7 @@ export async function getArticlesByCategory(categorySlug: string): Promise<Artic
     if (snapshot.empty) {
         return [];
     }
-    return snapshot.docs.map(doc => convertTimestamps({ slug: doc.id, ...doc.data() }));
+    return snapshot.docs.map(convertDocToArticle);
 }
 
 export async function searchArticles(queryText: string): Promise<Article[]> {
@@ -125,18 +121,17 @@ export async function searchArticles(queryText: string): Promise<Article[]> {
     );
 }
 
-export async function addArticle(article: Omit<Article, 'slug' | 'publicationDate' | 'image' | 'views' | 'comments' | 'status' | 'viewHistory'> & { scheduledFor?: string }): Promise<Article> {
+export async function addArticle(article: Omit<Article, 'slug' | 'publicationDate' | 'image' | 'views' | 'comments' | 'status' | 'viewHistory'> & { scheduledFor?: Date }): Promise<Article> {
     const slug = article.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
     const now = new Date();
-    const scheduledDate = article.scheduledFor ? new Date(article.scheduledFor) : null;
+    const scheduledDate = article.scheduledFor;
   
     const isScheduled = scheduledDate && scheduledDate > now;
-    
-    const publicationDate = isScheduled ? scheduledDate! : now;
+    const publicationDate = isScheduled ? scheduledDate : now;
 
-    const dataForFirestore: any = {
+    const newArticleData: Omit<Article, 'slug'> = {
       ...article,
-      publicationDate: Timestamp.fromDate(publicationDate),
+      publicationDate: publicationDate.toISOString(),
       status: isScheduled ? 'scheduled' : 'published',
       image: {
         id: String(Date.now()),
@@ -147,10 +142,13 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
       views: 0,
       comments: [],
       viewHistory: [],
+      scheduledFor: scheduledDate ? scheduledDate.toISOString() : undefined,
     };
     
-    if (article.scheduledFor) {
-        dataForFirestore.scheduledFor = Timestamp.fromDate(new Date(article.scheduledFor));
+    const dataForFirestore: any = { ...newArticleData };
+    dataForFirestore.publicationDate = Timestamp.fromDate(publicationDate);
+    if (scheduledDate) {
+        dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
     } else {
         delete dataForFirestore.scheduledFor;
     }
@@ -165,27 +163,22 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
     return createdArticle;
 };
 
-export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug'>>): Promise<Article> {
+export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug'> & { scheduledFor?: Date }>): Promise<Article> {
     const docRef = doc(db, 'articles', slug);
     
     const dataForFirestore: { [key: string]: any } = { ...data };
 
     if (data.scheduledFor) {
-        const scheduledDate = new Date(data.scheduledFor);
+        const scheduledDate = data.scheduledFor;
         dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
         dataForFirestore.publicationDate = Timestamp.fromDate(scheduledDate);
         dataForFirestore.status = scheduledDate > new Date() ? 'scheduled' : 'published';
-    } else if (data.scheduledFor === null || data.scheduledFor === undefined) {
-        // If scheduledFor is explicitly cleared, it might need to be removed from the document
-        // Or set to null if your app logic supports it. Let's remove it for clean data.
-        const { scheduledFor, ...rest } = dataForFirestore;
-        // Also revert status and publicationDate if it's no longer scheduled
-        rest.status = 'published';
-        rest.publicationDate = Timestamp.fromDate(new Date());
-        await updateDoc(docRef, rest);
     } else {
-       await updateDoc(docRef, dataForFirestore);
+        // Ensure we don't send undefined to Firestore
+        delete dataForFirestore.scheduledFor;
     }
+
+    await updateDoc(docRef, dataForFirestore);
 
     const updatedArticle = await getArticleBySlug(slug);
     if (!updatedArticle) throw new Error("Failed to retrieve updated article");
@@ -194,12 +187,13 @@ export async function updateArticle(slug: string, data: Partial<Omit<Article, 's
 
 export async function deleteArticle(slug: string): Promise<boolean> {
     const docRef = doc(db, 'articles', slug);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) {
+    try {
+        await deleteDoc(docRef);
+        return true;
+    } catch(e) {
+        console.error("Error deleting article:", e);
         return false;
     }
-    await deleteDoc(docRef);
-    return true;
 }
 
 

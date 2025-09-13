@@ -4,6 +4,7 @@
 import { z } from 'zod';
 import { updateArticle } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
+import type { Article } from '@/lib/data';
 
 const formSchema = z.object({
   title: z.string(),
@@ -13,23 +14,15 @@ const formSchema = z.object({
   scheduledFor: z.date().optional(),
 });
 
-export async function updateArticleAction(slug: string, values: z.infer<typeof formSchema>) {
+export async function updateArticleAction(slug: string, values: z.infer<typeof formSchema>): Promise<Article> {
   const validatedFields = formSchema.safeParse(values);
 
   if (!validatedFields.success) {
+    console.error('Validation failed:', validatedFields.error);
     throw new Error('Champs de formulaire invalides');
   }
-
-  const submissionData = {
-    ...validatedFields.data,
-    scheduledFor: validatedFields.data.scheduledFor?.toISOString(),
-  };
-
-  const updatedArticle = await updateArticle(slug, submissionData);
-
-  if (!updatedArticle) {
-    throw new Error('Article non trouvé');
-  }
+  
+  const updatedArticle = await updateArticle(slug, validatedFields.data);
 
   // Revalidate paths to show the changes immediately
   revalidatePath('/');
