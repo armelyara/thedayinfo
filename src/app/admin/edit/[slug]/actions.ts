@@ -26,7 +26,7 @@ export async function updateArticleAction(slug: string, values: z.infer<typeof f
   
   const updatedArticle = await updateArticle(slug, {
     ...rest,
-    scheduledFor: scheduledFor ? new Date(scheduledFor) : undefined,
+    scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
   });
 
   // Revalidate paths to show the changes immediately

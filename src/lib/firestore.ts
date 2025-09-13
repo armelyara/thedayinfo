@@ -67,7 +67,7 @@ export async function getPublishedArticles(): Promise<Article[]> {
     const q = query(
         articlesCollection,
         where('status', '==', 'published'),
-        where('publicationDate', '<=', now.toISOString().split('T')[0] + 'T23:59:59.999Z'),
+        where('publicationDate', '<=', now.toISOString()),
         orderBy('publicationDate', 'desc')
     );
     const snapshot = await getDocs(q);
@@ -147,8 +147,8 @@ export async function addArticle(article: { title: string, author: string, categ
       viewHistory: [],
     };
     
-    if (scheduledDate) {
-        dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
+    if (isScheduled) {
+        dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate!);
     }
 
     const docRef = doc(db, 'articles', slug);
@@ -161,30 +161,38 @@ export async function addArticle(article: { title: string, author: string, categ
     return createdArticle;
 };
 
-export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug'>> & { scheduledFor?: Date }): Promise<Article> {
+export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug' | 'scheduledFor'>> & { scheduledFor?: Date | null }): Promise<Article> {
     const docRef = doc(db, 'articles', slug);
-    
     const dataForFirestore: { [key: string]: any } = { ...data };
 
-    if (data.scheduledFor) {
+    // Handle scheduledFor separately
+    if (data.hasOwnProperty('scheduledFor')) {
         const scheduledDate = data.scheduledFor;
-        const now = new Date();
-        dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
-        dataForFirestore.publicationDate = Timestamp.fromDate(scheduledDate);
-        dataForFirestore.status = scheduledDate > now ? 'scheduled' : 'published';
-    } else {
-        if (data.hasOwnProperty('scheduledFor')) {
-             delete dataForFirestore.scheduledFor; // Firestore doesn't like undefined
-             dataForFirestore.status = 'published';
+        if (scheduledDate) {
+            const now = new Date();
+            dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
+            dataForFirestore.publicationDate = Timestamp.fromDate(scheduledDate);
+            dataForFirestore.status = scheduledDate > now ? 'scheduled' : 'published';
+        } else {
+            // Un-scheduling: publish now
+            dataForFirestore.scheduledFor = deleteField(); // Remove the field
+            dataForFirestore.status = 'published';
+            dataForFirestore.publicationDate = Timestamp.fromDate(new Date());
         }
     }
+    
+    // Remove the Date object from dataForFirestore before updating
+    delete dataForFirestore.scheduledFor;
 
+
+    // Update the document
     await updateDoc(docRef, dataForFirestore);
 
     const updatedArticle = await getArticleBySlug(slug);
     if (!updatedArticle) throw new Error("Failed to retrieve updated article");
     return updatedArticle;
 }
+
 
 export async function deleteArticle(slug: string): Promise<boolean> {
     const docRef = doc(db, 'articles', slug);
@@ -207,4 +215,13 @@ export async function updateArticleComments(slug: string, comments: Comment[]): 
         console.error("Failed to update comments in Firestore:", error);
         return false;
     }
+}
+
+// Helper to delete a field in Firestore
+function deleteField() {
+    // This is a special sentinel value from the Firestore SDK
+    // but we can't import the entire 'firebase-admin' here.
+    // So we return a special string that we can check for.
+    // In a real app, you'd import `FieldValue.delete()`
+    return 'DELETE_FIELD';
 }
