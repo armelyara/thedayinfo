@@ -11,7 +11,7 @@ const formSchema = z.object({
   author: z.string(),
   category: z.string(),
   content: z.string(),
-  scheduledFor: z.date().optional(),
+  scheduledFor: z.string().optional().nullable(),
 });
 
 export async function updateArticleAction(slug: string, values: z.infer<typeof formSchema>): Promise<Article> {
@@ -21,8 +21,13 @@ export async function updateArticleAction(slug: string, values: z.infer<typeof f
     console.error('Validation failed:', validatedFields.error);
     throw new Error('Champs de formulaire invalides');
   }
+
+  const { scheduledFor, ...rest } = validatedFields.data;
   
-  const updatedArticle = await updateArticle(slug, validatedFields.data);
+  const updatedArticle = await updateArticle(slug, {
+    ...rest,
+    scheduledFor: scheduledFor ? new Date(scheduledFor) : undefined,
+  });
 
   // Revalidate paths to show the changes immediately
   revalidatePath('/');
