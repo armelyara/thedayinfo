@@ -129,9 +129,9 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
     const isScheduled = scheduledDate && scheduledDate > now;
     const publicationDate = isScheduled ? scheduledDate : now;
 
-    const newArticleData: Omit<Article, 'slug'> = {
+    const dataForFirestore: any = {
       ...article,
-      publicationDate: publicationDate.toISOString(),
+      publicationDate: Timestamp.fromDate(publicationDate),
       status: isScheduled ? 'scheduled' : 'published',
       image: {
         id: String(Date.now()),
@@ -142,11 +142,8 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
       views: 0,
       comments: [],
       viewHistory: [],
-      scheduledFor: scheduledDate ? scheduledDate.toISOString() : undefined,
     };
     
-    const dataForFirestore: any = { ...newArticleData };
-    dataForFirestore.publicationDate = Timestamp.fromDate(publicationDate);
     if (scheduledDate) {
         dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
     } else {
@@ -163,19 +160,23 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
     return createdArticle;
 };
 
-export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug'> & { scheduledFor?: Date }>): Promise<Article> {
+export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug'>> & { scheduledFor?: Date }): Promise<Article> {
     const docRef = doc(db, 'articles', slug);
     
     const dataForFirestore: { [key: string]: any } = { ...data };
 
     if (data.scheduledFor) {
         const scheduledDate = data.scheduledFor;
+        const now = new Date();
         dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
         dataForFirestore.publicationDate = Timestamp.fromDate(scheduledDate);
-        dataForFirestore.status = scheduledDate > new Date() ? 'scheduled' : 'published';
+        dataForFirestore.status = scheduledDate > now ? 'scheduled' : 'published';
     } else {
-        // Ensure we don't send undefined to Firestore
-        delete dataForFirestore.scheduledFor;
+        // Handle case where scheduledFor is removed
+        if (data.hasOwnProperty('scheduledFor')) {
+            dataForFirestore.scheduledFor = null;
+            dataForFirestore.status = 'published';
+        }
     }
 
     await updateDoc(docRef, dataForFirestore);

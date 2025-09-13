@@ -70,11 +70,7 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const submissionData = {
-        ...values,
-        scheduledFor: values.scheduledFor?.toISOString(),
-      };
-      const updatedArticle = await updateArticleAction(article.slug, submissionData);
+      const updatedArticle = await updateArticleAction(article.slug, values);
       toast({
         title: 'Article Mis à Jour !',
         description: 'Votre article a été mis à jour avec succès.',
