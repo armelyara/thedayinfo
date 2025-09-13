@@ -3,7 +3,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { articles, categories, Comment as CommentType, Article } from '@/lib/data';
+import { articles as initialArticles, categories, Comment as CommentType, Article } from '@/lib/data';
 import { Book, LayoutGrid, Users, FilePenLine, Trash2, Eye, BarChart2, MessageSquare, Send, Reply } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -27,16 +27,21 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog"
+import { deleteArticleAction } from './actions';
+import { useToast } from '@/hooks/use-toast';
 
-function CommentSection({ articleId, initialComments }: { articleId: string, initialComments: CommentType[] }) {
-    const [comments, setComments] = useState<CommentType[]>(initialComments);
+
+function CommentSection({ articleId, initialComments, allArticles, onCommentsUpdate }: { articleId: string, initialComments: CommentType[], allArticles: Article[], onCommentsUpdate: (slug: string, comments: CommentType[]) => void }) {
     const [replyingTo, setReplyingTo] = useState<number | null>(null);
     const [replyText, setReplyText] = useState('');
     
     const handleReplySubmit = (e: React.FormEvent, parentCommentId: number) => {
         e.preventDefault();
         if (replyText.trim()) {
-            const parentComment = comments.find(c => c.id === parentCommentId);
+            const articleToUpdate = allArticles.find(a => a.slug === articleId);
+            if (!articleToUpdate) return;
+            
+            const parentComment = articleToUpdate.comments.find(c => c.id === parentCommentId);
             if (!parentComment) return;
 
             const newComment: CommentType = {
@@ -46,17 +51,11 @@ function CommentSection({ articleId, initialComments }: { articleId: string, ini
                 avatar: 'https://picsum.photos/seed/author-pic/40/40' 
             };
             
-            const parentIndex = comments.findIndex(c => c.id === parentCommentId);
-            const newComments = [...comments];
+            const parentIndex = articleToUpdate.comments.findIndex(c => c.id === parentCommentId);
+            const newComments = [...articleToUpdate.comments];
             newComments.splice(parentIndex + 1, 0, newComment);
 
-            setComments(newComments);
-
-            const article = articles.find(a => a.slug === articleId);
-            if(article) {
-                // This is a mock update, it won't persist
-                article.comments = newComments;
-            }
+            onCommentsUpdate(articleId, newComments);
 
             setReplyText('');
             setReplyingTo(null);
@@ -72,6 +71,9 @@ function CommentSection({ articleId, initialComments }: { articleId: string, ini
             setReplyText('');
         }
     };
+
+    const currentArticle = allArticles.find(a => a.slug === articleId);
+    const comments = currentArticle ? currentArticle.comments : [];
 
     return (
         <div className="p-4">
@@ -121,13 +123,44 @@ function CommentSection({ articleId, initialComments }: { articleId: string, ini
 }
 
 export default function AdminDashboard() {
+  const [articles, setArticles] = useState(initialArticles);
   const [viewingCommentsOf, setViewingCommentsOf] = useState<Article | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  
   const totalArticles = articles.length;
   const totalCategories = categories.length;
   const authors = new Set(articles.map((a) => a.author));
   const totalAuthors = authors.size;
 
   const sortedArticles = [...articles].sort((a, b) => parseISO(b.publicationDate).getTime() - parseISO(a.publicationDate).getTime());
+
+  const handleCommentsUpdate = (slug: string, updatedComments: CommentType[]) => {
+    setArticles(currentArticles => 
+      currentArticles.map(a => 
+        a.slug === slug ? { ...a, comments: updatedComments } : a
+      )
+    );
+  };
+
+  const handleDelete = (slug: string) => {
+    startTransition(async () => {
+        const result = await deleteArticleAction(slug);
+        if (result.success) {
+            setArticles(currentArticles => currentArticles.filter(a => a.slug !== slug));
+            toast({
+                title: 'Article Supprimé',
+                description: 'L\'article a été supprimé avec succès.',
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Erreur',
+                description: result.error || 'Impossible de supprimer l\'article.',
+            });
+        }
+    });
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -249,7 +282,9 @@ export default function AdminDashboard() {
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                         <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                        <AlertDialogAction>Continuer</AlertDialogAction>
+                                        <AlertDialogAction onClick={() => handleDelete(article.slug)} disabled={isPending}>
+                                            {isPending ? 'Suppression...' : 'Continuer'}
+                                        </AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
@@ -266,7 +301,12 @@ export default function AdminDashboard() {
                     <DialogHeader>
                         <DialogTitle>Commentaires pour "{viewingCommentsOf.title}"</DialogTitle>
                     </DialogHeader>
-                    <CommentSection articleId={viewingCommentsOf.slug} initialComments={viewingCommentsOf.comments} />
+                    <CommentSection 
+                        articleId={viewingCommentsOf.slug} 
+                        initialComments={viewingCommentsOf.comments}
+                        allArticles={articles}
+                        onCommentsUpdate={handleCommentsUpdate}
+                    />
                 </DialogContent>
             </Dialog>
         )}

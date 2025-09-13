@@ -270,3 +270,12 @@ export const updateArticle = (slug: string, data: Partial<Omit<Article, 'slug' |
   articles[articleIndex] = updatedArticle;
   return updatedArticle;
 }
+
+export const deleteArticle = (slug: string) => {
+    const articleIndex = articles.findIndex(a => a.slug === slug);
+    if (articleIndex > -1) {
+        articles.splice(articleIndex, 1);
+        return true;
+    }
+    return false;
+}
