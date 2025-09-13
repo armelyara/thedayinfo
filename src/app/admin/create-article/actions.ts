@@ -20,7 +20,7 @@ export async function createArticle(values: z.infer<typeof formSchema>) {
     throw new Error('Invalid form data');
   }
 
-  const newArticle = addArticle(validatedFields.data);
+  const newArticle = await addArticle(validatedFields.data);
 
   // Revalidate paths to show the new article immediately
   revalidatePath('/');

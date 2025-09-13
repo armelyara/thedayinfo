@@ -158,39 +158,11 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
     };
 };
 
-export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug' | 'publicationDate' | 'image' | 'status' | 'views' | 'comments' | 'viewHistory'>> & { scheduledFor?: string }): Promise<Article> {
+export async function updateArticle(slug: string, data: Partial<Article>): Promise<Article> {
     const docRef = doc(db, 'articles', slug);
-    const existingArticleSnap = await getDoc(docRef);
-    if (!existingArticleSnap.exists()) {
-      throw new Error("Article not found");
-    }
-    const existingArticle = existingArticleSnap.data();
-
-    const newSlug = data.title ? data.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '') : slug;
-  
-    const now = new Date();
-    const scheduledDate = data.scheduledFor ? new Date(data.scheduledFor) : (existingArticle.scheduledFor ? (existingArticle.scheduledFor as Timestamp).toDate() : null);
-  
-    const isScheduled = scheduledDate && scheduledDate > now;
-    
-    const updatedData: any = { ...data };
-    updatedData.status = isScheduled ? 'scheduled' : 'published';
-    updatedData.publicationDate = (isScheduled && scheduledDate) ? Timestamp.fromDate(scheduledDate) : existingArticle.publicationDate;
-    updatedData.scheduledFor = data.scheduledFor ? Timestamp.fromDate(new Date(data.scheduledFor)) : (existingArticle.scheduledFor || null);
-
-    await updateDoc(docRef, updatedData);
-
-    let finalSlug = slug;
-    if (newSlug !== slug) {
-        const newDocRef = doc(db, 'articles', newSlug);
-        await setDoc(newDocRef, (await getDoc(docRef)).data()!);
-        await deleteDoc(docRef);
-        finalSlug = newSlug;
-    }
-  
-    const updatedArticle = await getArticleBySlug(finalSlug);
+    await updateDoc(docRef, data);
+    const updatedArticle = await getArticleBySlug(slug);
     if (!updatedArticle) throw new Error("Failed to retrieve updated article");
-
     return updatedArticle;
 }
 
@@ -204,10 +176,13 @@ export async function deleteArticle(slug: string): Promise<boolean> {
     return true;
 }
 
-export async function updateArticleComments(slug: string, comments: Comment[]): Promise<Article> {
+
+export async function updateArticleComments(slug: string, comments: Comment[]): Promise<boolean> {
     const docRef = doc(db, 'articles', slug);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) {
+        return false;
+    }
     await updateDoc(docRef, { comments });
-    const updatedArticle = await getArticleBySlug(slug);
-    if (!updatedArticle) throw new Error("Failed to retrieve updated article");
-    return updatedArticle;
+    return true;
 }
