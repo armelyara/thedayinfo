@@ -147,11 +147,17 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
       viewHistory: [],
     };
     
-    const dataForFirestore = {
+    const dataForFirestore: any = {
         ...newArticleData,
         publicationDate: publicationTimestamp,
-        scheduledFor: article.scheduledFor ? Timestamp.fromDate(new Date(article.scheduledFor)) : undefined,
     }
+
+    if (article.scheduledFor) {
+        dataForFirestore.scheduledFor = Timestamp.fromDate(new Date(article.scheduledFor));
+    } else {
+        delete dataForFirestore.scheduledFor;
+    }
+
 
     const docRef = doc(db, 'articles', slug);
     await setDoc(docRef, dataForFirestore);
@@ -166,7 +172,7 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
 export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug'>>): Promise<Article> {
     const docRef = doc(db, 'articles', slug);
     
-    const dataForFirestore = { ...data };
+    const dataForFirestore: any = { ...data };
 
     if (data.scheduledFor) {
         dataForFirestore.scheduledFor = new Date(data.scheduledFor).toISOString();
