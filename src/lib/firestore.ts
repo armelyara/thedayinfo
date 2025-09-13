@@ -154,7 +154,7 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
     return {
         ...newArticleData,
         slug,
-        publicationDate: (isScheduled ? scheduledDate : now).toISOString(),
+        publicationDate: (isScheduled ? scheduledDate ?? now : now).toISOString(),
     };
 };
 

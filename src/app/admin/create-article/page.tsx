@@ -76,6 +76,7 @@ export default function CreateArticlePage() {
       });
       router.push(`/article/${newArticle.slug}`);
     } catch (error) {
+      console.error("Failed to create article:", error);
       toast({
         variant: 'destructive',
         title: 'Oh oh ! Quelque chose s\'est mal passé.',
