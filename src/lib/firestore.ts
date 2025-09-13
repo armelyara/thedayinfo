@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { db } from './firebase';
@@ -20,6 +21,7 @@ export type Article = {
     slug: string;
     title: string;
     author: string;
+
     category: string;
     publicationDate: string;
     status: 'published' | 'scheduled';
@@ -130,11 +132,11 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
   
     const isScheduled = scheduledDate && scheduledDate > now;
     
-    const publicationTimestamp = isScheduled ? Timestamp.fromDate(scheduledDate!) : Timestamp.fromDate(now);
+    const publicationDate = isScheduled ? scheduledDate! : now;
 
-    const newArticleData: Omit<Article, 'slug'> = {
+    const dataForFirestore: any = {
       ...article,
-      publicationDate: '', // Will be replaced by serialized version
+      publicationDate: Timestamp.fromDate(publicationDate),
       status: isScheduled ? 'scheduled' : 'published',
       image: {
         id: String(Date.now()),
@@ -147,17 +149,11 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
       viewHistory: [],
     };
     
-    const dataForFirestore: any = {
-        ...newArticleData,
-        publicationDate: publicationTimestamp,
-    }
-
     if (article.scheduledFor) {
         dataForFirestore.scheduledFor = Timestamp.fromDate(new Date(article.scheduledFor));
     } else {
         delete dataForFirestore.scheduledFor;
     }
-
 
     const docRef = doc(db, 'articles', slug);
     await setDoc(docRef, dataForFirestore);
@@ -172,17 +168,24 @@ export async function addArticle(article: Omit<Article, 'slug' | 'publicationDat
 export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug'>>): Promise<Article> {
     const docRef = doc(db, 'articles', slug);
     
-    const dataForFirestore: any = { ...data };
+    const dataForFirestore: { [key: string]: any } = { ...data };
 
     if (data.scheduledFor) {
-        dataForFirestore.scheduledFor = new Date(data.scheduledFor).toISOString();
-        dataForFirestore.publicationDate = new Date(data.scheduledFor).toISOString();
+        const scheduledDate = new Date(data.scheduledFor);
+        dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
+        dataForFirestore.publicationDate = Timestamp.fromDate(scheduledDate);
+        dataForFirestore.status = scheduledDate > new Date() ? 'scheduled' : 'published';
+    } else if (data.scheduledFor === null || data.scheduledFor === undefined) {
+        // If scheduledFor is explicitly cleared, it might need to be removed from the document
+        // Or set to null if your app logic supports it. Let's remove it for clean data.
+        const { scheduledFor, ...rest } = dataForFirestore;
+        // Also revert status and publicationDate if it's no longer scheduled
+        rest.status = 'published';
+        rest.publicationDate = Timestamp.fromDate(new Date());
+        await updateDoc(docRef, rest);
+    } else {
+       await updateDoc(docRef, dataForFirestore);
     }
-     if (data.publicationDate) {
-        dataForFirestore.publicationDate = new Date(data.publicationDate).toISOString();
-    }
-
-    await updateDoc(docRef, dataForFirestore);
 
     const updatedArticle = await getArticleBySlug(slug);
     if (!updatedArticle) throw new Error("Failed to retrieve updated article");
@@ -202,10 +205,11 @@ export async function deleteArticle(slug: string): Promise<boolean> {
 
 export async function updateArticleComments(slug: string, comments: Comment[]): Promise<boolean> {
     const docRef = doc(db, 'articles', slug);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) {
+    try {
+        await updateDoc(docRef, { comments });
+        return true;
+    } catch (error) {
+        console.error("Failed to update comments in Firestore:", error);
         return false;
     }
-    await updateDoc(docRef, { comments });
-    return true;
 }

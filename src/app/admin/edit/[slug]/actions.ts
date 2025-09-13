@@ -10,7 +10,7 @@ const formSchema = z.object({
   author: z.string(),
   category: z.string(),
   content: z.string(),
-  scheduledFor: z.string().optional(),
+  scheduledFor: z.date().optional(),
 });
 
 export async function updateArticleAction(slug: string, values: z.infer<typeof formSchema>) {
@@ -20,7 +20,12 @@ export async function updateArticleAction(slug: string, values: z.infer<typeof f
     throw new Error('Champs de formulaire invalides');
   }
 
-  const updatedArticle = updateArticle(slug, validatedFields.data);
+  const submissionData = {
+    ...validatedFields.data,
+    scheduledFor: validatedFields.data.scheduledFor?.toISOString(),
+  };
+
+  const updatedArticle = await updateArticle(slug, submissionData);
 
   if (!updatedArticle) {
     throw new Error('Article non trouvé');
@@ -29,7 +34,7 @@ export async function updateArticleAction(slug: string, values: z.infer<typeof f
   // Revalidate paths to show the changes immediately
   revalidatePath('/');
   revalidatePath('/admin');
-  revalidatePath('/article/[slug]', 'page');
+  revalidatePath(`/article/${updatedArticle.slug}`);
   revalidatePath(`/category/${validatedFields.data.category.toLowerCase().replace(' & ', '-').replace(/\s+/g, '-')}`);
 
   return updatedArticle;
