@@ -4,7 +4,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { app } from '@/lib/firebase-client';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 
@@ -87,3 +87,5 @@ export default function AdminLayout({
     </Suspense>
   );
 }
+
+    

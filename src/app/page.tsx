@@ -1,30 +1,15 @@
 
-'use client';
-
 import { getPublishedArticles, seedInitialArticles, type Article } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
-import { Separator } from '@/components/ui/separator';
-import { useEffect, useState } from 'react';
 
-export default function Home() {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export const revalidate = 3600; // Revalidate every hour
 
-  useEffect(() => {
-    async function fetchArticles() {
-      try {
-        await seedInitialArticles();
-        const publishedArticles = await getPublishedArticles();
-        setArticles(publishedArticles);
-      } catch (error) {
-        console.error("Failed to fetch articles:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchArticles();
-  }, []);
+export default async function Home() {
+  // Seed initial articles if the collection is empty.
+  // In a real app, this might be a one-time script.
+  await seedInitialArticles();
 
+  const articles = await getPublishedArticles();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -38,14 +23,14 @@ export default function Home() {
       </header>
 
       <main>
-        {isLoading ? (
-          <p>Chargement des articles...</p>
-        ) : (
+        {articles.length > 0 ? (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {articles.map((article) => (
               <ArticleCard key={article.slug} article={article} />
             ))}
           </div>
+        ) : (
+          <p>Aucun article publié pour le moment. Revenez bientôt !</p>
         )}
       </main>
     </div>

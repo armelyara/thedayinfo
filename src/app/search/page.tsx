@@ -1,41 +1,16 @@
 
-'use client';
-
-import { useSearchParams } from 'next/navigation';
-import { searchArticles, type Article } from '@/lib/data';
+import { searchArticles } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense } from 'react';
 
-function SearchResults() {
-  const searchParams = useSearchParams();
-  const query = searchParams.get('q') || '';
-  const [results, setResults] = useState<Article[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+type SearchPageProps = {
+  searchParams: {
+    q?: string;
+  };
+};
 
-  useEffect(() => {
-    async function performSearch() {
-      if (query) {
-        setIsLoading(true);
-        try {
-          const articles = await searchArticles(query);
-          setResults(articles);
-        } catch (error) {
-          console.error("Search failed:", error);
-          setResults([]);
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        setResults([]);
-        setIsLoading(false);
-      }
-    }
-    performSearch();
-  }, [query]);
-
-  if (isLoading) {
-    return <div className="container mx-auto px-4 py-8">Recherche en cours...</div>
-  }
+async function SearchResults({ query }: { query: string }) {
+  const results = await searchArticles(query);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -70,10 +45,11 @@ function SearchResults() {
   );
 }
 
-export default function SearchPage() {
+export default function SearchPage({ searchParams }: SearchPageProps) {
+    const query = searchParams.q || '';
     return (
-        <Suspense fallback={<div>Chargement...</div>}>
-            <SearchResults />
+        <Suspense fallback={<div className="container mx-auto px-4 py-8">Recherche en cours...</div>}>
+            <SearchResults query={query} />
         </Suspense>
     )
 }

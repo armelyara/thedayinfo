@@ -1,57 +1,45 @@
 
-'use client';
+'use server';
 import Link from 'next/link';
 import { suggestRelatedContent } from '@/ai/flows/related-content-suggestions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookText, ExternalLink } from 'lucide-react';
-import { getPublishedArticles, type Article } from '@/lib/data';
-import { useEffect, useState } from 'react';
+import { getPublishedArticles } from '@/lib/data';
 
 type RelatedContentProps = {
   currentArticleTitle: string;
   articleContent: string;
 };
 
-export default function RelatedContent({
+export default async function RelatedContent({
   currentArticleTitle,
   articleContent,
 }: RelatedContentProps) {
-  const [suggestions, setSuggestions] = useState<{title: string, slug: string | null}[]>([]);
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  let suggestions: {title: string, slug: string | null}[] = [];
 
-  useEffect(() => {
-    async function fetchArticlesAndSuggestions() {
-      try {
-        const [publishedArticles, suggestionResult] = await Promise.all([
-          getPublishedArticles(),
-          suggestRelatedContent({ currentArticleTitle, articleContent })
-        ]);
-        
-        setArticles(publishedArticles);
+  try {
+    const [publishedArticles, suggestionResult] = await Promise.all([
+      getPublishedArticles(),
+      suggestRelatedContent({ currentArticleTitle, articleContent })
+    ]);
 
-        if (suggestionResult.suggestedArticles) {
-          const processedSuggestions = suggestionResult.suggestedArticles.map(title => {
-            const article = publishedArticles.find(a => a.title.toLowerCase() === title.toLowerCase());
-            return {
-              title,
-              slug: article ? article.slug : null
-            };
-          }).filter(s => s.slug); // Filter out suggestions that don't have a slug
-          setSuggestions(processedSuggestions);
-        }
-      } catch (error) {
-        console.error("Failed to fetch related content:", error);
-      } finally {
-        setIsLoading(false);
-      }
+    if (suggestionResult.suggestedArticles) {
+      suggestions = suggestionResult.suggestedArticles.map(title => {
+        const article = publishedArticles.find(a => a.title.toLowerCase() === title.toLowerCase());
+        return {
+          title,
+          slug: article ? article.slug : null
+        };
+      }).filter(s => s.slug); // Filter out suggestions that don't have a slug
     }
-    
-    fetchArticlesAndSuggestions();
-  }, [currentArticleTitle, articleContent]);
+  } catch (error) {
+    console.error("Failed to fetch related content:", error);
+    // Render nothing if there's an error
+    return null;
+  }
 
-
-  if (isLoading || suggestions.length === 0) {
+  if (suggestions.length === 0) {
     return null;
   }
 

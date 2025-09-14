@@ -57,10 +57,9 @@ export default function Feedback({ articleSlug, initialViews, initialComments }:
       avatar: `https://i.pravatar.cc/40?u=${Date.now()}`
     };
 
-    const updatedComments = [newComment, ...comments];
-    
     startTransition(async () => {
         try {
+            const updatedComments = [newComment, ...comments];
             await updateArticleComments(articleSlug, updatedComments);
             setComments(updatedComments);
             setCommentText('');
@@ -139,3 +138,5 @@ export default function Feedback({ articleSlug, initialViews, initialComments }:
     </Card>
   );
 }
+
+    

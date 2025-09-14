@@ -1,42 +1,24 @@
 
-'use client';
-
-import { notFound, useParams } from 'next/navigation';
-import { getArticlesByCategory, categories, type Article } from '@/lib/data';
+import { notFound } from 'next/navigation';
+import { getArticlesByCategory, categories } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
-import { Badge } from '@/components/ui/badge';
-import { useEffect, useState } from 'react';
 
-export default function CategoryPage() {
-  const params = useParams();
-  const name = params.name as string;
-  
-  const [articlesInCategory, setArticlesInCategory] = useState<Article[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const category = categories.find(c => c.slug === name);
-  
-  useEffect(() => {
-    if (!name) return;
-    async function fetchArticles() {
-      try {
-        const fetchedArticles = await getArticlesByCategory(name);
-        setArticlesInCategory(fetchedArticles);
-      } catch (error) {
-        console.error("Failed to fetch articles by category:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchArticles();
-  }, [name]);
-  
-  if (isLoading) {
-      return <div className="container mx-auto px-4 py-8">Chargement des articles...</div>
-  }
+type CategoryPageProps = {
+  params: {
+    name: string;
+  };
+};
 
+export const revalidate = 3600; // Revalidate every hour
+
+export default async function CategoryPage({ params }: CategoryPageProps) {
+  const category = categories.find(c => c.slug === params.name);
+  
   if (!category) {
     notFound();
   }
+
+  const articlesInCategory = await getArticlesByCategory(params.name);
 
   return (
     <div className="container mx-auto px-4 py-8">
