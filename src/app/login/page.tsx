@@ -16,9 +16,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { login } from './actions';
+import { createSession } from './actions';
 import { useState, useTransition } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -33,6 +34,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const auth = getAuth(app);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,7 +48,11 @@ export default function LoginPage() {
     setError(null);
     startTransition(async () => {
       try {
-        const result = await login(values);
+        const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+        const idToken = await userCredential.user.getIdToken();
+        
+        const result = await createSession({ idToken });
+
         if (result?.error) {
           setError(result.error);
           toast({
@@ -56,11 +62,15 @@ export default function LoginPage() {
           });
         }
       } catch (e: any) {
-          setError('Une erreur inattendue est survenue.');
+          let errorMessage = 'Une erreur inattendue est survenue.';
+          if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+              errorMessage = 'Email ou mot de passe invalide.';
+          }
+          setError(errorMessage);
           toast({
               variant: 'destructive',
-              title: 'Oh oh ! Quelque chose s\'est mal passé.',
-              description: 'Un problème est survenu avec votre demande.',
+              title: 'Échec de la Connexion',
+              description: errorMessage,
           });
       }
     });

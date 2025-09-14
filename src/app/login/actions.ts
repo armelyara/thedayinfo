@@ -4,40 +4,43 @@
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { admin } from '@/lib/firebase';
+import { revalidatePath } from 'next/cache';
 
 const formSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
+  idToken: z.string(),
 });
 
-export async function login(values: z.infer<typeof formSchema>) {
-  const validatedFields = formSchema.safeParse(values);
+export async function createSession(values: z.infer<typeof formSchema>) {
+    const validatedFields = formSchema.safeParse(values);
 
-  if (!validatedFields.success) {
-    return { error: 'Champs invalides !' };
-  }
-
-  const { email, password } = validatedFields.data;
-
-  // Pour la démonstration, nous utiliserons des identifiants fixes.
-  if (email === 'admin@example.com' && password === 'password') {
-    // Créer la session en définissant un cookie
-    cookies().set('session', 'authenticated', { 
-        httpOnly: true, // Empêche l'accès côté client
-        secure: process.env.NODE_ENV === 'production', // Uniquement en HTTPS en production
-        maxAge: 60 * 60 * 24, // 24 heures
-        path: '/', // Disponible sur tout le site
-    });
-  } else {
-    return { error: 'Email ou mot de passe invalide' };
-  }
+    if (!validatedFields.success) {
+      return { error: 'Token invalide !' };
+    }
   
-  // Rediriger vers le tableau de bord admin après une connexion réussie.
-  redirect('/admin');
+    const { idToken } = validatedFields.data;
+    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 jours
+
+    try {
+        const sessionCookie = await admin.auth().createSessionCookie(idToken, { expiresIn });
+        cookies().set('session', sessionCookie, {
+          maxAge: expiresIn,
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          path: '/',
+        });
+    } catch(error) {
+        console.error('Failed to create session cookie:', error);
+        return { error: 'Impossible de créer la session.' };
+    }
+    
+    revalidatePath('/');
+    redirect('/admin');
 }
 
 
 export async function logout() {
     cookies().delete('session');
+    revalidatePath('/');
     redirect('/login');
 }

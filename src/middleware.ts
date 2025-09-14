@@ -1,29 +1,40 @@
 
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { admin } from '@/lib/firebase';
 
-export function middleware(request: NextRequest) {
-  const session = request.cookies.get('session');
+export async function middleware(request: NextRequest) {
+  const sessionCookie = request.cookies.get('session')?.value;
   const { pathname } = request.nextUrl;
 
-  // Si l'utilisateur n'est pas authentifié et essaie d'accéder à une page admin (sauf /login)
-  if (!session && pathname.startsWith('/admin')) {
+  const isAuthPage = pathname === '/login';
+
+  if (!sessionCookie) {
+    if (isAuthPage) {
+      return NextResponse.next();
+    }
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  // Si l'utilisateur est authentifié et essaie d'accéder à /login, le rediriger vers /admin
-  if (session && pathname === '/login') {
-    const url = request.nextUrl.clone();
-    url.pathname = '/admin';
-    return NextResponse.redirect(url);
+  try {
+    await admin.auth().verifySessionCookie(sessionCookie, true);
+    // Session is valid.
+    if (isAuthPage) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/admin';
+        return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  } catch (error) {
+    // Session cookie is invalid. Clear it and redirect to login.
+    const response = NextResponse.redirect(new URL('/login', request.url));
+    response.cookies.delete('session');
+    return response;
   }
-
-  return NextResponse.next();
 }
 
 export const config = {
-  // Le matcher exécute le middleware uniquement sur les routes /admin et /login
   matcher: ['/admin/:path*', '/login'],
 }

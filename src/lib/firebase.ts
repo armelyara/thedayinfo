@@ -1,7 +1,8 @@
-
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import admin from 'firebase-admin';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -13,10 +14,23 @@ const firebaseConfig = {
   messagingSenderId: "102278776623",
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase client app
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Cloud Firestore and get a reference to the service
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-export { app, db };
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
+  } catch (error) {
+    console.error('Firebase admin initialization error', error);
+  }
+}
+
+export { app, db, auth, admin };
