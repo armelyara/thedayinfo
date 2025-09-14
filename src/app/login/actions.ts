@@ -4,27 +4,14 @@
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import admin from 'firebase-admin';
 import { revalidatePath } from 'next/cache';
-
-async function initializeFirebaseAdmin() {
-    if (!admin.apps.length) {
-      try {
-        admin.initializeApp({
-          credential: admin.credential.applicationDefault(),
-        });
-      } catch (error) {
-        console.error('Firebase admin initialization error', error);
-      }
-    }
-}
+import { createSessionCookie } from '@/lib/auth';
 
 const formSchema = z.object({
   idToken: z.string(),
 });
 
 export async function createSession(values: z.infer<typeof formSchema>) {
-    await initializeFirebaseAdmin();
     const validatedFields = formSchema.safeParse(values);
 
     if (!validatedFields.success) {
@@ -32,10 +19,10 @@ export async function createSession(values: z.infer<typeof formSchema>) {
     }
   
     const { idToken } = validatedFields.data;
-    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 jours
-
+    
     try {
-        const sessionCookie = await admin.auth().createSessionCookie(idToken, { expiresIn });
+        const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 jours
+        const sessionCookie = await createSessionCookie(idToken, { expiresIn });
         cookies().set('session', sessionCookie, {
           maxAge: expiresIn,
           httpOnly: true,

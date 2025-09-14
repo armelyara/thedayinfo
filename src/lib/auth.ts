@@ -24,3 +24,8 @@ export async function verifySession(session: string) {
         return null;
     }
 }
+
+export async function createSessionCookie(idToken: string, options: { expiresIn: number }) {
+    await initializeFirebaseAdmin();
+    return admin.auth().createSessionCookie(idToken, options);
+}
