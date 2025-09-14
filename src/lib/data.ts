@@ -3,7 +3,6 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { initializeFirebaseAdmin } from './auth';
 import { revalidatePath } from 'next/cache';
 import type { Timestamp } from 'firebase-admin/firestore';
-import { notFound } from 'next/navigation';
 
 // Data Types
 export type Comment = {

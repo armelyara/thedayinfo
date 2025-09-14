@@ -26,11 +26,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog";
-import { deleteArticleAction } from './actions';
+import { deleteArticleAction, getAdminArticlesAction, postCommentAdminAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
-import { getAdminArticles } from '@/lib/data';
-import { postCommentAdminAction } from './actions';
-
 
 function CommentSection({ article, onCommentsUpdate }: { article: Article, onCommentsUpdate: (slug: string, comments: CommentType[]) => void }) {
     const [replyingTo, setReplyingTo] = useState<number | null>(null);
@@ -134,7 +131,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchArticles() {
       try {
-        const fetchedArticles = await getAdminArticles();
+        const fetchedArticles = await getAdminArticlesAction();
         setArticles(fetchedArticles);
       } catch (error) {
         console.error("Failed to fetch articles:", error);

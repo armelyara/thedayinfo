@@ -59,15 +59,22 @@ export default function Feedback({ articleSlug, initialViews, initialComments }:
 
     startTransition(async () => {
         try {
-            const updatedComments = await postCommentAction(articleSlug, [newComment, ...comments]);
-            setComments(updatedComments);
+            // Prepend the new comment for immediate UI update
+            const newComments = [newComment, ...comments];
+            setComments(newComments);
             setCommentText('');
+
+            // Call the server action
+            await postCommentAction(articleSlug, newComments);
+            
             toast({
                 title: 'Commentaire Posté',
                 description: 'Merci pour votre retour !',
             });
         } catch (error) {
             console.error("Failed to post comment:", error);
+            // Revert the UI on failure
+            setComments(comments);
             toast({
                 variant: 'destructive',
                 title: 'Erreur',
