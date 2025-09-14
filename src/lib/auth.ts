@@ -1,18 +1,33 @@
 
 'use server';
 import admin from 'firebase-admin';
+import { config } from 'dotenv';
+
+config();
+
+const firebasePrivateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
 export async function initializeFirebaseAdmin() {
     if (!admin.apps.length) {
         try {
-            // This will use the GOOGLE_APPLICATION_CREDENTIALS environment variable
-            // or the default service account when running on Google Cloud.
-            admin.initializeApp({
-                credential: admin.credential.applicationDefault(),
-            });
-        } catch (error) {
-            console.error('Firebase admin initialization error', error);
-            // We should not proceed if the admin SDK fails to initialize.
+            if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && firebasePrivateKey) {
+                admin.initializeApp({
+                    credential: admin.credential.cert({
+                        projectId: process.env.FIREBASE_PROJECT_ID,
+                        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                        privateKey: firebasePrivateKey,
+                    }),
+                });
+                console.log('Firebase admin initialized with service account.');
+            } else {
+                console.warn('Service account environment variables not found, trying application default credentials.');
+                admin.initializeApp({
+                    credential: admin.credential.applicationDefault(),
+                });
+                console.log('Firebase admin initialized with application default credentials.');
+            }
+        } catch (error: any) {
+            console.error('Firebase admin initialization error', error.message);
             throw new Error('Firebase Admin SDK failed to initialize.');
         }
     }
