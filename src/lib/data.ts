@@ -77,7 +77,7 @@ export async function getAllArticles(): Promise<Article[]> {
     }
 }
 
-export async function getPublishedArticles(): Promise<Article[]> {
+export async function getPublishedArticles(): Promise<Article[] | { error: 'missing_index', message: string }> {
     try {
         const db = await initializeDb();
         const articlesCollection = db.collection('articles');
@@ -89,12 +89,17 @@ export async function getPublishedArticles(): Promise<Article[]> {
         const snapshot = await q.get();
         return snapshot.docs.map(convertDocToArticle);
     } catch (error) {
-        console.error("Error fetching published articles:", error);
-        // This might happen if the Firestore index is not ready
-        if ((error as any).code === 9) { // FAILED_PRECONDITION for missing index
+        // Firestore error code 9 is FAILED_PRECONDITION, which often means a missing index.
+        if ((error as any).code === 9) { 
              console.error("Firestore query failed. This likely means the required composite index is not yet built. Please create it in the Firebase console.");
+             return {
+                error: 'missing_index',
+                message: (error as any).details || 'The query requires an index. Please create it in the Firebase console.'
+             }
         }
-        return [];
+        console.error("Error fetching published articles:", error);
+        // For other errors, we can throw or return a generic error
+        throw error;
     }
 }
 
@@ -149,9 +154,12 @@ export async function searchArticles(queryText: string): Promise<Article[]> {
     if (!queryText) return [];
     // This is still a client-side-like implementation on the server side.
     // For a real app, a full-text search engine like Algolia/Elasticsearch would be better.
-    const allArticles = await getPublishedArticles();
+    const articles = await getPublishedArticles();
+    if ('error' in articles) {
+      return [];
+    }
     
-    return allArticles.filter(article => 
+    return articles.filter(article => 
         article.title.toLowerCase().includes(queryText.toLowerCase()) ||
         article.content.toLowerCase().includes(queryText.toLowerCase())
     );
