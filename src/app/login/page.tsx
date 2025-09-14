@@ -17,7 +17,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { login } from './actions';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -31,6 +32,7 @@ const formSchema = z.object({
 export default function LoginPage() {
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -40,35 +42,37 @@ export default function LoginPage() {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
     setError(null);
-    try {
-      const result = await login(values);
-      if (result?.error) {
-        setError(result.error);
-        toast({
-            variant: 'destructive',
-            title: 'Échec de la Connexion',
-            description: result.error,
-        });
+    startTransition(async () => {
+      try {
+        const result = await login(values);
+        if (result?.error) {
+          setError(result.error);
+          toast({
+              variant: 'destructive',
+              title: 'Échec de la Connexion',
+              description: result.error,
+          });
+        }
+      } catch (e: any) {
+          setError('Une erreur inattendue est survenue.');
+          toast({
+              variant: 'destructive',
+              title: 'Oh oh ! Quelque chose s\'est mal passé.',
+              description: 'Un problème est survenu avec votre demande.',
+          });
       }
-    } catch (e: any) {
-        setError('Une erreur inattendue est survenue.');
-        toast({
-            variant: 'destructive',
-            title: 'Oh oh ! Quelque chose s\'est mal passé.',
-            description: 'Un problème est survenu avec votre demande.',
-        });
-    }
+    });
   }
 
   return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
+    <div className="flex justify-center items-center py-12">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Connexion Administrateur</CardTitle>
           <CardDescription>
-            Entrez vos identifiants pour accéder au tableau de bord de l'auteur.
+            Entrez vos identifiants pour accéder au tableau de bord.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -85,6 +89,7 @@ export default function LoginPage() {
                         type="email"
                         placeholder="admin@example.com"
                         {...field}
+                        disabled={isPending}
                       />
                     </FormControl>
                     <FormMessage />
@@ -102,14 +107,15 @@ export default function LoginPage() {
                         type="password"
                         placeholder="••••••••"
                         {...field}
+                        disabled={isPending}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
-                Se Connecter
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending ? 'Connexion en cours...' : 'Se Connecter'}
               </Button>
             </form>
           </Form>
