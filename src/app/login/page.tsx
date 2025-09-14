@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,6 +19,7 @@ import { createSession } from './actions';
 import { useState, useTransition } from 'react';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { app } from '@/lib/firebase';
+import { redirect } from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email({
