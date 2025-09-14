@@ -1,7 +1,12 @@
 
+'use client';
+
 import { getArticleBySlug } from '@/lib/data';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import EditArticleForm from './edit-article-form';
+import { useEffect, useState } from 'react';
+import type { Article } from '@/lib/data';
+
 
 type EditArticlePageProps = {
   params: {
@@ -9,8 +14,23 @@ type EditArticlePageProps = {
   };
 };
 
-export default async function EditArticlePage({ params }: EditArticlePageProps) {
-  const article = await getArticleBySlug(params.slug);
+export default function EditArticlePage({ params }: EditArticlePageProps) {
+  const [article, setArticle] = useState<Article | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    async function fetchArticle() {
+        const fetchedArticle = await getArticleBySlug(params.slug);
+        setArticle(fetchedArticle);
+        setIsLoading(false);
+    }
+    fetchArticle();
+  }, [params.slug]);
+
+
+  if (isLoading) {
+    return <div className="container mx-auto px-4 py-8">Chargement...</div>
+  }
 
   if (!article) {
     notFound();

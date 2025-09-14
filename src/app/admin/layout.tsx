@@ -1,16 +1,26 @@
 
-import { Suspense } from 'react';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-import { logout } from '@/app/login/actions';
+'use client';
+
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 
-async function LogoutButton() {
+async function logout() {
+    const response = await fetch('/api/logout', { method: 'POST' });
+    if (response.ok) {
+        window.location.href = '/login';
+    } else {
+        console.error('Logout failed');
+    }
+}
+
+function LogoutButton() {
     return (
         <form action={logout}>
-            <Button variant="ghost">
+            <Button variant="ghost" onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Déconnexion
             </Button>
@@ -18,17 +28,49 @@ async function LogoutButton() {
     )
 }
 
-export default async function AdminLayout({
+export default function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const router = useRouter();
+  const auth = getAuth(app);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  const session = cookies().get('session')?.value;
-  const user = session ? await verifySession(session) : null;
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, user => {
+        // We also need to check for the session cookie.
+        // A user object existing doesn't mean they have an active admin session.
+        fetch('/api/auth-check').then(async res => {
+            if(res.ok) {
+                const { authenticated } = await res.json();
+                if(user && authenticated) {
+                    setIsAuthenticated(true);
+                } else {
+                    setIsAuthenticated(false);
+                    router.push('/login');
+                }
+            } else {
+                 setIsAuthenticated(false);
+                 router.push('/login');
+            }
+        });
+    });
 
-  if (!user) {
-    redirect('/login');
+    return () => unsubscribe();
+  }, [auth, router]);
+  
+  if (isAuthenticated === null) {
+      return (
+          <div className="flex h-screen items-center justify-center">
+              <p>Vérification de l'authentification...</p>
+          </div>
+      )
+  }
+
+  if (!isAuthenticated) {
+    // The redirect is handled in the effect, this is a fallback.
+    return null;
   }
 
   return (
