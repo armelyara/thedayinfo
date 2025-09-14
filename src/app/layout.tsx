@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const headersList = headers();
-  const pathname = headersList.get('x-next-pathname') || '';
+  const pathname = (await headersList).get('x-next-pathname') || '';
 
   const isAdminRoute = pathname.startsWith('/admin');
 
