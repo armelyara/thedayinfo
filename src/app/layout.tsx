@@ -11,13 +11,13 @@ export const metadata: Metadata = {
   description: 'Votre dose quotidienne d\'information.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const headersList = headers();
-  const pathname = (await headersList).get('x-next-pathname') || '';
+  const pathname = headersList.get('x-next-pathname') || '';
 
   const isAdminRoute = pathname.startsWith('/admin');
 

@@ -1,4 +1,5 @@
 
+
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeFirebaseAdmin } from './auth';
 import { revalidatePath } from 'next/cache';
@@ -64,61 +65,84 @@ const convertDocToArticle = (doc: FirebaseFirestore.DocumentSnapshot): Article =
 }
 
 export async function getAllArticles(): Promise<Article[]> {
-    const db = await initializeDb();
-    const articlesCollection = db.collection('articles');
-    const q = articlesCollection.orderBy('publicationDate', 'desc');
-    const snapshot = await q.get();
-    return snapshot.docs.map(convertDocToArticle);
+    try {
+        const db = await initializeDb();
+        const articlesCollection = db.collection('articles');
+        const q = articlesCollection.orderBy('publicationDate', 'desc');
+        const snapshot = await q.get();
+        return snapshot.docs.map(convertDocToArticle);
+    } catch (error) {
+        console.error("Error fetching all articles:", error);
+        return [];
+    }
 }
 
 export async function getPublishedArticles(): Promise<Article[]> {
-    const db = await initializeDb();
-    const articlesCollection = db.collection('articles');
-    const now = new Date();
-    const q = articlesCollection
-        .where('status', '==', 'published')
-        .where('publicationDate', '<=', now)
-        .orderBy('publicationDate', 'desc');
-    const snapshot = await q.get();
-    return snapshot.docs.map(convertDocToArticle);
+    try {
+        const db = await initializeDb();
+        const articlesCollection = db.collection('articles');
+        const now = new Date();
+        const q = articlesCollection
+            .where('status', '==', 'published')
+            .where('publicationDate', '<=', now)
+            .orderBy('publicationDate', 'desc');
+        const snapshot = await q.get();
+        return snapshot.docs.map(convertDocToArticle);
+    } catch (error) {
+        console.error("Error fetching published articles:", error);
+        // This might happen if the Firestore index is not ready
+        if ((error as any).code === 9) { // FAILED_PRECONDITION for missing index
+             console.error("Firestore query failed. This likely means the required composite index is not yet built. Please create it in the Firebase console.");
+        }
+        return [];
+    }
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
-    const db = await initializeDb();
-    const docRef = db.collection('articles').doc(slug);
-    const docSnap = await docRef.get();
-    if (!docSnap.exists) {
+    try {
+        const db = await initializeDb();
+        const docRef = db.collection('articles').doc(slug);
+        const docSnap = await docRef.get();
+        if (!docSnap.exists) {
+            return null;
+        }
+        const article = convertDocToArticle(docSnap);
+
+        // Increment views - this is a server-side effect
+        try {
+            const { firestore } = await import('firebase-admin');
+            await docRef.update({ views: firestore.FieldValue.increment(1) });
+        } catch (e) {
+            console.error("Failed to increment views", e);
+        }
+
+        return article;
+    } catch (error) {
+        console.error(`Error fetching article by slug ${slug}:`, error);
         return null;
     }
-    const article = convertDocToArticle(docSnap);
-
-    // Increment views - this is a server-side effect
-    try {
-        const { firestore } = await import('firebase-admin');
-        await docRef.update({ views: firestore.FieldValue.increment(1) });
-    } catch (e) {
-        console.error("Failed to increment views", e);
-    }
-
-
-    return article;
 }
 
 export async function getArticlesByCategory(categorySlug: string, categories: Category[]): Promise<Article[]> {
-    const db = await initializeDb();
-    const articlesCollection = db.collection('articles');
-    const category = categories.find(c => c.slug === categorySlug);
-    if (!category) return [];
+    try {
+        const db = await initializeDb();
+        const articlesCollection = db.collection('articles');
+        const category = categories.find(c => c.slug === categorySlug);
+        if (!category) return [];
 
-    const now = new Date();
-    const q = articlesCollection
-        .where('category', '==', category.name)
-        .where('status', '==', 'published')
-        .where('publicationDate', '<=', now)
-        .orderBy('publicationDate', 'desc');
-    
-    const snapshot = await q.get();
-    return snapshot.docs.map(convertDocToArticle);
+        const now = new Date();
+        const q = articlesCollection
+            .where('category', '==', category.name)
+            .where('status', '==', 'published')
+            .where('publicationDate', '<=', now)
+            .orderBy('publicationDate', 'desc');
+        
+        const snapshot = await q.get();
+        return snapshot.docs.map(convertDocToArticle);
+    } catch (error) {
+        console.error(`Error fetching articles for category ${categorySlug}:`, error);
+        return [];
+    }
 }
 
 export async function searchArticles(queryText: string): Promise<Article[]> {
@@ -291,18 +315,22 @@ export async function seedInitialArticles() {
     const articlesSnapshot = await articlesCollection.limit(1).get();
     if (articlesSnapshot.empty) {
         console.log('No articles found, seeding database...');
-        const batch = db.batch();
-        initialArticles.forEach(article => {
-            const docRef = articlesCollection.doc(article.slug);
-            const { slug, ...data } = article;
-            const dataForFirestore = {
-                ...data,
-                publicationDate: new Date(data.publicationDate),
-            };
-            batch.set(docRef, dataForFirestore);
-        });
-        await batch.commit();
-        console.log('Database seeded successfully.');
+        try {
+            const batch = db.batch();
+            initialArticles.forEach(article => {
+                const docRef = articlesCollection.doc(article.slug);
+                const { slug, ...data } = article;
+                const dataForFirestore = {
+                    ...data,
+                    publicationDate: new Date(data.publicationDate),
+                };
+                batch.set(docRef, dataForFirestore);
+            });
+            await batch.commit();
+            console.log('Database seeded successfully.');
+        } catch (error) {
+            console.error("Error seeding database:", error);
+        }
     }
 }
 
