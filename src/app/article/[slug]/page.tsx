@@ -1,7 +1,9 @@
 
-import { notFound } from 'next/navigation';
+'use client';
+
+import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
-import { getArticleBySlug, getPublishedArticles } from '@/lib/data';
+import { getArticleBySlug } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CalendarDays, User } from 'lucide-react';
@@ -10,23 +12,33 @@ import RelatedContent from '@/components/article/related-content';
 import Feedback from '@/components/article/feedback';
 import { parseISO } from 'date-fns';
 import type { Article } from '@/lib/data';
+import { useEffect, useState } from 'react';
 
-type ArticlePageProps = {
-  params: {
-    slug: string;
-  };
-};
+export default function ArticlePage() {
+  const params = useParams();
+  const slug = params.slug as string;
+  const [article, setArticle] = useState<Article | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-export async function generateStaticParams() {
-  const articles = await getPublishedArticles();
-  return articles.map((article) => ({
-    slug: article.slug,
-  }));
-}
+  useEffect(() => {
+    if (!slug) return;
+    async function fetchArticle() {
+      try {
+        const fetchedArticle = await getArticleBySlug(slug);
+        setArticle(fetchedArticle);
+      } catch (error) {
+        console.error("Failed to fetch article:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchArticle();
+  }, [slug]);
 
-export default async function ArticlePage({ params }: ArticlePageProps) {
-  const article = await getArticleBySlug(params.slug);
-
+  if (isLoading) {
+    return <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">Chargement de l'article...</div>;
+  }
+  
   if (!article || (article.status === 'scheduled' && parseISO(article.publicationDate) > new Date())) {
     notFound();
   }

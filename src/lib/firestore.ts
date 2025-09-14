@@ -1,6 +1,5 @@
 
-
-'use server';
+'use client'; // Important: Switched to client-side data fetching
 
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, doc, getDoc, setDoc, deleteDoc, updateDoc, Timestamp, writeBatch, deleteField } from 'firebase/firestore';
@@ -58,7 +57,10 @@ export async function getAllArticles(): Promise<Article[]> {
     const q = query(articlesCollection, orderBy('publicationDate', 'desc'));
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
-        return [];
+        await seedDatabase();
+        const seededSnapshot = await getDocs(q);
+        if (seededSnapshot.empty) return [];
+        return seededSnapshot.docs.map(convertDocToArticle);
     }
     return snapshot.docs.map(convertDocToArticle);
 }
@@ -74,7 +76,10 @@ export async function getPublishedArticles(): Promise<Article[]> {
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
-        return [];
+        await seedDatabase();
+        const seededSnapshot = await getDocs(q);
+        if (seededSnapshot.empty) return [];
+        return seededSnapshot.docs.map(convertDocToArticle).filter(a => new Date(a.publicationDate) <= now);
     }
     return snapshot.docs.map(convertDocToArticle);
 }
@@ -281,6 +286,6 @@ export async function seedDatabase() {
         await batch.commit();
         console.log('Database seeded successfully.');
     } else {
-        console.log('Database already contains articles, skipping seed.');
+        // console.log('Database already contains articles, skipping seed.');
     }
 }

@@ -1,12 +1,30 @@
 
+'use client';
 
-import { getPublishedArticles, seedInitialArticles } from '@/lib/data';
+import { getPublishedArticles, seedInitialArticles, type Article } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
 import { Separator } from '@/components/ui/separator';
+import { useEffect, useState } from 'react';
 
-export default async function Home() {
-  await seedInitialArticles();
-  const publishedArticles = await getPublishedArticles();
+export default function Home() {
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchArticles() {
+      try {
+        await seedInitialArticles();
+        const publishedArticles = await getPublishedArticles();
+        setArticles(publishedArticles);
+      } catch (error) {
+        console.error("Failed to fetch articles:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchArticles();
+  }, []);
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -20,11 +38,15 @@ export default async function Home() {
       </header>
 
       <main>
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {publishedArticles.map((article) => (
-            <ArticleCard key={article.slug} article={article} />
-          ))}
-        </div>
+        {isLoading ? (
+          <p>Chargement des articles...</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {articles.map((article) => (
+              <ArticleCard key={article.slug} article={article} />
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
