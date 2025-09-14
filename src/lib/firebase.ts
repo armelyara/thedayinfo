@@ -3,7 +3,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import admin from 'firebase-admin';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -22,16 +21,4 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-    });
-  } catch (error) {
-    console.error('Firebase admin initialization error', error);
-  }
-}
-
-export { app, db, auth, admin };
+export { app, db, auth };

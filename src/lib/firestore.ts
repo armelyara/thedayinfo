@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { db } from './firebase';
@@ -208,5 +209,78 @@ export async function updateArticleComments(slug: string, comments: Comment[]): 
     } catch (error) {
         console.error("Failed to update comments in Firestore:", error);
         return false;
+    }
+}
+
+// Seeding function
+const initialArticles = [
+  {
+    "slug": "le-futur-de-lia-une-nouvelle-ere-d-innovation",
+    "title": "Le Futur de L'IA : Une Nouvelle Ère d'Innovation",
+    "author": "L'Auteur",
+    "category": "Technologie",
+    "publicationDate": "2024-05-01T10:00:00.000Z",
+    "status": "published" as const,
+    "image": { "id": "1", "src": "https://picsum.photos/seed/1/600/400", "alt": "Visualisation abstraite de l'IA", "aiHint": "abstract AI" },
+    "content": "L'intelligence artificielle est en train de remodeler notre monde. De la médecine à la finance, ses applications sont infinies. Cet article explore les avancées récentes et ce que l'avenir nous réserve.",
+    "views": 1500,
+    "comments": [],
+    "viewHistory": [
+      { "date": "2024-05-01T00:00:00.000Z", "views": 800 },
+      { "date": "2024-06-01T00:00:00.000Z", "views": 700 }
+    ]
+  },
+  {
+    "slug": "exploration-spatiale-les-prochaines-frontieres",
+    "title": "Exploration Spatiale : Les Prochaines Frontières",
+    "author": "L'Auteur",
+    "category": "Actualité",
+    "publicationDate": "2024-05-15T10:00:00.000Z",
+    "status": "published" as const,
+    "image": { "id": "2", "src": "https://picsum.photos/seed/2/600/400", "alt": "Une nébuleuse colorée dans l'espace lointain", "aiHint": "nebula space" },
+    "content": "Avec les récentes missions vers Mars et au-delà, l'humanité est à l'aube d'une nouvelle ère d'exploration spatiale. Découvrez les défis et les merveilles qui nous attendent.",
+    "views": 850,
+    "comments": [],
+    "viewHistory": [
+      { "date": "2024-05-01T00:00:00.000Z", "views": 400 },
+      { "date": "2024-06-01T00:00:00.000Z", "views": 450 }
+    ]
+  },
+    {
+    "slug": "la-revolution-quantique-est-elle-pour-demain",
+    "title": "La Révolution Quantique est-elle pour Demain ?",
+    "author": "L'Auteur",
+    "category": "Technologie",
+    "publicationDate": "2024-06-01T10:00:00.000Z",
+    "status": "published" as const,
+    "image": { "id": "6", "src": "https://picsum.photos/seed/6/600/400", "alt": "Représentation abstraite de bits quantiques", "aiHint": "quantum computing" },
+    "content": "L'informatique quantique promet de résoudre des problèmes aujourd'hui insolubles. Mais où en sommes-nous réellement ? Cet article fait le point sur les avancées et les obstacles de cette technologie de rupture.",
+    "views": 2300,
+    "comments": [],
+    "viewHistory": [
+      { "date": "2024-06-01T00:00:00.000Z", "views": 1200 },
+      { "date": "2024-07-01T00:00:00.000Z", "views": 1100 }
+    ]
+  }
+];
+
+export async function seedDatabase() {
+    const articlesSnapshot = await getDocs(query(articlesCollection));
+    if (articlesSnapshot.empty) {
+        console.log('No articles found, seeding database...');
+        const batch = writeBatch(db);
+        initialArticles.forEach(article => {
+            const docRef = doc(db, 'articles', article.slug);
+            const { slug, ...data } = article;
+            const dataForFirestore = {
+                ...data,
+                publicationDate: Timestamp.fromDate(new Date(data.publicationDate)),
+            };
+            batch.set(docRef, dataForFirestore);
+        });
+        await batch.commit();
+        console.log('Database seeded successfully.');
+    } else {
+        console.log('Database already contains articles, skipping seed.');
     }
 }

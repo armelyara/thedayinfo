@@ -1,9 +1,11 @@
 
-import { getPublishedArticles } from '@/lib/data';
+
+import { getPublishedArticles, seedInitialArticles } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
 import { Separator } from '@/components/ui/separator';
 
 export default async function Home() {
+  await seedInitialArticles();
   const publishedArticles = await getPublishedArticles();
 
   return (

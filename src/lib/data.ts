@@ -1,4 +1,5 @@
 
+
 import {
   addArticle as dbAddArticle,
   updateArticle as dbUpdateArticle,
@@ -8,7 +9,8 @@ import {
   getArticlesByCategory as dbGetArticlesByCategory,
   searchArticles as dbSearchArticles,
   getAllArticles,
-  updateArticleComments as dbUpdateArticleComments
+  updateArticleComments as dbUpdateArticleComments,
+  seedDatabase
 } from './firestore';
 
 export type {
@@ -35,3 +37,5 @@ export const updateArticle = dbUpdateArticle;
 export const deleteArticle = dbDeleteArticle;
 export const getAdminArticles = getAllArticles;
 export const updateArticleComments = dbUpdateArticleComments;
+export const seedInitialArticles = seedDatabase;
+
