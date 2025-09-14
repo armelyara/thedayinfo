@@ -5,17 +5,20 @@ import admin from 'firebase-admin';
 
 export const runtime = 'nodejs';
 
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-    });
-  } catch (error) {
-    console.error('Firebase admin initialization error', error);
-  }
+async function initializeFirebaseAdmin() {
+    if (!admin.apps.length) {
+      try {
+        admin.initializeApp({
+          credential: admin.credential.applicationDefault(),
+        });
+      } catch (error) {
+        console.error('Firebase admin initialization error', error);
+      }
+    }
 }
 
 export async function middleware(Request: NextRequest) {
+  await initializeFirebaseAdmin();
   const sessionCookie = Request.cookies.get('session')?.value;
   const { pathname } = Request.nextUrl;
 

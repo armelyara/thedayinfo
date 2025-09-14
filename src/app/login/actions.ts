@@ -7,14 +7,16 @@ import { cookies } from 'next/headers';
 import admin from 'firebase-admin';
 import { revalidatePath } from 'next/cache';
 
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-    });
-  } catch (error) {
-    console.error('Firebase admin initialization error', error);
-  }
+async function initializeFirebaseAdmin() {
+    if (!admin.apps.length) {
+      try {
+        admin.initializeApp({
+          credential: admin.credential.applicationDefault(),
+        });
+      } catch (error) {
+        console.error('Firebase admin initialization error', error);
+      }
+    }
 }
 
 const formSchema = z.object({
@@ -22,6 +24,7 @@ const formSchema = z.object({
 });
 
 export async function createSession(values: z.infer<typeof formSchema>) {
+    await initializeFirebaseAdmin();
     const validatedFields = formSchema.safeParse(values);
 
     if (!validatedFields.success) {
