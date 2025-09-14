@@ -2,11 +2,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export const runtime = 'nodejs';
-
 // This middleware now only handles basic routing logic.
 // The session verification is moved to the server components that need it.
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get('session')?.value;
 
