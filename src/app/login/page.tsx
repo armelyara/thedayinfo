@@ -15,11 +15,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { createSession } from './actions';
 import { useState, useTransition } from 'react';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { app } from '@/lib/firebase';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -32,6 +31,7 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const auth = getAuth(app);
@@ -51,15 +51,26 @@ export default function LoginPage() {
         const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
         const idToken = await userCredential.user.getIdToken();
         
-        const result = await createSession({ idToken });
+        // Call the API route to set the session cookie
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ idToken }),
+        });
 
-        if (result?.error) {
-          setError(result.error);
-          toast({
-              variant: 'destructive',
-              title: 'Échec de la Connexion',
-              description: result.error,
-          });
+        if (response.ok) {
+            router.push('/admin');
+        } else {
+            const result = await response.json();
+            const errorMessage = result.error || 'Échec de la création de la session.';
+            setError(errorMessage);
+            toast({
+                variant: 'destructive',
+                title: 'Échec de la Connexion',
+                description: errorMessage,
+            });
         }
       } catch (e: any) {
           let errorMessage = 'Une erreur inattendue est survenue.';
