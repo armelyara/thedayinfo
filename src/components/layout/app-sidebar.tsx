@@ -8,7 +8,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { categories } from '@/lib/data';
+import type { Category } from '@/lib/data';
 import { SearchInput } from '@/components/search-input';
 import { LogoIcon } from '@/components/icons';
 import Link from 'next/link';
@@ -22,10 +22,7 @@ const categoryIcons: { [key: string]: keyof typeof Lucide } = {
   Actualité: 'Newspaper',
 };
 
-// This component is now simple and receives data as props or fetches it internally if needed.
-// For this version, we will not show the count as it requires more complex data fetching logic
-// that might be better handled on the pages themselves or via a global state.
-function CategoryList() {
+function CategoryList({ categories }: { categories: Category[] }) {
     return (
         <SidebarMenu>
         {categories.map((category) => {
@@ -46,7 +43,7 @@ function CategoryList() {
 }
 
 
-export function AppSidebar() {
+export function AppSidebar({ categories }: { categories: Category[] }) {
   const authorName = 'L\'Auteur';
   const shortBio = `
     Écrivain passionné dédié à l'exploration de la technologie, de la science et de la culture.
@@ -90,7 +87,7 @@ export function AppSidebar() {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Catégories</SidebarGroupLabel>
-          <CategoryList />
+          <CategoryList categories={categories} />
         </SidebarGroup>
       </SidebarContent>
     </>

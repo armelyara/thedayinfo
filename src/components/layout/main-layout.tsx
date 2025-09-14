@@ -8,12 +8,19 @@ import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Button } from '@/components/ui/button';
 import { Home } from 'lucide-react';
 import Link from 'next/link';
+import type { Category } from '@/lib/data';
+
+// Categories are static, so they can be defined here to avoid importing from data.ts
+export const categories: Category[] = [
+  { name: 'Technologie', slug: 'technologie' },
+  { name: 'Actualité', slug: 'actualite' },
+];
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <Sidebar>
-        <AppSidebar />
+        <AppSidebar categories={categories} />
       </Sidebar>
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:h-[60px] lg:px-6 sticky top-0 z-30">

@@ -1,7 +1,8 @@
 
 import { notFound } from 'next/navigation';
-import { getArticlesByCategory, categories } from '@/lib/data';
+import { getArticlesByCategory } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
+import { categories } from '@/components/layout/main-layout';
 
 type CategoryPageProps = {
   params: {
@@ -18,7 +19,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     notFound();
   }
 
-  const articlesInCategory = await getArticlesByCategory(params.name);
+  const articlesInCategory = await getArticlesByCategory(params.name, categories);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -49,5 +50,3 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     </div>
   );
 }
-
-    

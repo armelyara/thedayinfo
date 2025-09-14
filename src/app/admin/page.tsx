@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { categories, type Comment as CommentType, type Article } from '@/lib/data';
+import { type Comment as CommentType, type Article, type Category } from '@/lib/data';
 import { Book, LayoutGrid, Users, FilePenLine, Trash2, Eye, BarChart2, MessageSquare, Send, Reply } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -28,6 +28,8 @@ import {
   } from "@/components/ui/alert-dialog";
 import { deleteArticleAction, getAdminArticlesAction, postCommentAdminAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
+import { categories } from '@/components/layout/main-layout';
+
 
 function CommentSection({ article, onCommentsUpdate }: { article: Article, onCommentsUpdate: (slug: string, comments: CommentType[]) => void }) {
     const [replyingTo, setReplyingTo] = useState<number | null>(null);
@@ -343,5 +345,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-    

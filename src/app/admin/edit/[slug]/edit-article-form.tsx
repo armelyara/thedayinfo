@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { categories } from '@/lib/data';
 import type { Article } from '@/lib/data';
 import {
   Select,
@@ -32,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
+import { categories } from '@/components/layout/main-layout';
 
 const formSchema = z.object({
   title: z.string().min(10, {

@@ -42,12 +42,6 @@ export type Category = {
     slug: string;
 };
 
-// We will keep categories in memory for now as they don't change often.
-export const categories: Category[] = [
-  { name: 'Technologie', slug: 'technologie' },
-  { name: 'Actualité', slug: 'actualite' },
-];
-
 // Use the admin SDK
 let db: FirebaseFirestore.Firestore;
 const initializeDb = async () => {
@@ -110,7 +104,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     return article;
 }
 
-export async function getArticlesByCategory(categorySlug: string): Promise<Article[]> {
+export async function getArticlesByCategory(categorySlug: string, categories: Category[]): Promise<Article[]> {
     const db = await initializeDb();
     const articlesCollection = db.collection('articles');
     const category = categories.find(c => c.slug === categorySlug);
@@ -184,7 +178,7 @@ export async function addArticle(article: { title: string, author: string, categ
 export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug' | 'scheduledFor'>> & { scheduledFor?: Date | null }): Promise<Article> {
     const db = await initializeDb();
     const docRef = db.collection('articles').doc(slug);
-    
+
     const dataForFirestore: { [key: string]: any } = { ...data };
 
     if (data.hasOwnProperty('scheduledFor')) {
@@ -319,5 +313,3 @@ export async function getAdminArticles(): Promise<Article[]> {
   const snapshot = await q.get();
   return snapshot.docs.map(convertDocToArticle);
 }
-
-    
