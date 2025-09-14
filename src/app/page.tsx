@@ -29,9 +29,9 @@ const MissingIndexError = ({ message }: { message: string }) => {
           </p>
         )}
          {url ? (
-            <Link href={url} target="_blank" rel="noopener noreferrer" className="font-medium text-destructive-foreground hover:underline mt-4 block break-all">
+            <a href={url} target="_blank" rel="noopener noreferrer" className="font-medium text-destructive-foreground hover:underline mt-4 block break-all">
              Créer l'Index Firestore
-            </Link>
+            </a>
           ) : (
             <p className='mt-2 break-all'>{message}</p>
           )}
@@ -66,7 +66,7 @@ export default async function Home() {
     )
   }
 
-  const articles = articlesResult;
+  const articles = articlesResult as any[];
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -21,6 +21,7 @@ interface ServiceAccount {
 
 // Cached service account to avoid reading the file every time
 let serviceAccount: ServiceAccount | null = null;
+let adminInitialized = false;
 
 async function getServiceAccount(): Promise<ServiceAccount> {
     if (serviceAccount) {
@@ -50,13 +51,14 @@ async function getServiceAccount(): Promise<ServiceAccount> {
 
 
 export async function initializeFirebaseAdmin() {
-    if (!admin.apps.length) {
+    if (!adminInitialized && !admin.apps.length) {
         try {
             const cert = await getServiceAccount();
             admin.initializeApp({
                 credential: admin.credential.cert(cert),
             });
             console.log('Firebase admin initialized with service account file.');
+            adminInitialized = true;
         } catch (error: any) {
             console.error('Firebase admin initialization error', error.message);
             // This is a critical error, so we throw it.

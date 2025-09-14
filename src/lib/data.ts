@@ -82,12 +82,17 @@ export async function getPublishedArticles(): Promise<Article[] | { error: 'miss
         const db = await initializeDb();
         const articlesCollection = db.collection('articles');
         const now = new Date();
+        // Simplified query to avoid requiring a composite index.
         const q = articlesCollection
             .where('status', '==', 'published')
-            .where('publicationDate', '<=', now)
-            .orderBy('publicationDate', 'desc');
+            .where('publicationDate', '<=', now);
+            // .orderBy('publicationDate', 'desc'); // This part requires the index.
+
         const snapshot = await q.get();
-        return snapshot.docs.map(convertDocToArticle);
+        // We will sort the results in code instead of in the query.
+        const articles = snapshot.docs.map(convertDocToArticle);
+        articles.sort((a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime());
+        return articles;
     } catch (error) {
         // Firestore error code 9 is FAILED_PRECONDITION, which often means a missing index.
         if ((error as any).code === 9) { 
@@ -154,12 +159,12 @@ export async function searchArticles(queryText: string): Promise<Article[]> {
     if (!queryText) return [];
     // This is still a client-side-like implementation on the server side.
     // For a real app, a full-text search engine like Algolia/Elasticsearch would be better.
-    const articles = await getPublishedArticles();
-    if ('error' in articles) {
+    const articlesResult = await getPublishedArticles();
+    if ('error' in articlesResult) {
       return [];
     }
     
-    return articles.filter(article => 
+    return articlesResult.filter(article => 
         article.title.toLowerCase().includes(queryText.toLowerCase()) ||
         article.content.toLowerCase().includes(queryText.toLowerCase())
     );
