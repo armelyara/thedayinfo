@@ -74,8 +74,22 @@ export default function LoginPage() {
         }
       } catch (e: any) {
           let errorMessage = 'Une erreur inattendue est survenue.';
-          if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+          // See https://firebase.google.com/docs/auth/admin/errors
+          switch (e.code) {
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+            case 'auth/invalid-credential':
               errorMessage = 'Email ou mot de passe invalide.';
+              break;
+            case 'auth/invalid-email':
+              errorMessage = 'L\'adresse e-mail n\'est pas valide.';
+              break;
+            case 'auth/user-disabled':
+              errorMessage = 'Ce compte utilisateur a été désactivé.';
+              break;
+            default:
+              errorMessage = `Une erreur s'est produite: ${e.message}`;
+              break;
           }
           setError(errorMessage);
           toast({
