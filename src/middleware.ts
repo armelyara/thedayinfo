@@ -1,53 +1,31 @@
 
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import admin from 'firebase-admin';
 
 export const runtime = 'nodejs';
 
-async function initializeFirebaseAdmin() {
-    if (!admin.apps.length) {
-      try {
-        admin.initializeApp({
-          credential: admin.credential.applicationDefault(),
-        });
-      } catch (error) {
-        console.error('Firebase admin initialization error', error);
-      }
-    }
-}
+// This middleware now only handles basic routing logic.
+// The session verification is moved to the server components that need it.
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const sessionCookie = request.cookies.get('session')?.value;
 
-export async function middleware(Request: NextRequest) {
-  await initializeFirebaseAdmin();
-  const sessionCookie = Request.cookies.get('session')?.value;
-  const { pathname } = Request.nextUrl;
+  const isAdminPath = pathname.startsWith('/admin');
+  const isLoginPage = pathname === '/login';
 
-  const isAuthPage = pathname === '/login';
-
-  if (!sessionCookie) {
-    if (isAuthPage) {
-      return NextResponse.next();
-    }
-    const url = Request.nextUrl.clone();
-    url.pathname = '/login';
-    return NextResponse.redirect(url);
+  // If trying to access admin pages without a session, redirect to login
+  if (isAdminPath && !sessionCookie) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  try {
-    await admin.auth().verifySessionCookie(sessionCookie, true);
-    // Session is valid.
-    if (isAuthPage) {
-        const url = Request.nextUrl.clone();
-        url.pathname = '/admin';
-        return NextResponse.redirect(url);
-    }
-    return NextResponse.next();
-  } catch (error) {
-    // Session cookie is invalid. Clear it and redirect to login.
-    const response = NextResponse.redirect(new URL('/login', Request.url));
-    response.cookies.delete('session');
-    return response;
+  // If logged in and trying to access login page, redirect to admin
+  if (isLoginPage && sessionCookie) {
+    // We will attempt to verify the cookie on the admin page itself.
+    // If it's invalid, it will be handled there.
+    return NextResponse.redirect(new URL('/admin', request.url));
   }
+
+  return NextResponse.next();
 }
 
 export const config = {

@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { MainLayout } from '@/components/layout/main-layout';
 import { cn } from '@/lib/utils';
+import { headers } from 'next/headers';
 
 export const metadata: Metadata = {
   title: 'The Day Info',
@@ -15,6 +16,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = headers();
+  const pathname = headersList.get('x-next-pathname') || '';
+
+  const isAdminRoute = pathname.startsWith('/admin');
 
   return (
     <html lang="fr" suppressHydrationWarning>
@@ -32,9 +37,12 @@ export default function RootLayout({
           'font-body'
         )}
       >
-        <MainLayout>{children}</MainLayout>
+        {isAdminRoute ? (
+            <div>{children}</div>
+        ) : (
+            <MainLayout>{children}</MainLayout>
+        )}
         <Toaster />
       </body>
     </html>
   );
-}
