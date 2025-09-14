@@ -6,6 +6,7 @@ import { MainLayout } from '@/components/layout/main-layout';
 import { cn } from '@/lib/utils';
 import { headers } from 'next/headers';
 import LoginPage from './login/page';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   title: 'The Day Info',
@@ -17,9 +18,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = headers();
+  const headersList = await headers();
   const host = headersList.get('host');
   const isAdmin = host?.startsWith('admin.');
+
+  // This is a placeholder for a real authentication check
+  const isAuthenticated = false; 
 
   return (
     <html lang="fr" suppressHydrationWarning>
@@ -37,7 +41,19 @@ export default async function RootLayout({
           'font-body'
         )}
       >
-        {isAdmin ? <>{children}</> : <MainLayout>{children}</MainLayout>}
+        <Suspense>
+          {isAdmin ? (
+            isAuthenticated ? (
+              <>{children}</>
+            ) : (
+              <MainLayout>
+                <LoginPage />
+              </MainLayout>
+            )
+          ) : (
+            <MainLayout>{children}</MainLayout>
+          )}
+        </Suspense>
         <Toaster />
       </body>
     </html>
