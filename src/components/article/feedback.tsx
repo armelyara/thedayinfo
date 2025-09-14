@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { User } from 'lucide-react';
 import type { Comment as CommentType } from '@/lib/data';
-import { updateArticleComments } from '@/lib/data';
+import { postCommentAction } from './actions';
 
 type Reaction = 'like' | 'dislike' | null;
 
@@ -59,8 +59,7 @@ export default function Feedback({ articleSlug, initialViews, initialComments }:
 
     startTransition(async () => {
         try {
-            const updatedComments = [newComment, ...comments];
-            await updateArticleComments(articleSlug, updatedComments);
+            const updatedComments = await postCommentAction(articleSlug, [newComment, ...comments]);
             setComments(updatedComments);
             setCommentText('');
             toast({
@@ -69,7 +68,6 @@ export default function Feedback({ articleSlug, initialViews, initialComments }:
             });
         } catch (error) {
             console.error("Failed to post comment:", error);
-            // Revert optimistic update on error is handled by not setting state before success
             toast({
                 variant: 'destructive',
                 title: 'Erreur',
@@ -138,5 +136,3 @@ export default function Feedback({ articleSlug, initialViews, initialComments }:
     </Card>
   );
 }
-
-    

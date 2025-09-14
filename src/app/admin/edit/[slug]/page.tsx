@@ -1,10 +1,11 @@
+
 'use client';
 
-import { getArticleBySlug } from '@/lib/data';
 import { notFound, useParams } from 'next/navigation';
 import EditArticleForm from './edit-article-form';
 import { useEffect, useState } from 'react';
 import type { Article } from '@/lib/data';
+import { getArticleAction } from './actions';
 
 
 type EditArticlePageProps = {
@@ -19,7 +20,7 @@ export default function EditArticlePage({ params }: EditArticlePageProps) {
   
   useEffect(() => {
     async function fetchArticle() {
-        const fetchedArticle = await getArticleBySlug(params.slug);
+        const fetchedArticle = await getArticleAction(params.slug);
         setArticle(fetchedArticle);
         setIsLoading(false);
     }
@@ -49,3 +50,5 @@ export default function EditArticlePage({ params }: EditArticlePageProps) {
     </div>
   );
 }
+
+    

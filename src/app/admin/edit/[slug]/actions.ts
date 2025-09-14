@@ -2,7 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import { updateArticle } from '@/lib/data';
+import { updateArticle, getArticleBySlug } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import type { Article } from '@/lib/data';
 
@@ -37,3 +37,9 @@ export async function updateArticleAction(slug: string, values: z.infer<typeof f
 
   return updatedArticle;
 }
+
+export async function getArticleAction(slug: string): Promise<Article | null> {
+    return getArticleBySlug(slug);
+}
+
+    

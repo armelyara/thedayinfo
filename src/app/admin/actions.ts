@@ -1,11 +1,11 @@
 
 'use server';
 
-import { deleteArticle as deleteArticleData } from '@/lib/data';
+import { deleteArticle as deleteArticleData, updateArticleComments, type Comment } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 
 export async function deleteArticleAction(slug: string) {
-  const result = deleteArticleData(slug);
+  const result = await deleteArticleData(slug);
   
   if (result) {
     revalidatePath('/admin');
@@ -14,4 +14,8 @@ export async function deleteArticleAction(slug: string) {
   } else {
     return { success: false, error: 'Article non trouvé' };
   }
+}
+
+export async function postCommentAdminAction(slug: string, comments: Comment[]) {
+    return await updateArticleComments(slug, comments);
 }

@@ -16,7 +16,7 @@ type ArticlePageProps = {
   };
 };
 
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 0;
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const article = await getArticleBySlug(params.slug);
@@ -85,3 +85,5 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     </article>
   );
 }
+
+    

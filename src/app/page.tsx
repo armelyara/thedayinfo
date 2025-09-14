@@ -1,5 +1,5 @@
 
-import { getPublishedArticles, seedInitialArticles, type Article } from '@/lib/data';
+import { getPublishedArticles, seedInitialArticles } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
 
 export const revalidate = 3600; // Revalidate every hour
@@ -36,3 +36,5 @@ export default async function Home() {
     </div>
   );
 }
+
+    

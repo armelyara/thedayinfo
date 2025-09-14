@@ -29,7 +29,7 @@ import {
 import { deleteArticleAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { getAdminArticles } from '@/lib/data';
-import { updateArticleComments } from '@/lib/data';
+import { postCommentAdminAction } from './actions';
 
 
 function CommentSection({ article, onCommentsUpdate }: { article: Article, onCommentsUpdate: (slug: string, comments: CommentType[]) => void }) {
@@ -57,7 +57,7 @@ function CommentSection({ article, onCommentsUpdate }: { article: Article, onCom
         
         startTransition(async () => {
           try {
-              await updateArticleComments(article.slug, newComments);
+              await postCommentAdminAction(article.slug, newComments);
               onCommentsUpdate(article.slug, newComments);
               setReplyText('');
               setReplyingTo(null);

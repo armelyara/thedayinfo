@@ -1,10 +1,9 @@
 
-'use server';
-
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeFirebaseAdmin } from './auth';
 import { revalidatePath } from 'next/cache';
 import type { Timestamp } from 'firebase-admin/firestore';
+import { notFound } from 'next/navigation';
 
 // Data Types
 export type Comment = {
@@ -98,7 +97,18 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     if (!docSnap.exists) {
         return null;
     }
-    return convertDocToArticle(docSnap);
+    const article = convertDocToArticle(docSnap);
+
+    // Increment views - this is a server-side effect
+    try {
+        const { firestore } = await import('firebase-admin');
+        await docRef.update({ views: firestore.FieldValue.increment(1) });
+    } catch (e) {
+        console.error("Failed to increment views", e);
+    }
+
+
+    return article;
 }
 
 export async function getArticlesByCategory(categorySlug: string): Promise<Article[]> {
@@ -165,14 +175,11 @@ export async function addArticle(article: { title: string, author: string, categ
     const docRef = articlesCollection.doc(slug);
     await docRef.set(dataForFirestore);
     
-    revalidatePath('/');
-    revalidatePath('/admin');
-    
-    const createdArticle = await getArticleBySlug(slug);
-    if (!createdArticle) {
+    const createdArticleDoc = await docRef.get();
+    if (!createdArticleDoc.exists) {
         throw new Error("Failed to create and retrieve article.");
     }
-    return createdArticle;
+    return convertDocToArticle(createdArticleDoc);
 };
 
 export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug' | 'scheduledFor'>> & { scheduledFor?: Date | null }): Promise<Article> {
@@ -199,14 +206,10 @@ export async function updateArticle(slug: string, data: Partial<Omit<Article, 's
     
     await docRef.update(dataForFirestore);
     
-    const updatedArticle = await getArticleBySlug(slug);
-    if (!updatedArticle) throw new Error("Failed to retrieve updated article");
+    const updatedDoc = await docRef.get();
+    if (!updatedDoc.exists) throw new Error("Failed to retrieve updated article");
 
-    revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath(`/article/${updatedArticle.slug}`);
-
-    return updatedArticle;
+    return convertDocToArticle(updatedDoc);
 }
 
 
@@ -215,8 +218,6 @@ export async function deleteArticle(slug: string): Promise<boolean> {
     const docRef = db.collection('articles').doc(slug);
     try {
         await docRef.delete();
-        revalidatePath('/admin');
-        revalidatePath('/');
         return true;
     } catch(e) {
         console.error("Error deleting article:", e);
@@ -309,11 +310,15 @@ export async function seedInitialArticles() {
         });
         await batch.commit();
         console.log('Database seeded successfully.');
-    } else {
-        // console.log('Database already contains articles, skipping seed.');
     }
 }
 
-export const getAdminArticles = getAllArticles;
-export const seedDatabase = seedInitialArticles;
+export async function getAdminArticles(): Promise<Article[]> {
+  const db = await initializeDb();
+  const articlesCollection = db.collection('articles');
+  const q = articlesCollection.orderBy('publicationDate', 'desc');
+  const snapshot = await q.get();
+  return snapshot.docs.map(convertDocToArticle);
+}
+
     
