@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { admin } from '@/lib/firebase';
 
+export const runtime = 'nodejs';
+
 export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get('session')?.value;
   const { pathname } = request.nextUrl;
