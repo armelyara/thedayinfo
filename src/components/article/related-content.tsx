@@ -1,43 +1,57 @@
 
+'use client';
 import Link from 'next/link';
 import { suggestRelatedContent } from '@/ai/flows/related-content-suggestions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookText, ExternalLink } from 'lucide-react';
-import { articles } from '@/lib/data';
+import { getPublishedArticles, type Article } from '@/lib/data';
+import { useEffect, useState } from 'react';
 
 type RelatedContentProps = {
   currentArticleTitle: string;
   articleContent: string;
 };
 
-// Helper to find a slug for a given title
-const findSlugByTitle = (title: string): string | null => {
-  const article = articles.find(a => a.title.toLowerCase() === title.toLowerCase());
-  return article ? article.slug : null;
-};
-
-
-export default async function RelatedContent({
+export default function RelatedContent({
   currentArticleTitle,
   articleContent,
 }: RelatedContentProps) {
-  let suggestions: {title: string, slug: string | null}[] = [];
+  const [suggestions, setSuggestions] = useState<{title: string, slug: string | null}[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  try {
-    const result = await suggestRelatedContent({ currentArticleTitle, articleContent });
-    if(result.suggestedArticles) {
-      suggestions = result.suggestedArticles.map(title => ({
-        title,
-        slug: findSlugByTitle(title)
-      }));
+  useEffect(() => {
+    async function fetchArticlesAndSuggestions() {
+      try {
+        const [publishedArticles, suggestionResult] = await Promise.all([
+          getPublishedArticles(),
+          suggestRelatedContent({ currentArticleTitle, articleContent })
+        ]);
+        
+        setArticles(publishedArticles);
+
+        if (suggestionResult.suggestedArticles) {
+          const processedSuggestions = suggestionResult.suggestedArticles.map(title => {
+            const article = publishedArticles.find(a => a.title.toLowerCase() === title.toLowerCase());
+            return {
+              title,
+              slug: article ? article.slug : null
+            };
+          }).filter(s => s.slug); // Filter out suggestions that don't have a slug
+          setSuggestions(processedSuggestions);
+        }
+      } catch (error) {
+        console.error("Failed to fetch related content:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  } catch (error) {
-    console.error("Failed to fetch related content:", error);
-    // Render nothing if AI call fails
-    return null;
-  }
+    
+    fetchArticlesAndSuggestions();
+  }, [currentArticleTitle, articleContent]);
 
-  if (suggestions.length === 0) {
+
+  if (isLoading || suggestions.length === 0) {
     return null;
   }
 

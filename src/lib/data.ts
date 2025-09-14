@@ -38,4 +38,3 @@ export const deleteArticle = dbDeleteArticle;
 export const getAdminArticles = getAllArticles;
 export const updateArticleComments = dbUpdateArticleComments;
 export const seedInitialArticles = seedDatabase;
-
