@@ -1,40 +1,25 @@
 
 'use server';
 import admin from 'firebase-admin';
-import { config } from 'dotenv';
-
-const firebasePrivateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+import serviceAccount from './firebase-service-account.json';
 
 export async function initializeFirebaseAdmin() {
-    // Call config() at the entry point of the server, not here.
     if (!admin.apps.length) {
         try {
-            if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && firebasePrivateKey) {
-                admin.initializeApp({
-                    credential: admin.credential.cert({
-                        projectId: process.env.FIREBASE_PROJECT_ID,
-                        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                        privateKey: firebasePrivateKey,
-                    }),
-                });
-                console.log('Firebase admin initialized with service account.');
-            } else {
-                console.warn('Service account environment variables not found, trying application default credentials. This might fail.');
-                admin.initializeApp({
-                    credential: admin.credential.applicationDefault(),
-                });
-                console.log('Firebase admin initialized with application default credentials.');
-            }
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+            });
+            console.log('Firebase admin initialized with service account file.');
         } catch (error: any) {
             console.error('Firebase admin initialization error', error.message);
-            throw new Error('Firebase Admin SDK failed to initialize.');
+            // This is a critical error, so we throw it.
+            throw new Error('Firebase Admin SDK failed to initialize: ' + error.message);
         }
     }
 }
 
 export async function verifySession(session: string) {
     await initializeFirebaseAdmin();
-    if (!admin.apps.length) return null;
     try {
         const decodedClaims = await admin.auth().verifySessionCookie(session, true);
         return decodedClaims;
@@ -46,6 +31,5 @@ export async function verifySession(session: string) {
 
 export async function createSessionCookie(idToken: string, options: { expiresIn: number }) {
     await initializeFirebaseAdmin();
-    if (!admin.apps.length) throw new Error("Firebase Admin SDK is not initialized.");
     return admin.auth().createSessionCookie(idToken, options);
 }
