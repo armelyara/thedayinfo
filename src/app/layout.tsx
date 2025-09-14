@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: 'Votre dose quotidienne d\'information.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
