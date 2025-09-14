@@ -3,9 +3,9 @@
 /**
  * @fileOverview A flow for generating short summaries of articles.
  *
- * - summarizeArticle - A function that generates a short summary of an article.
- * - SummarizeArticleInput - The input type for the summarizeArticle function.
- * - SummarizeArticleOutput - The return type for the summarizeArticle function.
+ * - summarizeArticleFlow - A Genkit flow that generates a short summary of an article.
+ * - SummarizeArticleInput - The input type for the summarizeArticleFlow function.
+ * - SummarizeArticleOutput - The return type for the summarizeArticleFlow function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -25,10 +25,6 @@ const SummarizeArticleOutputSchema = z.object({
 });
 export type SummarizeArticleOutput = z.infer<typeof SummarizeArticleOutputSchema>;
 
-export async function summarizeArticle(input: SummarizeArticleInput): Promise<SummarizeArticleOutput> {
-  return summarizeArticleFlow(input);
-}
-
 const summarizeArticlePrompt = ai.definePrompt({
   name: 'summarizeArticlePrompt',
   input: {schema: SummarizeArticleInputSchema},
@@ -36,7 +32,7 @@ const summarizeArticlePrompt = ai.definePrompt({
   prompt: `Summarize the following article in a concise paragraph that captures the main points:\n\n{{{articleContent}}}`,
 });
 
-const summarizeArticleFlow = ai.defineFlow(
+export const summarizeArticleFlow = ai.defineFlow(
   {
     name: 'summarizeArticleFlow',
     inputSchema: SummarizeArticleInputSchema,
@@ -46,7 +42,6 @@ const summarizeArticleFlow = ai.defineFlow(
     const {output} = await summarizeArticlePrompt(input);
     return {
       ...output!,
-      progress: 'Generated a short, one-sentence summary of the article.',
     };
   }
 );

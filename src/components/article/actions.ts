@@ -3,6 +3,7 @@
 import { updateArticleComments, type Comment, getPublishedArticles } from '@/lib/data';
 import { suggestRelatedContent, type SuggestRelatedContentInput } from '@/ai/flows/related-content-suggestions';
 import { revalidatePath } from 'next/cache';
+import { summarizeArticleFlow, type SummarizeArticleInput, type SummarizeArticleOutput } from '@/ai/flows/article-summarization';
 
 export async function postCommentAction(slug: string, comments: Comment[]): Promise<Comment[]> {
     const success = await updateArticleComments(slug, comments);
@@ -36,4 +37,8 @@ export async function getRelatedContentAction(input: SuggestRelatedContentInput)
         console.error("Failed to fetch related content in server action:", error);
     }
     return [];
+}
+
+export async function summarizeArticleAction(input: SummarizeArticleInput): Promise<SummarizeArticleOutput> {
+    return summarizeArticleFlow(input);
 }

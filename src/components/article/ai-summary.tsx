@@ -2,12 +2,12 @@
 'use client';
 
 import { useState } from 'react';
-import { summarizeArticle } from '@/ai/flows/article-summarization';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wand2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { summarizeArticleAction } from './actions';
 
 type AiSummaryProps = {
   articleContent: string;
@@ -24,7 +24,7 @@ export default function AiSummary({ articleContent }: AiSummaryProps) {
     setError('');
     setSummary('');
     try {
-      const result = await summarizeArticle({ articleContent });
+      const result = await summarizeArticleAction({ articleContent });
       if (result.summary) {
         setSummary(result.summary);
       } else {
