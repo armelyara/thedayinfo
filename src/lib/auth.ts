@@ -3,11 +3,10 @@
 import admin from 'firebase-admin';
 import { config } from 'dotenv';
 
-config();
-
 const firebasePrivateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
 export async function initializeFirebaseAdmin() {
+    // Call config() at the entry point of the server, not here.
     if (!admin.apps.length) {
         try {
             if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && firebasePrivateKey) {
@@ -20,7 +19,7 @@ export async function initializeFirebaseAdmin() {
                 });
                 console.log('Firebase admin initialized with service account.');
             } else {
-                console.warn('Service account environment variables not found, trying application default credentials.');
+                console.warn('Service account environment variables not found, trying application default credentials. This might fail.');
                 admin.initializeApp({
                     credential: admin.credential.applicationDefault(),
                 });
