@@ -1,4 +1,3 @@
-
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { getArticleBySlug } from '@/lib/data';
@@ -11,15 +10,17 @@ import Feedback from '@/components/article/feedback';
 import { parseISO } from 'date-fns';
 
 type ArticlePageProps = {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
 export const revalidate = 0;
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
-  const article = await getArticleBySlug(params.slug);
+  // Await params before using its properties
+  const { slug } = await params;
+  const article = await getArticleBySlug(slug);
 
   if (!article || (article.status === 'scheduled' && parseISO(article.publicationDate) > new Date())) {
     notFound();
@@ -85,5 +86,3 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     </article>
   );
 }
-
-    

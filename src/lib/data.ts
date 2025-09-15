@@ -77,34 +77,29 @@ export async function getAllArticles(): Promise<Article[]> {
     }
 }
 
-export async function getPublishedArticles(): Promise<Article[] | { error: 'missing_index', message: string }> {
+export async function getPublishedArticles(): Promise<Article[]> {
     try {
         const db = await initializeDb();
         const articlesCollection = db.collection('articles');
         const now = new Date();
-        // Simplified query to avoid requiring a composite index.
+        
+        // Requête simplifiée sans orderBy pour éviter l'index composite
         const q = articlesCollection
             .where('status', '==', 'published')
             .where('publicationDate', '<=', now);
-            // .orderBy('publicationDate', 'desc'); // This part requires the index.
+            // Supprimé: .orderBy('publicationDate', 'desc');
 
         const snapshot = await q.get();
-        // We will sort the results in code instead of in the query.
+        
+        // Tri en mémoire - plus simple et fonctionne toujours
         const articles = snapshot.docs.map(convertDocToArticle);
         articles.sort((a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime());
+        
         return articles;
     } catch (error) {
-        // Firestore error code 9 is FAILED_PRECONDITION, which often means a missing index.
-        if ((error as any).code === 9) { 
-             console.error("Firestore query failed. This likely means the required composite index is not yet built. Please create it in the Firebase console.");
-             return {
-                error: 'missing_index',
-                message: (error as any).details || 'The query requires an index. Please create it in the Firebase console.'
-             }
-        }
         console.error("Error fetching published articles:", error);
-        // For other errors, we can throw or return a generic error
-        throw error;
+        // Renvoie un tableau vide en cas d'erreur pour éviter de casser l'UI
+        return [];
     }
 }
 
@@ -141,14 +136,21 @@ export async function getArticlesByCategory(categorySlug: string, categories: Ca
         if (!category) return [];
 
         const now = new Date();
+        
+        // Requête simplifiée sans orderBy
         const q = articlesCollection
             .where('category', '==', category.name)
             .where('status', '==', 'published')
-            .where('publicationDate', '<=', now)
-            .orderBy('publicationDate', 'desc');
+            .where('publicationDate', '<=', now);
+            // Supprimé: .orderBy('publicationDate', 'desc');
         
         const snapshot = await q.get();
-        return snapshot.docs.map(convertDocToArticle);
+        
+        // Tri en mémoire
+        const articles = snapshot.docs.map(convertDocToArticle);
+        articles.sort((a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime());
+        
+        return articles;
     } catch (error) {
         console.error(`Error fetching articles for category ${categorySlug}:`, error);
         return [];

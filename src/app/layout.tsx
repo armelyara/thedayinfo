@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -16,11 +15,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = headers();
+  // Await headers() directement
+  const headersList = await headers();
   const pathname = headersList.get('x-next-pathname') || '';
-
+  
   const isAdminRoute = pathname.startsWith('/admin');
-
+  
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
@@ -38,11 +38,12 @@ export default async function RootLayout({
         )}
       >
         {isAdminRoute ? (
-            <div>{children}</div>
+          <div>{children}</div>
         ) : (
-            <MainLayout>{children}</MainLayout>
+          <MainLayout>{children}</MainLayout>
         )}
         <Toaster />
       </body>
     </html>
   );
+}
