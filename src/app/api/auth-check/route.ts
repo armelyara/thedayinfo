@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth';
 
 export async function GET() {
-  const sessionCookie = cookies().get('session')?.value;
+  const sessionCookie = (await cookies()).get('session')?.value;
 
   if (!sessionCookie) {
     return NextResponse.json({ authenticated: false }, { status: 401 });

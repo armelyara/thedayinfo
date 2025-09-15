@@ -1,5 +1,4 @@
-
-import { getPublishedArticles, seedInitialArticles } from '@/lib/data';
+import { getPublishedArticles, seedInitialArticles, type Article } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
@@ -40,7 +39,6 @@ const MissingIndexError = ({ message }: { message: string }) => {
   );
 };
 
-
 export default async function Home() {
   // Seed initial articles if the collection is empty.
   // In a real app, this might be a one-time script.
@@ -48,7 +46,12 @@ export default async function Home() {
 
   const articlesResult = await getPublishedArticles();
 
-  if (articlesResult && 'error' in articlesResult && articlesResult.error === 'missing_index') {
+  // Type guard pour vérifier si c'est une erreur
+  const isErrorResult = (result: any): result is { error: string; message: string } => {
+    return result && typeof result === 'object' && 'error' in result;
+  };
+
+  if (isErrorResult(articlesResult) && articlesResult.error === 'missing_index') {
     return (
        <div className="container mx-auto px-4 py-8">
           <header className="mb-12 text-center">
@@ -66,7 +69,8 @@ export default async function Home() {
     )
   }
 
-  const articles = articlesResult as any[];
+  // À ce point, TypeScript sait que articlesResult est Article[]
+  const articles = articlesResult as Article[];
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -1,8 +1,6 @@
-
-
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeFirebaseAdmin } from './auth';
-import { revalidatePath } from 'next/cache';
+// import { revalidatePath } from 'next/cache'; ← SUPPRIMÉ
 import type { Timestamp } from 'firebase-admin/firestore';
 
 // Data Types
@@ -52,7 +50,6 @@ const initializeDb = async () => {
   }
   return db;
 };
-
 
 const convertDocToArticle = (doc: FirebaseFirestore.DocumentSnapshot): Article => {
     const data = doc.data() as Omit<Article, 'slug'>;
@@ -212,7 +209,7 @@ export async function addArticle(article: { title: string, author: string, categ
         throw new Error("Failed to create and retrieve article.");
     }
     return convertDocToArticle(createdArticleDoc);
-};
+}
 
 export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug' | 'scheduledFor'>> & { scheduledFor?: Date | null }): Promise<Article> {
     const db = await initializeDb();
@@ -244,7 +241,6 @@ export async function updateArticle(slug: string, data: Partial<Omit<Article, 's
     return convertDocToArticle(updatedDoc);
 }
 
-
 export async function deleteArticle(slug: string): Promise<boolean> {
     const db = await initializeDb();
     const docRef = db.collection('articles').doc(slug);
@@ -257,14 +253,13 @@ export async function deleteArticle(slug: string): Promise<boolean> {
     }
 }
 
-
 export async function updateArticleComments(slug: string, comments: Comment[]): Promise<boolean> {
     const db = await initializeDb();
     const docRef = db.collection('articles').doc(slug);
     try {
         await docRef.update({ comments });
-        revalidatePath(`/article/${slug}`);
-        revalidatePath('/admin');
+        // revalidatePath(`/article/${slug}`); ← SUPPRIMÉ
+        // revalidatePath('/admin'); ← SUPPRIMÉ
         return true;
     } catch (error) {
         console.error("Failed to update comments in Firestore:", error);
