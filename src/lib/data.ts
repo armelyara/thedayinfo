@@ -1,6 +1,5 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeFirebaseAdmin } from './auth';
-// import { revalidatePath } from 'next/cache'; ← SUPPRIMÉ
 import type { Timestamp } from 'firebase-admin/firestore';
 
 // Data Types
@@ -21,7 +20,7 @@ export type Article = {
     title: string;
     author: string;
     category: string;
-    publicationDate: string;
+    publishedAt: string; // UNIFIÉ - plus de publicationDate
     status: 'published' | 'scheduled';
     scheduledFor?: string;
     image: {
@@ -41,6 +40,18 @@ export type Category = {
     slug: string;
 };
 
+export type Subscriber = {
+    id: string;
+    email: string;
+    name?: string;
+    subscribedAt: string;
+    status: 'active' | 'unsubscribed';
+    preferences: {
+      frequency: 'daily' | 'weekly' | 'monthly';
+      categories: string[];
+    };
+};
+
 // Use the admin SDK
 let db: FirebaseFirestore.Firestore;
 const initializeDb = async () => {
@@ -52,20 +63,53 @@ const initializeDb = async () => {
 };
 
 const convertDocToArticle = (doc: FirebaseFirestore.DocumentSnapshot): Article => {
-    const data = doc.data() as Omit<Article, 'slug'>;
+    const data = doc.data() as any;
+    
+    // NETTOYÉ - Plus de gestion de publicationDate, uniquement publishedAt
+    const publishedAt = data.publishedAt;
+    const scheduledFor = data.scheduledFor;
+
     return {
         slug: doc.id,
-        ...data,
-        publicationDate: (data.publicationDate as any as Timestamp).toDate().toISOString(),
-        scheduledFor: data.scheduledFor ? (data.scheduledFor as any as Timestamp).toDate().toISOString() : undefined,
+        title: data.title,
+        author: data.author,
+        category: data.category,
+        publishedAt: publishedAt instanceof Date 
+            ? publishedAt.toISOString() 
+            : (publishedAt?.toDate?.() || new Date(publishedAt)).toISOString(),
+        status: data.status,
+        scheduledFor: scheduledFor 
+            ? (scheduledFor instanceof Date 
+                ? scheduledFor.toISOString() 
+                : (scheduledFor?.toDate?.() || new Date(scheduledFor)).toISOString())
+            : undefined,
+        image: data.image,
+        content: data.content,
+        views: data.views || 0,
+        comments: data.comments || [],
+        viewHistory: data.viewHistory || [],
     } as Article;
-}
+};
+
+const convertDocToSubscriber = (doc: FirebaseFirestore.DocumentSnapshot): Subscriber => {
+    const data = doc.data() as any;
+    return {
+        id: doc.id,
+        email: data.email,
+        name: data.name,
+        subscribedAt: data.subscribedAt instanceof Date 
+            ? data.subscribedAt.toISOString()
+            : (data.subscribedAt?.toDate?.() || new Date(data.subscribedAt)).toISOString(),
+        status: data.status,
+        preferences: data.preferences,
+    } as Subscriber;
+};
 
 export async function getAllArticles(): Promise<Article[]> {
     try {
         const db = await initializeDb();
         const articlesCollection = db.collection('articles');
-        const q = articlesCollection.orderBy('publicationDate', 'desc');
+        const q = articlesCollection.orderBy('publishedAt', 'desc');
         const snapshot = await q.get();
         return snapshot.docs.map(convertDocToArticle);
     } catch (error) {
@@ -80,22 +124,18 @@ export async function getPublishedArticles(): Promise<Article[]> {
         const articlesCollection = db.collection('articles');
         const now = new Date();
         
-        // Requête simplifiée sans orderBy pour éviter l'index composite
         const q = articlesCollection
             .where('status', '==', 'published')
-            .where('publicationDate', '<=', now);
-            // Supprimé: .orderBy('publicationDate', 'desc');
+            .where('publishedAt', '<=', now);
 
         const snapshot = await q.get();
         
-        // Tri en mémoire - plus simple et fonctionne toujours
         const articles = snapshot.docs.map(convertDocToArticle);
-        articles.sort((a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime());
+        articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
         
         return articles;
     } catch (error) {
         console.error("Error fetching published articles:", error);
-        // Renvoie un tableau vide en cas d'erreur pour éviter de casser l'UI
         return [];
     }
 }
@@ -134,18 +174,15 @@ export async function getArticlesByCategory(categorySlug: string, categories: Ca
 
         const now = new Date();
         
-        // Requête simplifiée sans orderBy
         const q = articlesCollection
             .where('category', '==', category.name)
             .where('status', '==', 'published')
-            .where('publicationDate', '<=', now);
-            // Supprimé: .orderBy('publicationDate', 'desc');
+            .where('publishedAt', '<=', now);
         
         const snapshot = await q.get();
         
-        // Tri en mémoire
         const articles = snapshot.docs.map(convertDocToArticle);
-        articles.sort((a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime());
+        articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
         
         return articles;
     } catch (error) {
@@ -156,12 +193,8 @@ export async function getArticlesByCategory(categorySlug: string, categories: Ca
 
 export async function searchArticles(queryText: string): Promise<Article[]> {
     if (!queryText) return [];
-    // This is still a client-side-like implementation on the server side.
-    // For a real app, a full-text search engine like Algolia/Elasticsearch would be better.
+    
     const articlesResult = await getPublishedArticles();
-    if ('error' in articlesResult) {
-      return [];
-    }
     
     return articlesResult.filter(article => 
         article.title.toLowerCase().includes(queryText.toLowerCase()) ||
@@ -169,35 +202,46 @@ export async function searchArticles(queryText: string): Promise<Article[]> {
     );
 }
 
-export async function addArticle(article: { title: string, author: string, category: string, content: string, scheduledFor?: Date }): Promise<Article> {
+export async function addArticle(article: { 
+    title: string, 
+    author: string, 
+    category: string, 
+    content: string, 
+    scheduledFor?: string 
+}): Promise<Article> {
     const db = await initializeDb();
     const articlesCollection = db.collection('articles');
     const slug = article.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
     const now = new Date();
-    const scheduledDate = article.scheduledFor;
-  
+    
+    // Gérer la date de programmation
+    let scheduledDate: Date | undefined;
+    if (article.scheduledFor) {
+        scheduledDate = new Date(article.scheduledFor);
+    }
+
     const isScheduled = scheduledDate && scheduledDate > now;
-    const publicationDate = isScheduled ? scheduledDate : now;
+    const publishedAt = isScheduled ? scheduledDate : now;
 
     const dataForFirestore: any = {
-      title: article.title,
-      author: article.author,
-      category: article.category,
-      content: article.content,
-      publicationDate: publicationDate,
-      status: isScheduled ? 'scheduled' : 'published',
-      image: {
-        id: String(Date.now()),
-        src: `https://picsum.photos/seed/${slug}/600/400`,
-        alt: article.title,
-        aiHint: 'placeholder image'
-      },
-      views: 0,
-      comments: [],
-      viewHistory: [],
+        title: article.title,
+        author: article.author,
+        category: article.category,
+        content: article.content,
+        publishedAt: publishedAt,
+        status: isScheduled ? 'scheduled' : 'published',
+        image: {
+            id: String(Date.now()),
+            src: `https://picsum.photos/seed/${slug}/600/400`,
+            alt: article.title,
+            aiHint: 'placeholder image'
+        },
+        views: 0,
+        comments: [],
+        viewHistory: [],
     };
     
-    if (isScheduled) {
+    if (isScheduled && scheduledDate) {
         dataForFirestore.scheduledFor = scheduledDate;
     }
 
@@ -211,25 +255,35 @@ export async function addArticle(article: { title: string, author: string, categ
     return convertDocToArticle(createdArticleDoc);
 }
 
-export async function updateArticle(slug: string, data: Partial<Omit<Article, 'slug' | 'scheduledFor'>> & { scheduledFor?: Date | null }): Promise<Article> {
+export async function updateArticle(
+    slug: string, 
+    data: Partial<Omit<Article, 'slug' | 'scheduledFor'>> & { scheduledFor?: string }
+): Promise<Article> {
     const db = await initializeDb();
     const docRef = db.collection('articles').doc(slug);
 
     const dataForFirestore: { [key: string]: any } = { ...data };
 
+    // Gérer la conversion des dates
+    if (data.publishedAt) {
+        dataForFirestore.publishedAt = new Date(data.publishedAt);
+    }
+
     if (data.hasOwnProperty('scheduledFor')) {
         const { firestore } = await import('firebase-admin');
-        const scheduledDate = data.scheduledFor;
-        if (scheduledDate) {
+        const scheduledDateStr = data.scheduledFor;
+        
+        if (scheduledDateStr) {
+            const scheduledDate = new Date(scheduledDateStr);
             const now = new Date();
             dataForFirestore.scheduledFor = scheduledDate;
-            dataForFirestore.publicationDate = scheduledDate;
+            dataForFirestore.publishedAt = scheduledDate;
             dataForFirestore.status = scheduledDate > now ? 'scheduled' : 'published';
         } else {
             // Un-scheduling: publish now and remove scheduledFor field
             dataForFirestore.scheduledFor = firestore.FieldValue.delete();
             dataForFirestore.status = 'published';
-            dataForFirestore.publicationDate = new Date();
+            dataForFirestore.publishedAt = new Date();
         }
     }
     
@@ -258,8 +312,6 @@ export async function updateArticleComments(slug: string, comments: Comment[]): 
     const docRef = db.collection('articles').doc(slug);
     try {
         await docRef.update({ comments });
-        // revalidatePath(`/article/${slug}`); ← SUPPRIMÉ
-        // revalidatePath('/admin'); ← SUPPRIMÉ
         return true;
     } catch (error) {
         console.error("Failed to update comments in Firestore:", error);
@@ -267,56 +319,148 @@ export async function updateArticleComments(slug: string, comments: Comment[]): 
     }
 }
 
-// Seeding function
+// Fonctions pour les abonnés
+export async function addSubscriber(subscriberData: {
+    email: string;
+    name?: string;
+    preferences?: {
+      frequency: 'daily' | 'weekly' | 'monthly';
+      categories: string[];
+    };
+}): Promise<Subscriber> {
+    const db = await initializeDb();
+    const subscribersCollection = db.collection('subscribers');
+    
+    // Vérifier si l'email existe déjà
+    const existingQuery = subscribersCollection.where('email', '==', subscriberData.email);
+    const existingSnapshot = await existingQuery.get();
+    
+    if (!existingSnapshot.empty) {
+        throw new Error('Cette adresse email est déjà abonnée');
+    }
+
+    const newSubscriber = {
+        email: subscriberData.email,
+        name: subscriberData.name || '',
+        subscribedAt: new Date(),
+        status: 'active' as const,
+        preferences: subscriberData.preferences || {
+            frequency: 'weekly' as const,
+            categories: ['Technologie', 'Actualité']
+        }
+    };
+
+    const docRef = await subscribersCollection.add(newSubscriber);
+    const createdDoc = await docRef.get();
+    
+    return convertDocToSubscriber(createdDoc);
+}
+
+export async function getSubscribers(): Promise<Subscriber[]> {
+    try {
+        const db = await initializeDb();
+        const subscribersCollection = db.collection('subscribers');
+        const snapshot = await subscribersCollection.orderBy('subscribedAt', 'desc').get();
+        
+        return snapshot.docs.map(convertDocToSubscriber);
+    } catch (error) {
+        console.error("Error fetching subscribers:", error);
+        return [];
+    }
+}
+
+export async function updateSubscriberStatus(
+    subscriberId: string, 
+    status: 'active' | 'unsubscribed'
+): Promise<void> {
+    const db = await initializeDb();
+    await db.collection('subscribers').doc(subscriberId).update({ status });
+}
+
+export async function deleteSubscriber(subscriberId: string): Promise<void> {
+    const db = await initializeDb();
+    await db.collection('subscribers').doc(subscriberId).delete();
+}
+
+export async function getSubscribersCount(): Promise<{
+    total: number;
+    active: number;
+    unsubscribed: number;
+}> {
+    try {
+        const subscribers = await getSubscribers();
+        const active = subscribers.filter(s => s.status === 'active').length;
+        const unsubscribed = subscribers.filter(s => s.status === 'unsubscribed').length;
+        
+        return {
+            total: subscribers.length,
+            active,
+            unsubscribed
+        };
+    } catch (error) {
+        console.error("Error getting subscribers count:", error);
+        return { total: 0, active: 0, unsubscribed: 0 };
+    }
+}
+
+export async function getAdminArticles(): Promise<Article[]> {
+    const db = await initializeDb();
+    const articlesCollection = db.collection('articles');
+    const q = articlesCollection.orderBy('publishedAt', 'desc');
+    const snapshot = await q.get();
+    return snapshot.docs.map(convertDocToArticle);
+}
+
+// Données initiales pour le seeding - CORRIGÉ publishedAt
 const initialArticles = [
-  {
-    "slug": "le-futur-de-lia-une-nouvelle-ere-d-innovation",
-    "title": "Le Futur de L'IA : Une Nouvelle Ère d'Innovation",
-    "author": "L'Auteur",
-    "category": "Technologie",
-    "publicationDate": "2024-05-01T10:00:00.000Z",
-    "status": "published" as const,
-    "image": { "id": "1", "src": "https://picsum.photos/seed/1/600/400", "alt": "Visualisation abstraite de l'IA", "aiHint": "abstract AI" },
-    "content": "L'intelligence artificielle est en train de remodeler notre monde. De la médecine à la finance, ses applications sont infinies. Cet article explore les avancées récentes et ce que l'avenir nous réserve.",
-    "views": 1500,
-    "comments": [],
-    "viewHistory": [
-      { "date": "2024-05-01T00:00:00.000Z", "views": 800 },
-      { "date": "2024-06-01T00:00:00.000Z", "views": 700 }
-    ]
-  },
-  {
-    "slug": "exploration-spatiale-les-prochaines-frontieres",
-    "title": "Exploration Spatiale : Les Prochaines Frontières",
-    "author": "L'Auteur",
-    "category": "Actualité",
-    "publicationDate": "2024-05-15T10:00:00.000Z",
-    "status": "published" as const,
-    "image": { "id": "2", "src": "https://picsum.photos/seed/2/600/400", "alt": "Une nébuleuse colorée dans l'espace lointain", "aiHint": "nebula space" },
-    "content": "Avec les récentes missions vers Mars et au-delà, l'humanité est à l'aube d'une nouvelle ère d'exploration spatiale. Découvrez les défis et les merveilles qui nous attendent.",
-    "views": 850,
-    "comments": [],
-    "viewHistory": [
-      { "date": "2024-05-01T00:00:00.000Z", "views": 400 },
-      { "date": "2024-06-01T00:00:00.000Z", "views": 450 }
-    ]
-  },
     {
-    "slug": "la-revolution-quantique-est-elle-pour-demain",
-    "title": "La Révolution Quantique est-elle pour Demain ?",
-    "author": "L'Auteur",
-    "category": "Technologie",
-    "publicationDate": "2024-06-01T10:00:00.000Z",
-    "status": "published" as const,
-    "image": { "id": "6", "src": "https://picsum.photos/seed/6/600/400", "alt": "Représentation abstraite de bits quantiques", "aiHint": "quantum computing" },
-    "content": "L'informatique quantique promet de résoudre des problèmes aujourd'hui insolubles. Mais où en sommes-nous réellement ? Cet article fait le point sur les avancées et les obstacles de cette technologie de rupture.",
-    "views": 2300,
-    "comments": [],
-    "viewHistory": [
-      { "date": "2024-06-01T00:00:00.000Z", "views": 1200 },
-      { "date": "2024-07-01T00:00:00.000Z", "views": 1100 }
-    ]
-  }
+        "slug": "le-futur-de-lia-une-nouvelle-ere-d-innovation",
+        "title": "Le Futur de L'IA : Une Nouvelle Ère d'Innovation",
+        "author": "L'Auteur",
+        "category": "Technologie",
+        "publishedAt": "2024-05-01T10:00:00.000Z",
+        "status": "published" as const,
+        "image": { "id": "1", "src": "https://picsum.photos/seed/1/600/400", "alt": "Visualisation abstraite de l'IA", "aiHint": "abstract AI" },
+        "content": "L'intelligence artificielle est en train de remodeler notre monde. De la médecine à la finance, ses applications sont infinies. Cet article explore les avancées récentes et ce que l'avenir nous réserve.",
+        "views": 1500,
+        "comments": [],
+        "viewHistory": [
+            { "date": "2024-05-01T00:00:00.000Z", "views": 800 },
+            { "date": "2024-06-01T00:00:00.000Z", "views": 700 }
+        ]
+    },
+    {
+        "slug": "exploration-spatiale-les-prochaines-frontieres",
+        "title": "Exploration Spatiale : Les Prochaines Frontières",
+        "author": "L'Auteur",
+        "category": "Actualité",
+        "publishedAt": "2024-05-15T10:00:00.000Z",
+        "status": "published" as const,
+        "image": { "id": "2", "src": "https://picsum.photos/seed/2/600/400", "alt": "Une nébuleuse colorée dans l'espace lointain", "aiHint": "nebula space" },
+        "content": "Avec les récentes missions vers Mars et au-delà, l'humanité est à l'aube d'une nouvelle ère d'exploration spatiale. Découvrez les défis et les merveilles qui nous attendent.",
+        "views": 850,
+        "comments": [],
+        "viewHistory": [
+            { "date": "2024-05-01T00:00:00.000Z", "views": 400 },
+            { "date": "2024-06-01T00:00:00.000Z", "views": 450 }
+        ]
+    },
+    {
+        "slug": "la-revolution-quantique-est-elle-pour-demain",
+        "title": "La Révolution Quantique est-elle pour Demain ?",
+        "author": "L'Auteur",
+        "category": "Technologie",
+        "publishedAt": "2024-06-01T10:00:00.000Z",
+        "status": "published" as const,
+        "image": { "id": "6", "src": "https://picsum.photos/seed/6/600/400", "alt": "Représentation abstraite de bits quantiques", "aiHint": "quantum computing" },
+        "content": "L'informatique quantique promet de résoudre des problèmes aujourd'hui insolubles. Mais où en sommes-nous réellement ? Cet article fait le point sur les avancées et les obstacles de cette technologie de rupture.",
+        "views": 2300,
+        "comments": [],
+        "viewHistory": [
+            { "date": "2024-06-01T00:00:00.000Z", "views": 1200 },
+            { "date": "2024-07-01T00:00:00.000Z", "views": 1100 }
+        ]
+    }
 ];
 
 export async function seedInitialArticles() {
@@ -332,7 +476,7 @@ export async function seedInitialArticles() {
                 const { slug, ...data } = article;
                 const dataForFirestore = {
                     ...data,
-                    publicationDate: new Date(data.publicationDate),
+                    publishedAt: new Date(data.publishedAt),
                 };
                 batch.set(docRef, dataForFirestore);
             });
@@ -342,12 +486,4 @@ export async function seedInitialArticles() {
             console.error("Error seeding database:", error);
         }
     }
-}
-
-export async function getAdminArticles(): Promise<Article[]> {
-  const db = await initializeDb();
-  const articlesCollection = db.collection('articles');
-  const q = articlesCollection.orderBy('publicationDate', 'desc');
-  const snapshot = await q.get();
-  return snapshot.docs.map(convertDocToArticle);
 }

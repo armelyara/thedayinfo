@@ -1,3 +1,4 @@
+// src/app/admin/edit/[slug]/edit-article-form.tsx
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,7 +14,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import type { Article } from '@/lib/data';
 import {
   Select,
@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import { updateArticleAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -46,7 +47,7 @@ const formSchema = z.object({
   content: z.string().min(100, {
     message: 'Le contenu doit comporter au moins 100 caractères.',
   }),
-  scheduledFor: z.date().optional(),
+  scheduledFor: z.string().optional(),
 });
 
 type EditArticleFormProps = {
@@ -64,7 +65,7 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
       author: article.author,
       category: article.category,
       content: article.content,
-      scheduledFor: article.scheduledFor ? parseISO(article.scheduledFor) : undefined,
+      scheduledFor: article.scheduledFor, // Pas besoin de parseISO puisqu'on travaille avec des strings
     },
   });
 
@@ -101,6 +102,7 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
             </FormItem>
           )}
         />
+        
         <FormField
           control={form.control}
           name="author"
@@ -114,6 +116,7 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
             </FormItem>
           )}
         />
+        
         <FormField
           control={form.control}
           name="category"
@@ -141,6 +144,7 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
             </FormItem>
           )}
         />
+        
         <FormField
           control={form.control}
           name="scheduledFor"
@@ -158,7 +162,7 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
                       )}
                     >
                       {field.value ? (
-                        format(field.value, 'PPP', { locale: fr })
+                        format(parseISO(field.value), 'PPP', { locale: fr })
                       ) : (
                         <span>Choisissez une date</span>
                       )}
@@ -169,8 +173,8 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
+                    selected={field.value ? parseISO(field.value) : undefined}
+                    onSelect={(date) => field.onChange(date ? date.toISOString() : undefined)}
                     disabled={(date) =>
                       date < new Date(new Date().setHours(0, 0, 0, 0))
                     }
@@ -182,6 +186,7 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
             </FormItem>
           )}
         />
+        
         <FormField
           control={form.control}
           name="content"
@@ -189,16 +194,18 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
             <FormItem>
               <FormLabel>Contenu</FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="Racontez votre histoire..."
-                  className="min-h-[200px]"
-                  {...field}
+                <RichTextEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Modifiez le contenu de votre article..."
+                  height={500}
                 />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+        
         <Button type="submit">Mettre à Jour l'Article</Button>
       </form>
     </Form>

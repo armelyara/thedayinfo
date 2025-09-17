@@ -1,4 +1,4 @@
-
+// src/app/admin/create-article/page.tsx
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,7 +15,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -23,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import { createArticle } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -33,7 +33,6 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { categories } from '@/components/layout/main-layout';
-
 
 const formSchema = z.object({
   title: z.string().min(10, {
@@ -66,7 +65,7 @@ export default function CreateArticlePage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const newArticle = await createArticle(values);
+      const newArticle = await createArticle(values),
       toast({
         title: 'Article Publié !',
         description: 'Votre nouvel article a été publié avec succès.',
@@ -109,6 +108,7 @@ export default function CreateArticlePage() {
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="author"
@@ -123,6 +123,7 @@ export default function CreateArticlePage() {
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="category"
@@ -153,7 +154,8 @@ export default function CreateArticlePage() {
                 </FormItem>
               )}
             />
-             <FormField
+            
+            <FormField
               control={form.control}
               name="scheduledFor"
               render={({ field }) => (
@@ -197,6 +199,7 @@ export default function CreateArticlePage() {
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="content"
@@ -204,19 +207,21 @@ export default function CreateArticlePage() {
                 <FormItem>
                   <FormLabel>Contenu</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Racontez votre histoire..."
-                      className="min-h-[200px]"
-                      {...field}
+                    <RichTextEditor
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Racontez votre histoire avec style..."
+                      height={500}
                     />
                   </FormControl>
                   <FormDescription>
-                    Écrivez ici le contenu principal de votre article.
+                    Écrivez ici le contenu principal de votre article. Utilisez la barre d'outils pour formater votre texte.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            
             <Button type="submit">Publier l'Article</Button>
           </form>
         </Form>

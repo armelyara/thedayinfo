@@ -42,7 +42,7 @@ const MissingIndexError = ({ message }: { message: string }) => {
 export default async function Home() {
   // Seed initial articles if the collection is empty.
   // In a real app, this might be a one-time script.
-  await seedInitialArticles();
+  //await seedInitialArticles();
 
   const articlesResult = await getPublishedArticles();
 
@@ -79,7 +79,7 @@ export default async function Home() {
           The Day Info
         </h1>
         <p className="mt-3 text-lg text-muted-foreground sm:text-xl">
-          Votre dose quotidienne d'information, organisée pour les esprits curieux.
+          Votre dose d'information, organisée pour les esprits curieux.
         </p>
       </header>
 

@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -24,7 +23,7 @@ export async function createArticle(values: z.infer<typeof formSchema>) {
 
   const newArticle = await addArticle({
     ...rest,
-    scheduledFor: scheduledFor ? new Date(scheduledFor) : undefined,
+    scheduledFor: scheduledFor, // CORRIGÉ - Passer directement la string, pas new Date()
   });
 
   // Revalidate paths to show the new article immediately
@@ -32,7 +31,6 @@ export async function createArticle(values: z.infer<typeof formSchema>) {
   revalidatePath('/admin');
   revalidatePath('/article/[slug]', 'page');
   revalidatePath(`/category/${validatedFields.data.category.toLowerCase().replace(' & ', '-').replace(/\s+/g, '-')}`);
-
 
   return newArticle;
 }

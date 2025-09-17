@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     
     const sessionCookie = await createSessionCookie(idToken, { expiresIn });
     
-    cookies().set('session', sessionCookie, {
+    (await cookies()).set('session', sessionCookie, {
       maxAge: expiresIn,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

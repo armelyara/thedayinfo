@@ -1,4 +1,3 @@
-
 import {
   SidebarContent,
   SidebarGroup,
@@ -9,6 +8,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import type { Category } from '@/lib/data';
+import { getPublishedArticles } from '@/lib/data';
 import { SearchInput } from '@/components/search-input';
 import { LogoIcon } from '@/components/icons';
 import Link from 'next/link';
@@ -22,28 +22,61 @@ const categoryIcons: { [key: string]: keyof typeof Lucide } = {
   Actualité: 'Newspaper',
 };
 
-function CategoryList({ categories }: { categories: Category[] }) {
-    return (
-        <SidebarMenu>
-        {categories.map((category) => {
-          const Icon = Lucide[categoryIcons[category.name] || 'Folder'] as React.ElementType;
-          return (
-            <SidebarMenuItem key={category.slug}>
-              <Link href={`/category/${category.slug}`} className="w-full">
-                <SidebarMenuButton tooltip={category.name}>
-                  <Icon />
-                  <span>{category.name}</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          );
-        })}
-      </SidebarMenu>
-    )
+// Fonction pour compter les articles par catégorie
+async function getCategoryCounts() {
+  try {
+    const articles = await getPublishedArticles();
+    
+    // Si c'est une erreur, retourner des compteurs vides
+    if ('error' in articles) {
+      return {};
+    }
+
+    // Compter les articles par catégorie
+    const counts = articles.reduce((acc, article) => {
+      acc[article.category] = (acc[article.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return counts;
+  } catch (error) {
+    console.error('Erreur lors du comptage des articles:', error);
+    return {};
+  }
 }
 
+async function CategoryList({ categories }: { categories: Category[] }) {
+  const categoryCounts = await getCategoryCounts();
 
-export function AppSidebar({ categories }: { categories: Category[] }) {
+  return (
+    <SidebarMenu>
+      {categories.map((category) => {
+        const Icon = Lucide[categoryIcons[category.name] || 'Folder'] as React.ElementType;
+        const count = categoryCounts[category.name] || 0;
+        
+        return (
+          <SidebarMenuItem key={category.slug}>
+            <Link href={`/category/${category.slug}`} className="w-full">
+              <SidebarMenuButton tooltip={category.name} className="flex justify-between">
+                <div className="flex items-center">
+                  <Icon className="mr-2" />
+                  <span>{category.name}</span>
+                </div>
+                {count > 0 && (
+                  <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                    {count}
+                  </span>
+                )}
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+        );
+      })}
+    </SidebarMenu>
+  );
+}
+
+export async function AppSidebar({ categories }: { categories: Category[] }) {
   const authorName = 'L\'Auteur';
   const shortBio = `
     Écrivain passionné dédié à l'exploration de la technologie, de la science et de la culture.
@@ -62,28 +95,28 @@ export function AppSidebar({ categories }: { categories: Category[] }) {
           <SearchInput />
         </SidebarGroup>
         <SidebarGroup>
-            <div className="flex flex-col items-center text-center p-2">
-                <Avatar className="h-20 w-20 mx-auto mb-3 border-4 border-primary/20">
-                    <AvatarImage 
-                        src="https://picsum.photos/seed/author-pic/150/150"
-                        alt={`Un portrait de ${authorName}`}
-                        data-ai-hint="portrait auteur"
-                    />
-                    <AvatarFallback>
-                        <Lucide.User className="h-10 w-10 text-muted-foreground" />
-                    </AvatarFallback>
-                </Avatar>
-                <h3 className="text-md font-headline font-bold">L'Auteur</h3>
-                <p className="text-xs text-muted-foreground mt-1 mb-3">
-                    {shortBio}
-                </p>
-                <Link href="/about" className="w-full">
-                    <Button variant="secondary" size="sm" className="w-full">
-                        Lire la suite
-                        <ArrowRight className="ml-1 h-3 w-3" />
-                    </Button>
-                </Link>
-            </div>
+          <div className="flex flex-col items-center text-center p-2">
+            <Avatar className="h-20 w-20 mx-auto mb-3 border-4 border-primary/20">
+              <AvatarImage 
+                src="https://picsum.photos/seed/author-pic/150/150"
+                alt={`Un portrait de ${authorName}`}
+                data-ai-hint="portrait auteur"
+              />
+              <AvatarFallback>
+                <Lucide.User className="h-10 w-10 text-muted-foreground" />
+              </AvatarFallback>
+            </Avatar>
+            <h3 className="text-md font-headline font-bold">Armel Yara</h3>
+            <p className="text-xs text-muted-foreground mt-1 mb-3">
+              {shortBio}
+            </p>
+            <Link href="/about" className="w-full">
+              <Button variant="secondary" size="sm" className="w-full">
+                Lire la suite
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Button>
+            </Link>
+          </div>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Catégories</SidebarGroupLabel>

@@ -3,19 +3,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, BookUser } from 'lucide-react';
 
 export default function AboutPage() {
-  const authorName = 'L\'Auteur'; // Vous pouvez changer cela pour votre nom
+  const authorName = 'Armel Yara'; // Vous pouvez changer cela pour votre nom
   const biography = `
-    Bienvenue dans mon coin d'internet ! Je suis un écrivain et créateur passionné, dédié à l'exploration 
-    des mondes fascinants de la technologie, de la science et de la culture. Mon parcours a commencé par une simple curiosité 
-    sur le fonctionnement des choses, et il a depuis évolué en une quête de toute une vie pour partager des connaissances et des idées 
-    avec un public plus large.
+    Bienvenue ! Je suis Armel Yara, developer advocate avec plus de 5 ans d'expérience dans les domaines de la science des données, du web,
+    des applications mobiles, du machine learning et deep learning. 
+    Mon rôle est de traduire les besoins du client en solution numérique. 
     <br/><br/>
-    À travers ce blog, "The Day Info", je vise à vous fournir une dose quotidienne d'informations à la fois 
-    éclairantes et engageantes. Que je me plonge dans les complexités de l'intelligence artificielle, 
-    que je découvre les dernières avancées de l'exploration spatiale ou que je réfléchisse aux mouvements culturels 
-    qui façonnent notre société, mon objectif est de rendre les sujets complexes accessibles et passionnants.
+    Bref, je passe mon temps à résoudre des problèmes🤔. 
     <br/><br/>
-    Quand je n'écris pas, vous pouvez me trouver en randonnée en pleine nature, en train d'expérimenter de nouvelles recettes, 
+    J'ai crée The Day Info dans le but de partager mon savoir-faire acquis lors de la réalisation de mes projets. 
+    Cela me permet de cronstruit un pont entre les développeurs et les entreprises/particuliers afin de rendre accessible l'information à la majorité du publique.
+    <br/><br/>
+    La compréhension par un large éventail de la population, pour mart, permettra   je n'écris pas, vous pouvez me trouver en randonnée en pleine nature, en train d'expérimenter de nouvelles recettes, 
     ou perdu dans un bon livre. Merci de vous joindre à moi dans cette aventure. J'espère que mes articles vous inspireront, 
     éveilleront votre curiosité et ajouteront quelque chose de spécial à votre journée.
   `;
