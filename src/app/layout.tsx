@@ -10,16 +10,15 @@ export const metadata: Metadata = {
   description: 'Votre dose quotidienne d\'information.',
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Await headers() directement
-  const headersList = await headers();
+  const headersList = headers();
   const pathname = headersList.get('x-next-pathname') || '';
   
-  const isAdminRoute = pathname.startsWith('/admin');
+  const isAdminRoute = pathname.startsWith('/admin') || pathname === '/login';
   
   return (
     <html lang="fr" suppressHydrationWarning>

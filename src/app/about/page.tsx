@@ -14,8 +14,8 @@ export default function AboutPage() {
     J'ai crée The Day Info dans le but de partager mon savoir-faire acquis lors de la réalisation de mes projets. 
     Cela me permet de cronstruit un pont entre les développeurs et les entreprises/particuliers afin de rendre accessible l'information à la majorité du publique.
     <br/><br/>
-    La compréhension par un large éventail de la population, pour mart, permettra   je n'écris pas, vous pouvez me trouver en randonnée en pleine nature, en train d'expérimenter de nouvelles recettes, 
-    ou perdu dans un bon livre. Merci de vous joindre à moi dans cette aventure. J'espère que mes articles vous inspireront, 
+    La compréhension par un large éventail de la population, pour mart, des concepts fondamentaux de l'intelligence artificielle, permettra de s'approprier ce domaine.
+    Merci de vous joindre à moi dans cette aventure. J'espère que mes articles vous inspireront, 
     éveilleront votre curiosité et ajouteront quelque chose de spécial à votre journée.
   `;
 

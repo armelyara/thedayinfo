@@ -1,4 +1,3 @@
-
 import { getPublishedArticles, seedInitialArticles} from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
