@@ -1,7 +1,35 @@
-
 import { searchArticles } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
 import { Suspense } from 'react';
+
+// Type local pour éviter l'import de @/lib/data dans les composants clients
+type Article = {
+  slug: string;
+  title: string;
+  author: string;
+  category: string;
+  publishedAt: string;
+  status: 'published' | 'scheduled';
+  scheduledFor?: string;
+  image: {
+    id: string;
+    src: string;
+    alt: string;
+    aiHint: string;
+  };
+  content: string;
+  views: number;
+  comments: Array<{
+    id: number;
+    author: string;
+    text: string;
+    avatar: string;
+  }>;
+  viewHistory: Array<{
+    date: string;
+    views: number;
+  }>;
+};
 
 type SearchPageProps = {
   searchParams: {
@@ -53,5 +81,3 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
         </Suspense>
     )
 }
-
-    

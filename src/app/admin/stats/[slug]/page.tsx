@@ -1,7 +1,7 @@
 // src/app/admin/stats/[slug]/page.tsx
 'use client';
 
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
@@ -23,7 +23,9 @@ type ChartDataItem = {
   formattedDate: string;
 };
 
-export default function StatsPage({ params }: StatsPageProps) {
+export default function StatsPage() {
+  const params = useParams(); // Utiliser le hook
+  const slug = params.slug as string;
   const [article, setArticle] = useState<Article | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,7 @@ export default function StatsPage({ params }: StatsPageProps) {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch(`/api/articles/${params.slug}`);
+        const response = await fetch(`/api/articles/${slug}`);
         
         if (response.status === 404) {
           setError('Article non trouvé');
@@ -56,10 +58,10 @@ export default function StatsPage({ params }: StatsPageProps) {
       }
     }
 
-    if (params.slug) {
+    if (slug) {
       fetchArticle();
     }
-  }, [params.slug]);
+  }, [slug]);
 
   if (isLoading) {
     return (

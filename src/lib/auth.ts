@@ -4,6 +4,7 @@ import admin from 'firebase-admin';
 import { promises as fs } from 'fs';
 import path from 'path';
 
+
 // Define a type for the service account for better type safety
 interface ServiceAccount {
   type: string;
@@ -51,19 +52,21 @@ async function getServiceAccount(): Promise<ServiceAccount> {
 
 
 export async function initializeFirebaseAdmin() {
-    if (!adminInitialized && !admin.apps.length) {
-        try {
-            const cert = await getServiceAccount();
-            admin.initializeApp({
-                credential: admin.credential.cert(cert),
-            });
-            console.log('Firebase admin initialized with service account file.');
-            adminInitialized = true;
-        } catch (error: any) {
-            console.error('Firebase admin initialization error', error.message);
-            // This is a critical error, so we throw it.
-            throw new Error('Firebase Admin SDK failed to initialize: ' + error.message);
-        }
+    // Vérifier si Firebase Admin est déjà initialisé
+    if (adminInitialized || admin.apps.length > 0) {
+        return; // Déjà initialisé, sortir immédiatement
+    }
+    
+    try {
+        const cert = await getServiceAccount();
+        admin.initializeApp({
+            credential: admin.credential.cert(cert as admin.ServiceAccount),
+        });
+        console.log('Firebase admin initialized with service account file.');
+        adminInitialized = true;
+    } catch (error: any) {
+        console.error('Firebase admin initialization error', error.message);
+        throw new Error('Firebase Admin SDK failed to initialize: ' + error.message);
     }
 }
 

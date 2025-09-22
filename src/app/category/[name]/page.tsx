@@ -1,8 +1,36 @@
-
 import { notFound } from 'next/navigation';
 import { getArticlesByCategory } from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
 import { categories } from '@/components/layout/main-layout';
+
+// Type local pour éviter l'import de @/lib/data dans les composants clients
+type Article = {
+  slug: string;
+  title: string;
+  author: string;
+  category: string;
+  publishedAt: string;
+  status: 'published' | 'scheduled';
+  scheduledFor?: string;
+  image: {
+    id: string;
+    src: string;
+    alt: string;
+    aiHint: string;
+  };
+  content: string;
+  views: number;
+  comments: Array<{
+    id: number;
+    author: string;
+    text: string;
+    avatar: string;
+  }>;
+  viewHistory: Array<{
+    date: string;
+    views: number;
+  }>;
+};
 
 type CategoryPageProps = {
   params: {
@@ -13,13 +41,14 @@ type CategoryPageProps = {
 export const revalidate = 3600; // Revalidate every hour
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const category = categories.find(c => c.slug === params.name);
+  const { name } = await params;
+  const category = categories.find(c => c.slug === name);
   
   if (!category) {
     notFound();
   }
-
-  const articlesInCategory = await getArticlesByCategory(params.name, categories);
+  
+  const articlesInCategory = await getArticlesByCategory(name, categories); // Corrigé: utilisez 'name' au lieu de 'params.name'
 
   return (
     <div className="container mx-auto px-4 py-8">

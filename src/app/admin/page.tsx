@@ -1,4 +1,3 @@
-// src/app/admin/page.tsx - Mise à jour avec les abonnés
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,7 +20,36 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import type { Article } from '@/lib/data';
+import { AdminCommentsModal } from '@/components/admin/admin-comments-modal';
+
+// Type local pour éviter l'import de @/lib/data
+type Article = {
+  slug: string;
+  title: string;
+  author: string;
+  category: string;
+  publishedAt: string;
+  status: 'published' | 'scheduled';
+  scheduledFor?: string;
+  image: {
+    id: string;
+    src: string;
+    alt: string;
+    aiHint: string;
+  };
+  content: string;
+  views: number;
+  comments: Array<{
+    id: number;
+    author: string;
+    text: string;
+    avatar: string;
+  }>;
+  viewHistory: Array<{
+    date: string;
+    views: number;
+  }>;
+};
 
 type DashboardStats = {
   totalArticles: number;
@@ -43,6 +71,8 @@ export default function AdminDashboard() {
     activeSubscribers: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -265,13 +295,20 @@ export default function AdminDashboard() {
                         <Eye className="w-3 h-3" />
                         {article.views.toLocaleString('fr-FR')} vues
                       </span>
-                      <span className="flex items-center gap-1">
-                        <MessageCircle className="w-3 h-3" />
-                        {article.comments?.length || 0} commentaires
-                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedArticle(article);
+                        setIsCommentsModalOpen(true);
+                      }}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      {article.comments?.length || 0}
+                    </Button>
                     <Link href={`/admin/stats/${article.slug}`}>
                       <Button variant="outline" size="sm">
                         <TrendingUp className="w-4 h-4" />
@@ -297,6 +334,29 @@ export default function AdminDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de commentaires admin */}
+      {selectedArticle && (
+        <AdminCommentsModal
+          isOpen={isCommentsModalOpen}
+          onClose={() => {
+            setIsCommentsModalOpen(false);
+            setSelectedArticle(null);
+          }}
+          articleSlug={selectedArticle.slug}
+          articleTitle={selectedArticle.title}
+          comments={selectedArticle.comments}
+          onCommentsUpdate={(newComments) => {
+            setArticles(prev => 
+              prev.map(a => 
+                a.slug === selectedArticle.slug 
+                  ? { ...a, comments: newComments }
+                  : a
+              )
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

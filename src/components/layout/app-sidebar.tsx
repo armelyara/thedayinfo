@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import {
   SidebarContent,
   SidebarGroup,
@@ -7,8 +10,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import type { Category } from '@/lib/data';
-import { getPublishedArticles } from '@/lib/data';
 import { SearchInput } from '@/components/search-input';
 import { LogoIcon } from '@/components/icons';
 import Link from 'next/link';
@@ -17,26 +18,31 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { ArrowRight } from 'lucide-react';
 
+type Category = {
+  name: string;
+  slug: string;
+};
+
 const categoryIcons: { [key: string]: keyof typeof Lucide } = {
   Technologie: 'Cpu',
   Actualité: 'Newspaper',
 };
 
-// Fonction pour compter les articles par catégorie
+// Fonction client pour récupérer les compteurs via API
 async function getCategoryCounts() {
   try {
-    const articles = await getPublishedArticles();
-    
-    // Si c'est une erreur, retourner des compteurs vides
-    if ('error' in articles) {
-      return {};
+    const response = await fetch('/api/admin/articles');
+    if (!response.ok) {
+      throw new Error('Erreur lors du chargement');
     }
-
+    
+    const articles = await response.json();
+    
     // Compter les articles par catégorie
-    const counts = articles.reduce((acc, article) => {
+    const counts = articles.reduce((acc: Record<string, number>, article: any) => {
       acc[article.category] = (acc[article.category] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
 
     return counts;
   } catch (error) {
@@ -45,8 +51,12 @@ async function getCategoryCounts() {
   }
 }
 
-async function CategoryList({ categories }: { categories: Category[] }) {
-  const categoryCounts = await getCategoryCounts();
+function CategoryList({ categories }: { categories: Category[] }) {
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    getCategoryCounts().then(setCategoryCounts);
+  }, []);
 
   return (
     <SidebarMenu>
@@ -76,7 +86,7 @@ async function CategoryList({ categories }: { categories: Category[] }) {
   );
 }
 
-export async function AppSidebar({ categories }: { categories: Category[] }) {
+export function AppSidebar({ categories }: { categories: Category[] }) {
   const authorName = 'L\'Auteur';
   const shortBio = `
     Écrivain passionné dédié à l'exploration de la technologie, de la science et de la culture.

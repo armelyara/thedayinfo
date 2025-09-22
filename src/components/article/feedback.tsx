@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { User } from 'lucide-react';
-import type { Comment as CommentType } from '@/lib/data';
+import type { Comment as CommentType } from '@/types/comment';
 import { postCommentAction } from './actions';
 
 type Reaction = 'like' | 'dislike' | null;

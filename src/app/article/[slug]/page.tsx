@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { getArticleBySlug } from '@/lib/data';
+import { Comment, getArticleBySlug } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CalendarDays, User } from 'lucide-react';
@@ -8,6 +8,8 @@ import AiSummary from '@/components/article/ai-summary';
 import RelatedContent from '@/components/article/related-content';
 import Feedback from '@/components/article/feedback';
 import { parseISO } from 'date-fns';
+import { PublicCommentsSection } from '@/components/article/public-comments-section';
+import { ArticleClientWrapper } from '@/components/article/article-client-wrapper';
 
 type ArticlePageProps = {
   params: Promise<{
@@ -22,7 +24,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
 
-  if (!article || (article.status === 'scheduled' && parseISO(article.publicationDate) > new Date())) {
+  if (!article || (article.status === 'scheduled' && parseISO(article.publishedAt) > new Date())) {
     notFound();
   }
 
@@ -45,8 +47,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </div>
           <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
-            <time dateTime={article.publicationDate}>
-              {new Date(article.publicationDate).toLocaleDateString('fr-FR', {
+            <time dateTime={article.publishedAt}>
+              {new Date(article.publishedAt).toLocaleDateString('fr-FR', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -77,10 +79,16 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           currentArticleTitle={article.title}
           articleContent={article.content}
         />
-        <Feedback 
-            articleSlug={article.slug}
-            initialViews={article.views}
-            initialComments={article.comments}
+        <Feedback
+          articleSlug={article.slug}
+          initialViews={article.views}
+          initialComments={article.comments || []}
+        />
+        
+        {/* Section des commentaires publics - Wrapper client */}
+        <ArticleClientWrapper 
+          articleSlug={article.slug}
+          initialComments={article.comments || []}
         />
       </section>
     </article>

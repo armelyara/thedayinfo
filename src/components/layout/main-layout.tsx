@@ -8,7 +8,10 @@ import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Button } from '@/components/ui/button';
 import { Home } from 'lucide-react';
 import Link from 'next/link';
-import type { Category } from '@/lib/data';
+type Category = {
+  name: string;
+  slug: string;
+};
 
 // Categories are static, so they can be defined here to avoid importing from data.ts
 export const categories: Category[] = [

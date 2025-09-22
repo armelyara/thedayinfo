@@ -14,18 +14,20 @@ type EditArticlePageProps = {
   };
 };
 
-export default function EditArticlePage({ params }: EditArticlePageProps) {
+export default function EditArticlePage() {
+  const params = useParams(); // Utiliser le hook
+  const slug = params.slug as string;
   const [article, setArticle] = useState<Article | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     async function fetchArticle() {
-        const fetchedArticle = await getArticleAction(params.slug);
+        const fetchedArticle = await getArticleAction(slug);
         setArticle(fetchedArticle);
         setIsLoading(false);
     }
     fetchArticle();
-  }, [params.slug]);
+  }, [slug]);
 
 
   if (isLoading) {

@@ -1,9 +1,37 @@
-import { getPublishedArticles, seedInitialArticles, type Article } from '@/lib/data';
+import { getPublishedArticles, seedInitialArticles} from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
 
+// Type local pour éviter l'import dans les composants clients
+type Article = {
+  slug: string;
+  title: string;
+  author: string;
+  category: string;
+  publishedAt: string;
+  status: 'published' | 'scheduled';
+  scheduledFor?: string;
+  image: {
+    id: string;
+    src: string;
+    alt: string;
+    aiHint: string;
+  };
+  content: string;
+  views: number;
+  comments: Array<{
+    id: number;
+    author: string;
+    text: string;
+    avatar: string;
+  }>;
+  viewHistory: Array<{
+    date: string;
+    views: number;
+  }>;
+};
 export const revalidate = 3600; // Revalidate every hour
 
 const MissingIndexError = ({ message }: { message: string }) => {
