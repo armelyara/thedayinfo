@@ -1,45 +1,32 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Fichiers de dépendances
+node_modules/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Fichiers de build Next.js
+.next/
+out/
 
-# testing
-/coverage
+# Fichiers d'environnement locaux (qui peuvent contenir des clés secrètes)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# next.js
-/.next/
-/out/
+# Fichier de compte de service Firebase (TRÈS IMPORTANT - contient des clés privées)
+src/lib/firebase-service-account.json
 
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
+# Fichiers de logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
-# vercel
-.vercel
+# Fichiers système de macOS
+.DS_Store
 
-# typescript
+# Cache de l'éditeur
+.vscode/
+.idea/
+
+# Fichiers de build TypeScript
 *.tsbuildinfo
 next-env.d.ts
-
-.genkit/*
-.env*
-
-# firebase
-firebase-debug.log
-firestore-debug.log

@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { EnhancedRichTextEditor as RichTextEditor } from '@/components/rich-text-editor';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import { updateArticleAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';

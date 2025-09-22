@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { PublicCommentsSection } from '@/components/article/public-comments-section';
-import type { Comment } from '@/lib/data';
+import { Comment } from '@/lib/data';
 
 interface ArticleClientWrapperProps {
   articleSlug: string;
