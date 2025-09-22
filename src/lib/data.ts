@@ -1,3 +1,4 @@
+
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeFirebaseAdmin } from './auth';
 import type { Timestamp } from 'firebase-admin/firestore';
@@ -118,26 +119,39 @@ export async function getAllArticles(): Promise<Article[]> {
     }
 }
 
-export async function getPublishedArticles(): Promise<Article[]> {
-    try {
-        const db = await initializeDb();
-        const articlesCollection = db.collection('articles');
-        const now = new Date();
-        
-        const q = articlesCollection
-            .where('status', '==', 'published')
-            .where('publishedAt', '<=', now);
+export async function getPublishedArticles(): Promise<Article[] | { error: string; message: string }> {
+  try {
+    const db = await initializeDb();
+    const articlesCollection = db.collection('articles');
+    const now = new Date();
 
-        const snapshot = await q.get();
-        
-        const articles = snapshot.docs.map(convertDocToArticle);
-        articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-        
-        return articles;
-    } catch (error) {
-        console.error("Error fetching published articles:", error);
-        return [];
+    const q = articlesCollection
+      .where('status', '==', 'published')
+      .orderBy('publishedAt', 'desc');
+
+    const snapshot = await q.get();
+
+    const articles = snapshot.docs
+      .map(convertDocToArticle)
+      .filter(article => new Date(article.publishedAt) <= now);
+
+    return articles;
+  } catch (error: any) {
+    console.error("Error fetching published articles:", error.message);
+    if (error.code === 'FAILED_PRECONDITION' && error.message.includes('index')) {
+        // Extraire l'URL de création d'index du message d'erreur
+        const urlRegex = /(https?:\/\/[^\s]+)/;
+        const match = error.message.match(urlRegex);
+        const indexCreationUrl = match ? match[0] : null;
+
+        return {
+            error: 'missing_index',
+            message: indexCreationUrl ? `Index manquant. Veuillez créer l'index Firestore en visitant : ${indexCreationUrl}` : error.message
+        };
     }
+    // Pour les autres erreurs, renvoyer un tableau vide pour ne pas casser la page
+    return [];
+  }
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
@@ -195,6 +209,11 @@ export async function searchArticles(queryText: string): Promise<Article[]> {
     if (!queryText) return [];
     
     const articlesResult = await getPublishedArticles();
+
+    if ('error' in articlesResult) {
+        console.error("Search failed due to DB error:", articlesResult.message);
+        return [];
+    }
     
     return articlesResult.filter(article => 
         article.title.toLowerCase().includes(queryText.toLowerCase()) ||
@@ -257,7 +276,7 @@ export async function addArticle(article: {
 
 export async function updateArticle(
     slug: string, 
-    data: Partial<Omit<Article, 'slug' | 'scheduledFor'>> & { scheduledFor?: string }
+    data: Partial<Omit<Article, 'slug' | 'scheduledFor'>> & { scheduledFor?: Date | null }
 ): Promise<Article> {
     const db = await initializeDb();
     const docRef = db.collection('articles').doc(slug);
@@ -271,10 +290,9 @@ export async function updateArticle(
 
     if (data.hasOwnProperty('scheduledFor')) {
         const { firestore } = await import('firebase-admin');
-        const scheduledDateStr = data.scheduledFor;
+        const scheduledDate = data.scheduledFor;
         
-        if (scheduledDateStr) {
-            const scheduledDate = new Date(scheduledDateStr);
+        if (scheduledDate) {
             const now = new Date();
             dataForFirestore.scheduledFor = scheduledDate;
             dataForFirestore.publishedAt = scheduledDate;
