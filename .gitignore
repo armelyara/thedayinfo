@@ -1,43 +1,42 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Firebase
-# Ignore the service account key file
-src/lib/firebase-service-account.json
-
-# Dependencies
+# dependencies
 /node_modules
 /.pnp
 .pnp.js
 
-# Testing
+# testing
 /coverage
 
-# Next.js
+# next.js
 /.next/
 /out/
 
-# Production
+# production
 /build
 
-# Misc
+# misc
 .DS_Store
 *.pem
 
-# Debug
+# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# Local environment variables
+# local env files
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# Turborepo
-.turbo
+# vercel
+.vercel
 
-# Genkit
-.genkit/
-.genkit-cache/
-*.log
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Firebase
+src/lib/firebase-service-account.json
