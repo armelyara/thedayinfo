@@ -36,30 +36,21 @@ const nextConfig = {
     ],
   },
   
-  // ✅ Configuration Firebase Admin ajoutée
+  // ✅ Exclure les modules admin du bundle client
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // Exclure les modules Node.js du bundle client
       config.resolve.fallback = {
         ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-        child_process: false,
         'firebase-admin': false,
-        'firebase-admin/firestore': false,
-        'firebase-admin/auth': false,
       };
     }
     return config;
   },
   
-  // Packages à exclure du bundling côté serveur
+  // ✅ Exclure 'firebase-admin' du traitement par Next.js sur le serveur
   experimental: {
     serverComponentsExternalPackages: [
       'firebase-admin',
-      'firebase-admin/firestore',
-      'firebase-admin/auth'
     ],
   },
 };

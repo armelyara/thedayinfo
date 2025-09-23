@@ -35,25 +35,19 @@ const categoryIcons: { [key: string]: keyof typeof Lucide } = {
   Actualité: 'Newspaper',
 };
 
-// Fonction client pour récupérer les compteurs via API
+// Fonction client pour récupérer les compteurs via API publique
 async function getCategoryCounts() {
   try {
-    // Utiliser la route publique des articles admin, qui est accessible
-    const response = await fetch('/api/admin/articles');
+    // Utilise la route publique des articles, qui est accessible sans authentification admin
+    const response = await fetch('/api/articles'); 
     if (!response.ok) {
-      throw new Error('Erreur lors du chargement');
+      throw new Error('Erreur lors du chargement des articles pour le comptage');
     }
     
     const articles: Article[] = await response.json();
-    const now = new Date();
-
-    // Filtrer pour ne compter que les articles publiés et non futurs
-    const publishedArticles = articles.filter(article => 
-      article.status === 'published' && new Date(article.publishedAt) <= now
-    );
     
     // Compter les articles par catégorie
-    const counts = publishedArticles.reduce((acc: Record<string, number>, article: Article) => {
+    const counts = articles.reduce((acc: Record<string, number>, article: Article) => {
       acc[article.category] = (acc[article.category] || 0) + 1;
       return acc;
     }, {});

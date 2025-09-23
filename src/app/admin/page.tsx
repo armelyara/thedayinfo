@@ -80,13 +80,19 @@ export default function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Récupérer les articles
+      // Récupérer les articles via l'API route sécurisée
       const articlesResponse = await fetch('/api/admin/articles');
+      if (!articlesResponse.ok) {
+        throw new Error('Failed to fetch articles');
+      }
       const articlesData = await articlesResponse.json();
       setArticles(articlesData);
 
       // Récupérer les stats des abonnés
       const subscribersResponse = await fetch('/api/subscribers');
+      if (!subscribersResponse.ok) {
+        throw new Error('Failed to fetch subscribers');
+      }
       const subscribersData = await subscribersResponse.json();
 
       // Calculer les statistiques

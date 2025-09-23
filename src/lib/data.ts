@@ -1,5 +1,23 @@
 // src/lib/data.ts
-import { getFirestore } from 'firebase-admin/firestore';
+import { 
+    getFirestore, 
+    collection, 
+    getDocs, 
+    doc, 
+    getDoc,
+    query,
+    where,
+    orderBy,
+    increment,
+    updateDoc,
+    setDoc,
+    deleteDoc,
+    addDoc,
+    Timestamp,
+    FieldValue
+} from 'firebase/firestore';
+import { db as clientDb } from './firebase-client'; // SDK Client
+import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore'; // SDK Admin
 import { initializeFirebaseAdmin } from './auth';
 
 // Data Types
@@ -54,36 +72,29 @@ export type Subscriber = {
     };
 };
 
-// Use the admin SDK
-let db: FirebaseFirestore.Firestore;
-const initializeDb = async () => {
-  if (!db) {
-    await initializeFirebaseAdmin();
-    db = getFirestore();
-  }
-  return db;
-};
+// =====================================================================
+// Fonctions de lecture utilisant le SDK CLIENT (public)
+// =====================================================================
 
-const convertDocToArticle = (doc: FirebaseFirestore.DocumentSnapshot): Article => {
-    const data = doc.data() as any;
+const convertDocToArticle = (doc: any): Article => {
+    const data = doc.data();
     
-    const publishedAt = data.publishedAt;
-    const scheduledFor = data.scheduledFor;
+    const toISOString = (timestamp: any) => {
+        if (!timestamp) return new Date().toISOString();
+        if (timestamp instanceof Timestamp) {
+            return timestamp.toDate().toISOString();
+        }
+        return new Date(timestamp).toISOString();
+    };
 
     return {
         slug: doc.id,
         title: data.title,
         author: data.author,
         category: data.category,
-        publishedAt: publishedAt instanceof Date 
-            ? publishedAt.toISOString() 
-            : (publishedAt?.toDate?.() || new Date(publishedAt)).toISOString(),
+        publishedAt: toISOString(data.publishedAt),
         status: data.status,
-        scheduledFor: scheduledFor 
-            ? (scheduledFor instanceof Date 
-                ? scheduledFor.toISOString() 
-                : (scheduledFor?.toDate?.() || new Date(scheduledFor)).toISOString())
-            : undefined,
+        scheduledFor: data.scheduledFor ? toISOString(data.scheduledFor) : undefined,
         image: data.image,
         content: data.content,
         views: data.views || 0,
@@ -92,15 +103,20 @@ const convertDocToArticle = (doc: FirebaseFirestore.DocumentSnapshot): Article =
     } as Article;
 };
 
-const convertDocToSubscriber = (doc: FirebaseFirestore.DocumentSnapshot): Subscriber => {
-    const data = doc.data() as any;
+const convertDocToSubscriber = (doc: any): Subscriber => {
+    const data = doc.data();
+    const toISOString = (timestamp: any) => {
+        if (!timestamp) return new Date().toISOString();
+        if (timestamp instanceof Timestamp) {
+            return timestamp.toDate().toISOString();
+        }
+        return new Date(timestamp).toISOString();
+    };
     return {
         id: doc.id,
         email: data.email,
         name: data.name,
-        subscribedAt: data.subscribedAt instanceof Date 
-            ? data.subscribedAt.toISOString()
-            : (data.subscribedAt?.toDate?.() || new Date(data.subscribedAt)).toISOString(),
+        subscribedAt: toISOString(data.subscribedAt),
         status: data.status,
         preferences: data.preferences,
     } as Subscriber;
@@ -108,10 +124,9 @@ const convertDocToSubscriber = (doc: FirebaseFirestore.DocumentSnapshot): Subscr
 
 export async function getAllArticles(): Promise<Article[]> {
     try {
-        const db = await initializeDb();
-        const articlesCollection = db.collection('articles');
-        const q = articlesCollection.orderBy('publishedAt', 'desc');
-        const snapshot = await q.get();
+        const articlesCollection = collection(clientDb, 'articles');
+        const q = query(articlesCollection, orderBy('publishedAt', 'desc'));
+        const snapshot = await getDocs(q);
         return snapshot.docs.map(convertDocToArticle);
     } catch (error) {
         console.error("Error fetching all articles:", error);
@@ -121,60 +136,58 @@ export async function getAllArticles(): Promise<Article[]> {
 
 export async function getPublishedArticles(): Promise<Article[] | { error: string; message: string }> {
     try {
-      const db = await initializeDb();
-      const articlesCollection = db.collection('articles');
-      const now = new Date();
+        const articlesCollection = collection(clientDb, 'articles');
+        const now = new Date();
   
-      const q = articlesCollection
-        .where('status', '==', 'published')
-        .orderBy('publishedAt', 'desc');
+        const q = query(
+            articlesCollection,
+            where('status', '==', 'published'),
+            orderBy('publishedAt', 'desc')
+        );
   
-      const snapshot = await q.get();
+        const snapshot = await getDocs(q);
   
-      const articles = snapshot.docs
-        .map(convertDocToArticle)
-        .filter(article => new Date(article.publishedAt) <= now);
+        const articles = snapshot.docs
+            .map(convertDocToArticle)
+            .filter(article => new Date(article.publishedAt) <= now);
   
-      return articles;
+        return articles;
     } catch (error: any) {
-      console.error("ERREUR CRITIQUE DANS getPublishedArticles:", error);
-      if (error.code === 'FAILED_PRECONDITION' && error.message.includes('index')) {
-          const urlRegex = /(https?:\/\/[^\s]+)/;
-          const match = error.message.match(urlRegex);
-          const indexCreationUrl = match ? match[0] : null;
+        console.error("ERREUR CRITIQUE DANS getPublishedArticles:", error);
+        if (error.code === 'failed-precondition' && error.message.includes('index')) {
+            const urlRegex = /(https?:\/\/[^\s]+)/;
+            const match = error.message.match(urlRegex);
+            const indexCreationUrl = match ? match[0] : null;
   
-          return {
-              error: 'missing_index',
-              message: indexCreationUrl ? `Index manquant. Veuillez créer l'index Firestore en visitant : ${indexCreationUrl}` : error.message
-          };
-      }
-      return {
-        error: 'database_error',
-        message: `Une erreur est survenue lors de la récupération des articles: ${error.message}`
-      };
+            return {
+                error: 'missing_index',
+                message: indexCreationUrl ? `Index manquant. Veuillez créer l'index Firestore en visitant : ${indexCreationUrl}` : error.message
+            };
+        }
+        return {
+            error: 'database_error',
+            message: `Une erreur est survenue lors de la récupération des articles: ${error.message}`
+        };
     }
-  }
-  
+}
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
     try {
-        const db = await initializeDb();
-        const docRef = db.collection('articles').doc(slug);
-        const docSnap = await docRef.get();
-        if (!docSnap.exists) {
+        const docRef = doc(clientDb, 'articles', slug);
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) {
             return null;
         }
-        const article = convertDocToArticle(docSnap);
-
-        // Increment views
+        
+        // Increment views using the client SDK
         try {
-            const { firestore } = await import('firebase-admin');
-            await docRef.update({ views: firestore.FieldValue.increment(1) });
+            await updateDoc(docRef, { views: increment(1) });
         } catch (e) {
-            console.error("Failed to increment views", e);
+            // Non-critical, log and continue
+            console.error("Failed to increment views:", e);
         }
 
-        return article;
+        return convertDocToArticle(docSnap);
     } catch (error) {
         console.error(`Error fetching article by slug ${slug}:`, error);
         return null;
@@ -183,21 +196,19 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
 
 export async function getArticlesByCategory(categorySlug: string, categories: Category[]): Promise<Article[]> {
     try {
-        const db = await initializeDb();
-        const articlesCollection = db.collection('articles');
         const category = categories.find(c => c.slug === categorySlug);
         if (!category) return [];
 
+        const articlesCollection = collection(clientDb, 'articles');
         const now = new Date();
         
-        const q = articlesCollection
-            .where('category', '==', category.name)
-            .where('status', '==', 'published')
-            .where('publishedAt', '<=', now)
-            .orderBy('publishedAt', 'desc');
+        const q = query(articlesCollection,
+            where('category', '==', category.name),
+            where('status', '==', 'published'),
+            where('publishedAt', '<=', now),
+            orderBy('publishedAt', 'desc'));
         
-        const snapshot = await q.get();
-        
+        const snapshot = await getDocs(q);
         return snapshot.docs.map(convertDocToArticle);
     } catch (error) {
         console.error(`Error fetching articles for category ${categorySlug}:`, error);
@@ -221,6 +232,32 @@ export async function searchArticles(queryText: string): Promise<Article[]> {
     );
 }
 
+export async function updateArticleComments(slug: string, comments: Comment[]): Promise<boolean> {
+    try {
+        const docRef = doc(clientDb, 'articles', slug);
+        await updateDoc(docRef, { comments });
+        return true;
+    } catch (error) {
+        console.error("Failed to update comments in Firestore:", error);
+        return false;
+    }
+}
+
+
+// =====================================================================
+// Fonctions d'écriture utilisant le SDK ADMIN (privé)
+// =====================================================================
+
+let adminDb: FirebaseFirestore.Firestore;
+const initializeAdminDb = async () => {
+  if (!adminDb) {
+    await initializeFirebaseAdmin();
+    adminDb = getAdminFirestore();
+  }
+  return adminDb;
+};
+
+
 export async function addArticle(article: { 
     title: string, 
     author: string, 
@@ -229,7 +266,7 @@ export async function addArticle(article: {
     image: { src: string, alt: string },
     scheduledFor?: string 
 }): Promise<Article> {
-    const db = await initializeDb();
+    const db = await initializeAdminDb();
     const articlesCollection = db.collection('articles');
     const slug = article.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
     const now = new Date();
@@ -247,11 +284,11 @@ export async function addArticle(article: {
         author: article.author,
         category: article.category,
         content: article.content,
-        publishedAt: publishedAt,
+        publishedAt: Timestamp.fromDate(publishedAt),
         status: isScheduled ? 'scheduled' : 'published',
         image: {
             id: String(Date.now()),
-            src: article.image.src, // Utilise l'image téléversée
+            src: article.image.src,
             alt: article.image.alt,
             aiHint: 'user uploaded'
         },
@@ -261,49 +298,61 @@ export async function addArticle(article: {
     };
     
     if (isScheduled && scheduledDate) {
-        dataForFirestore.scheduledFor = scheduledDate;
+        dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
     }
 
     const docRef = articlesCollection.doc(slug);
     await docRef.set(dataForFirestore);
     
-    const createdArticleDoc = await docRef.get();
-    if (!createdArticleDoc.exists) {
-        throw new Error("Failed to create and retrieve article.");
-    }
-    return convertDocToArticle(createdArticleDoc);
+    // We can't use convertDocToArticle because the admin SDK returns different types
+    return {
+        ...article,
+        slug,
+        status: dataForFirestore.status,
+        publishedAt: publishedAt.toISOString(),
+        scheduledFor: scheduledDate?.toISOString(),
+        image: dataForFirestore.image,
+        views: 0,
+        comments: [],
+        viewHistory: [],
+    };
 }
 
 export async function updateArticle(
     slug: string, 
     data: Partial<Omit<Article, 'slug' | 'scheduledFor'>> & { scheduledFor?: Date | null }
 ): Promise<Article> {
-    const db = await initializeDb();
+    const db = await initializeAdminDb();
     const docRef = db.collection('articles').doc(slug);
+
+    // Fetch the current document to merge data correctly
+    const currentDoc = await docRef.get();
+    if (!currentDoc.exists) {
+        throw new Error("Article not found");
+    }
 
     const dataForFirestore: { [key: string]: any } = { ...data };
 
     if (data.publishedAt) {
-        dataForFirestore.publishedAt = new Date(data.publishedAt);
+        dataForFirestore.publishedAt = Timestamp.fromDate(new Date(data.publishedAt));
     }
 
     if (data.hasOwnProperty('scheduledFor')) {
-        const { firestore } = await import('firebase-admin');
         const scheduledDate = data.scheduledFor;
-        
         if (scheduledDate) {
             const now = new Date();
-            dataForFirestore.scheduledFor = scheduledDate;
-            dataForFirestore.publishedAt = scheduledDate;
+            dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
+            dataForFirestore.publishedAt = Timestamp.fromDate(scheduledDate);
             dataForFirestore.status = scheduledDate > now ? 'scheduled' : 'published';
         } else {
-            dataForFirestore.scheduledFor = firestore.FieldValue.delete();
+            // Import FieldValue from the admin SDK
+            const { FieldValue } = await import('firebase-admin/firestore');
+            dataForFirestore.scheduledFor = FieldValue.delete();
             dataForFirestore.status = 'published';
-            dataForFirestore.publishedAt = new Date();
+            dataForFirestore.publishedAt = Timestamp.now();
         }
     }
     
-    // Assurer que l'objet image est complet
     if (data.image) {
         dataForFirestore.image = {
             id: data.image.id || String(Date.now()),
@@ -315,15 +364,29 @@ export async function updateArticle(
 
     await docRef.update(dataForFirestore);
     
-    const updatedDoc = await docRef.get();
-    if (!updatedDoc.exists) throw new Error("Failed to retrieve updated article");
-
-    return convertDocToArticle(updatedDoc);
+    const updatedDocSnap = await docRef.get();
+    
+    // We can't use convertDocToArticle on the admin SDK doc
+    const updatedData = updatedDocSnap.data()!;
+    return {
+        slug: updatedDocSnap.id,
+        title: updatedData.title,
+        author: updatedData.author,
+        category: updatedData.category,
+        publishedAt: updatedData.publishedAt.toDate().toISOString(),
+        status: updatedData.status,
+        scheduledFor: updatedData.scheduledFor ? updatedData.scheduledFor.toDate().toISOString() : undefined,
+        image: updatedData.image,
+        content: updatedData.content,
+        views: updatedData.views,
+        comments: updatedData.comments,
+        viewHistory: updatedData.viewHistory,
+    };
 }
 
 
 export async function deleteArticle(slug: string): Promise<boolean> {
-    const db = await initializeDb();
+    const db = await initializeAdminDb();
     const docRef = db.collection('articles').doc(slug);
     try {
         await docRef.delete();
@@ -334,19 +397,8 @@ export async function deleteArticle(slug: string): Promise<boolean> {
     }
 }
 
-export async function updateArticleComments(slug: string, comments: Comment[]): Promise<boolean> {
-    const db = await initializeDb();
-    const docRef = db.collection('articles').doc(slug);
-    try {
-        await docRef.update({ comments });
-        return true;
-    } catch (error) {
-        console.error("Failed to update comments in Firestore:", error);
-        return false;
-    }
-}
+// Fonctions pour les abonnés - utilisant le SDK client car elles peuvent être appelées publiquement
 
-// Fonctions pour les abonnés
 export async function addSubscriber(subscriberData: {
     email: string;
     name?: string;
@@ -355,18 +407,17 @@ export async function addSubscriber(subscriberData: {
       categories: string[];
     };
 }): Promise<Subscriber> {
-    const db = await initializeDb();
-    const subscribersCollection = db.collection('subscribers');
+    const subscribersCollection = collection(clientDb, 'subscribers');
     
-    const existingQuery = subscribersCollection.where('email', '==', subscriberData.email);
-    const existingSnapshot = await existingQuery.get();
+    const q = query(subscribersCollection, where('email', '==', subscriberData.email));
+    const existingSnapshot = await getDocs(q);
     
     if (!existingSnapshot.empty) {
         throw new Error('Cette adresse email est déjà abonnée');
     }
 
     const newSubscriber = {
-        email: subscriberData.email,
+        ...subscriberData,
         name: subscriberData.name || '',
         subscribedAt: new Date(),
         status: 'active' as const,
@@ -376,18 +427,16 @@ export async function addSubscriber(subscriberData: {
         }
     };
 
-    const docRef = await subscribersCollection.add(newSubscriber);
-    const createdDoc = await docRef.get();
+    const docRef = await addDoc(subscribersCollection, newSubscriber);
+    const createdDoc = await getDoc(docRef);
     
     return convertDocToSubscriber(createdDoc);
 }
 
 export async function getSubscribers(): Promise<Subscriber[]> {
     try {
-        const db = await initializeDb();
-        const subscribersCollection = db.collection('subscribers');
-        const snapshot = await subscribersCollection.orderBy('subscribedAt', 'desc').get();
-        
+        const subscribersCollection = collection(clientDb, 'subscribers');
+        const snapshot = await getDocs(query(subscribersCollection, orderBy('subscribedAt', 'desc')));
         return snapshot.docs.map(convertDocToSubscriber);
     } catch (error) {
         console.error("Error fetching subscribers:", error);
@@ -399,45 +448,46 @@ export async function updateSubscriberStatus(
     subscriberId: string, 
     status: 'active' | 'unsubscribed'
 ): Promise<void> {
-    const db = await initializeDb();
-    await db.collection('subscribers').doc(subscriberId).update({ status });
+    const docRef = doc(clientDb, 'subscribers', subscriberId);
+    await updateDoc(docRef, { status });
 }
 
 export async function deleteSubscriber(subscriberId: string): Promise<void> {
-    const db = await initializeDb();
-    await db.collection('subscribers').doc(subscriberId).delete();
+    const docRef = doc(clientDb, 'subscribers', subscriberId);
+    await deleteDoc(docRef);
 }
 
-export async function getSubscribersCount(): Promise<{
-    total: number;
-    active: number;
-    unsubscribed: number;
-}> {
-    try {
-        const subscribers = await getSubscribers();
-        const active = subscribers.filter(s => s.status === 'active').length;
-        const unsubscribed = subscribers.filter(s => s.status === 'unsubscribed').length;
-        
-        return {
-            total: subscribers.length,
-            active,
-            unsubscribed
-        };
-    } catch (error) {
-        console.error("Error getting subscribers count:", error);
-        return { total: 0, active: 0, unsubscribed: 0 };
-    }
-}
 
+// Cette fonction reste côté admin car elle ne doit pas être publique
 export async function getAdminArticles(): Promise<Article[]> {
-    const db = await initializeDb();
+    const db = await initializeAdminDb();
     const articlesCollection = db.collection('articles');
     const q = articlesCollection.orderBy('publishedAt', 'desc');
     const snapshot = await q.get();
-    return snapshot.docs.map(convertDocToArticle);
+    
+    // Helper pour convertir un doc admin en Article
+    const convertAdminDocToArticle = (doc: FirebaseFirestore.DocumentSnapshot): Article => {
+        const data = doc.data() as any;
+        return {
+            slug: doc.id,
+            title: data.title,
+            author: data.author,
+            category: data.category,
+            publishedAt: data.publishedAt.toDate().toISOString(),
+            status: data.status,
+            scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
+            image: data.image,
+            content: data.content,
+            views: data.views || 0,
+            comments: data.comments || [],
+            viewHistory: data.viewHistory || [],
+        } as Article;
+    };
+    return snapshot.docs.map(convertAdminDocToArticle);
 }
 
-// Données initiales
+
+// Données initiales - utilise le SDK Admin
 const initialArticles = [
     {
         "slug": "le-futur-de-lia-une-nouvelle-ere-d-innovation",
@@ -490,7 +540,7 @@ const initialArticles = [
 ];
 
 export async function seedInitialArticles() {
-    const db = await initializeDb();
+    const db = await initializeAdminDb();
     const articlesCollection = db.collection('articles');
     const articlesSnapshot = await articlesCollection.limit(1).get();
     if (articlesSnapshot.empty) {
@@ -502,7 +552,8 @@ export async function seedInitialArticles() {
                 const { slug, ...data } = article;
                 const dataForFirestore = {
                     ...data,
-                    publishedAt: new Date(data.publishedAt),
+                    publishedAt: Timestamp.fromDate(new Date(data.publishedAt)),
+                    viewHistory: data.viewHistory.map(vh => ({...vh, date: Timestamp.fromDate(new Date(vh.date))}))
                 };
                 batch.set(docRef, dataForFirestore);
             });
