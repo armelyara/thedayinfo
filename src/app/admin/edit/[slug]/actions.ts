@@ -1,4 +1,4 @@
-
+// src/app/admin/edit/[slug]/actions.ts
 'use server';
 
 import { z } from 'zod';
@@ -11,6 +11,10 @@ const formSchema = z.object({
   author: z.string(),
   category: z.string(),
   content: z.string(),
+  image: z.object({
+    src: z.string().url().or(z.string().startsWith('data:image')),
+    alt: z.string(),
+  }),
   scheduledFor: z.string().optional().nullable(),
 });
 
@@ -26,6 +30,7 @@ export async function updateArticleAction(slug: string, values: z.infer<typeof f
   
   const updatedArticle = await updateArticle(slug, {
     ...rest,
+    // La conversion en Date est gérée dans la fonction updateArticle de data.ts
     scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
   });
 
@@ -41,5 +46,3 @@ export async function updateArticleAction(slug: string, values: z.infer<typeof f
 export async function getArticleAction(slug: string): Promise<Article | null> {
     return getArticleBySlug(slug);
 }
-
-    

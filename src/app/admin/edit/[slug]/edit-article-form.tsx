@@ -33,6 +33,7 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { categories } from '@/components/layout/main-layout';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 const formSchema = z.object({
   title: z.string().min(10, {
@@ -47,7 +48,11 @@ const formSchema = z.object({
   content: z.string().min(100, {
     message: 'Le contenu doit comporter au moins 100 caractères.',
   }),
-  scheduledFor: z.string().optional(),
+  image: z.object({
+    src: z.string().min(1, "L'image est requise."),
+    alt: z.string().min(1, "La description de l'image est requise."),
+  }),
+  scheduledFor: z.string().optional().nullable(),
 });
 
 type EditArticleFormProps = {
@@ -65,7 +70,11 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
       author: article.author,
       category: article.category,
       content: article.content,
-      scheduledFor: article.scheduledFor, // Pas besoin de parseISO puisqu'on travaille avec des strings
+      image: {
+        src: article.image.src,
+        alt: article.image.alt,
+      },
+      scheduledFor: article.scheduledFor,
     },
   });
 
@@ -78,6 +87,7 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
       });
       router.push(`/article/${updatedArticle.slug}`);
     } catch (error) {
+      console.error("Update failed:", error);
       toast({
         variant: 'destructive',
         title: 'Oh oh ! Quelque chose s\'est mal passé.',
@@ -145,6 +155,25 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
           )}
         />
         
+        <FormField
+          control={form.control}
+          name="image"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <ImageUpload
+                  currentImage={field.value.src}
+                  onImageSelect={(imageData) => {
+                    form.setValue('image.src', imageData.src);
+                    form.setValue('image.alt', form.getValues('title'));
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="scheduledFor"

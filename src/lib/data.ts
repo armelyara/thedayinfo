@@ -1,7 +1,6 @@
-
+// src/lib/data.ts
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeFirebaseAdmin } from './auth';
-import type { Timestamp } from 'firebase-admin/firestore';
 
 // Data Types
 export type Comment = {
@@ -16,20 +15,22 @@ export type ViewHistory = {
     views: number;
 };
   
+export type ArticleImage = {
+    id: string;
+    src: string;
+    alt: string;
+    aiHint: string;
+};
+
 export type Article = {
     slug: string;
     title: string;
     author: string;
     category: string;
-    publishedAt: string; // UNIFIÉ - plus de publicationDate
+    publishedAt: string;
     status: 'published' | 'scheduled';
     scheduledFor?: string;
-    image: {
-      id: string;
-      src: string;
-      alt: string;
-      aiHint: string;
-    };
+    image: ArticleImage;
     content: string;
     views: number;
     comments: Comment[];
@@ -66,7 +67,6 @@ const initializeDb = async () => {
 const convertDocToArticle = (doc: FirebaseFirestore.DocumentSnapshot): Article => {
     const data = doc.data() as any;
     
-    // NETTOYÉ - Plus de gestion de publicationDate, uniquement publishedAt
     const publishedAt = data.publishedAt;
     const scheduledFor = data.scheduledFor;
 
@@ -137,7 +137,7 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
   
       return articles;
     } catch (error: any) {
-      console.error("ERREUR CRITIQUE DANS getPublishedArticles:", error); // Log plus visible
+      console.error("ERREUR CRITIQUE DANS getPublishedArticles:", error);
       if (error.code === 'FAILED_PRECONDITION' && error.message.includes('index')) {
           const urlRegex = /(https?:\/\/[^\s]+)/;
           const match = error.message.match(urlRegex);
@@ -148,7 +148,6 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
               message: indexCreationUrl ? `Index manquant. Veuillez créer l'index Firestore en visitant : ${indexCreationUrl}` : error.message
           };
       }
-      // Changement important : au lieu de retourner un tableau vide, on retourne une erreur générique.
       return {
         error: 'database_error',
         message: `Une erreur est survenue lors de la récupération des articles: ${error.message}`
@@ -167,7 +166,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
         }
         const article = convertDocToArticle(docSnap);
 
-        // Increment views - this is a server-side effect
+        // Increment views
         try {
             const { firestore } = await import('firebase-admin');
             await docRef.update({ views: firestore.FieldValue.increment(1) });
@@ -194,14 +193,12 @@ export async function getArticlesByCategory(categorySlug: string, categories: Ca
         const q = articlesCollection
             .where('category', '==', category.name)
             .where('status', '==', 'published')
-            .where('publishedAt', '<=', now);
+            .where('publishedAt', '<=', now)
+            .orderBy('publishedAt', 'desc');
         
         const snapshot = await q.get();
         
-        const articles = snapshot.docs.map(convertDocToArticle);
-        articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-        
-        return articles;
+        return snapshot.docs.map(convertDocToArticle);
     } catch (error) {
         console.error(`Error fetching articles for category ${categorySlug}:`, error);
         return [];
@@ -229,6 +226,7 @@ export async function addArticle(article: {
     author: string, 
     category: string, 
     content: string, 
+    image: { src: string, alt: string },
     scheduledFor?: string 
 }): Promise<Article> {
     const db = await initializeDb();
@@ -236,7 +234,6 @@ export async function addArticle(article: {
     const slug = article.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
     const now = new Date();
     
-    // Gérer la date de programmation
     let scheduledDate: Date | undefined;
     if (article.scheduledFor) {
         scheduledDate = new Date(article.scheduledFor);
@@ -254,9 +251,9 @@ export async function addArticle(article: {
         status: isScheduled ? 'scheduled' : 'published',
         image: {
             id: String(Date.now()),
-            src: `https://picsum.photos/seed/${slug}/600/400`,
-            alt: article.title,
-            aiHint: 'placeholder image'
+            src: article.image.src,
+            alt: article.image.alt,
+            aiHint: 'user uploaded'
         },
         views: 0,
         comments: [],
@@ -279,14 +276,13 @@ export async function addArticle(article: {
 
 export async function updateArticle(
     slug: string, 
-    data: Partial<Omit<Article, 'slug' | 'scheduledFor'>> & { scheduledFor?: Date | null }
+    data: Partial<Omit<Article, 'slug' | 'scheduledFor' | 'image'>> & { image: ArticleImage, scheduledFor?: Date | null }
 ): Promise<Article> {
     const db = await initializeDb();
     const docRef = db.collection('articles').doc(slug);
 
     const dataForFirestore: { [key: string]: any } = { ...data };
 
-    // Gérer la conversion des dates
     if (data.publishedAt) {
         dataForFirestore.publishedAt = new Date(data.publishedAt);
     }
@@ -301,13 +297,22 @@ export async function updateArticle(
             dataForFirestore.publishedAt = scheduledDate;
             dataForFirestore.status = scheduledDate > now ? 'scheduled' : 'published';
         } else {
-            // Un-scheduling: publish now and remove scheduledFor field
             dataForFirestore.scheduledFor = firestore.FieldValue.delete();
             dataForFirestore.status = 'published';
             dataForFirestore.publishedAt = new Date();
         }
     }
     
+    // Assurer que l'objet image est complet
+    if (data.image) {
+        dataForFirestore.image = {
+            id: data.image.id || String(Date.now()),
+            src: data.image.src,
+            alt: data.image.alt,
+            aiHint: data.image.aiHint || 'user uploaded'
+        }
+    }
+
     await docRef.update(dataForFirestore);
     
     const updatedDoc = await docRef.get();
@@ -315,6 +320,7 @@ export async function updateArticle(
 
     return convertDocToArticle(updatedDoc);
 }
+
 
 export async function deleteArticle(slug: string): Promise<boolean> {
     const db = await initializeDb();
@@ -352,7 +358,6 @@ export async function addSubscriber(subscriberData: {
     const db = await initializeDb();
     const subscribersCollection = db.collection('subscribers');
     
-    // Vérifier si l'email existe déjà
     const existingQuery = subscribersCollection.where('email', '==', subscriberData.email);
     const existingSnapshot = await existingQuery.get();
     
@@ -432,7 +437,7 @@ export async function getAdminArticles(): Promise<Article[]> {
     return snapshot.docs.map(convertDocToArticle);
 }
 
-// Données initiales pour le seeding - CORRIGÉ publishedAt
+// Données initiales
 const initialArticles = [
     {
         "slug": "le-futur-de-lia-une-nouvelle-ere-d-innovation",

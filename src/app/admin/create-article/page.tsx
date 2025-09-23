@@ -33,6 +33,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { categories } from '@/components/layout/main-layout';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 const formSchema = z.object({
   title: z.string().min(10, {
@@ -47,6 +48,10 @@ const formSchema = z.object({
   content: z.string().min(100, {
     message: 'Le contenu doit comporter au moins 100 caractères.',
   }),
+  image: z.object({
+    src: z.string().min(1, "L'image est requise."),
+    alt: z.string().min(1, "La description de l'image est requise."),
+  }),
   scheduledFor: z.date().optional(),
 });
 
@@ -60,12 +65,17 @@ export default function CreateArticlePage() {
       title: '',
       author: '',
       content: '',
+      image: { src: '', alt: '' },
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const newArticle = await createArticle(values),
+      const newArticle = await createArticle({
+        ...values,
+        // Convertir la date en string si elle existe
+        scheduledFor: values.scheduledFor?.toISOString(),
+      });
       toast({
         title: 'Article Publié !',
         description: 'Votre nouvel article a été publié avec succès.',
@@ -150,6 +160,24 @@ export default function CreateArticlePage() {
                   <FormDescription>
                     Choisissez la catégorie qui correspond le mieux à votre article.
                   </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ImageUpload
+                      onImageSelect={(imageData) => {
+                        form.setValue('image.src', imageData.src);
+                        form.setValue('image.alt', form.getValues('title') || 'Image de l\'article');
+                      }}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
