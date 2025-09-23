@@ -30,11 +30,6 @@ type Article = {
   publishedAt: string;
 };
 
-const categoryIcons: { [key: string]: keyof typeof Lucide } = {
-  Technologie: 'Cpu',
-  Actualité: 'Newspaper',
-};
-
 // Fonction client pour récupérer les compteurs via API publique
 async function getCategoryCounts() {
   try {
@@ -93,6 +88,12 @@ function CategoryList({ categories }: { categories: Category[] }) {
     </SidebarMenu>
   );
 }
+
+const categoryIcons: { [key: string]: keyof typeof Lucide } = {
+    Technologie: 'Cpu',
+    Actualité: 'Newspaper',
+    // Ajoutez d'autres icônes pour d'autres catégories ici
+};
 
 export function AppSidebar({ categories }: { categories: Category[] }) {
   const authorName = 'L\'Auteur';
