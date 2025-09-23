@@ -7,7 +7,7 @@ import { headers } from 'next/headers';
 
 export const metadata: Metadata = {
   title: 'The Day Info',
-  description: 'Votre dose quotidienne d\'information.',
+  description: 'Votre dose d\'information.',
 };
 
 export default function RootLayout({

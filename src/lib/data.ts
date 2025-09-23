@@ -137,9 +137,8 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
   
       return articles;
     } catch (error: any) {
-      console.error("Error fetching published articles:", error.message);
+      console.error("ERREUR CRITIQUE DANS getPublishedArticles:", error); // Log plus visible
       if (error.code === 'FAILED_PRECONDITION' && error.message.includes('index')) {
-          // Extraire l'URL de création d'index du message d'erreur
           const urlRegex = /(https?:\/\/[^\s]+)/;
           const match = error.message.match(urlRegex);
           const indexCreationUrl = match ? match[0] : null;
@@ -149,8 +148,11 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
               message: indexCreationUrl ? `Index manquant. Veuillez créer l'index Firestore en visitant : ${indexCreationUrl}` : error.message
           };
       }
-      // Pour les autres erreurs, renvoyer un tableau vide pour ne pas casser la page
-      return [];
+      // Changement important : au lieu de retourner un tableau vide, on retourne une erreur générique.
+      return {
+        error: 'database_error',
+        message: `Une erreur est survenue lors de la récupération des articles: ${error.message}`
+      };
     }
   }
   

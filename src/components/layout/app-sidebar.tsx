@@ -23,6 +23,13 @@ type Category = {
   slug: string;
 };
 
+// Type local pour les articles
+type Article = {
+  category: string;
+  status: 'published' | 'scheduled';
+  publishedAt: string;
+};
+
 const categoryIcons: { [key: string]: keyof typeof Lucide } = {
   Technologie: 'Cpu',
   Actualité: 'Newspaper',
@@ -31,15 +38,22 @@ const categoryIcons: { [key: string]: keyof typeof Lucide } = {
 // Fonction client pour récupérer les compteurs via API
 async function getCategoryCounts() {
   try {
+    // Utiliser la route publique des articles admin, qui est accessible
     const response = await fetch('/api/admin/articles');
     if (!response.ok) {
       throw new Error('Erreur lors du chargement');
     }
     
-    const articles = await response.json();
+    const articles: Article[] = await response.json();
+    const now = new Date();
+
+    // Filtrer pour ne compter que les articles publiés et non futurs
+    const publishedArticles = articles.filter(article => 
+      article.status === 'published' && new Date(article.publishedAt) <= now
+    );
     
     // Compter les articles par catégorie
-    const counts = articles.reduce((acc: Record<string, number>, article: any) => {
+    const counts = publishedArticles.reduce((acc: Record<string, number>, article: Article) => {
       acc[article.category] = (acc[article.category] || 0) + 1;
       return acc;
     }, {});
