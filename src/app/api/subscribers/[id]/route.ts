@@ -1,12 +1,10 @@
-// src/app/api/subscribers/[id]/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { updateSubscriberStatus, deleteSubscriber } from '@/lib/data';
 
-type RouteParams = {
-  params: { id: string }
-}
-
-export async function PATCH(request: Request, { params }: RouteParams) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const body = await request.json();
     const { status } = body;
@@ -29,7 +27,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: Request, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     await deleteSubscriber(params.id);
     return NextResponse.json({ success: true });

@@ -1,13 +1,30 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { 
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import {
   Bold,
   Italic,
@@ -18,7 +35,11 @@ import {
   Image,
   Type,
   Undo,
-  Redo
+  Redo,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,12 +59,79 @@ export function RichTextEditor({
   height = 300
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageAlt, setImageAlt] = useState('');
+  const [selectedText, setSelectedText] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Synchroniser le contenu sans causer de re-render intempestifs
+useEffect(() => {
+  if (editorRef.current && editorRef.current.innerHTML !== value) {
+    const selection = window.getSelection();
+    let range = null;
+    
+    // Vérifier s'il y a une sélection avant d'essayer d'accéder au range
+    try {
+      if (selection && selection.rangeCount > 0) {
+        range = selection.getRangeAt(0);
+      }
+    } catch (e) {
+      // Ignorer l'erreur si pas de range disponible
+    }
+    
+    const isEditorFocused = document.activeElement === editorRef.current || 
+      editorRef.current?.contains(document.activeElement);
+    
+    if (!isEditorFocused) {
+      editorRef.current.innerHTML = value;
+    }
+  }
+}, [value]);
 
   const execCommand = useCallback((command: string, value?: string) => {
-    document.execCommand(command, false, value);
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
+    if (!editorRef.current) return;
+    
+    editorRef.current.focus();
+    
+    // Utiliser les API modernes quand possible
+    if (command === 'bold') {
+      document.execCommand('bold', false);
+    } else if (command === 'italic') {
+      document.execCommand('italic', false);
+    } else if (command === 'underline') {
+      document.execCommand('underline', false);
+    } else if (command === 'insertUnorderedList') {
+      document.execCommand('insertUnorderedList', false);
+    } else if (command === 'insertOrderedList') {
+      document.execCommand('insertOrderedList', false);
+    } else if (command === 'justifyLeft') {
+      document.execCommand('justifyLeft', false);
+    } else if (command === 'justifyCenter') {
+      document.execCommand('justifyCenter', false);
+    } else if (command === 'justifyRight') {
+      document.execCommand('justifyRight', false);
+    } else if (command === 'fontSize') {
+      document.execCommand('fontSize', false, value);
+    } else if (command === 'fontName') {
+      document.execCommand('fontName', false, value);
+    } else if (command === 'insertHTML') {
+      document.execCommand('insertHTML', false, value);
+    } else if (command === 'undo') {
+      document.execCommand('undo', false);
+    } else if (command === 'redo') {
+      document.execCommand('redo', false);
     }
+    
+    // Mettre à jour le contenu après l'exécution
+    setTimeout(() => {
+      if (editorRef.current) {
+        onChange(editorRef.current.innerHTML);
+      }
+    }, 10);
   }, [onChange]);
 
   const handleContentChange = useCallback(() => {
@@ -53,38 +141,124 @@ export function RichTextEditor({
   }, [onChange]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // Gérer Ctrl+Z et Ctrl+Y
+    // Gérer les raccourcis clavier
     if (e.ctrlKey || e.metaKey) {
-      if (e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        execCommand('undo');
-      } else if (e.key === 'z' && e.shiftKey || e.key === 'y') {
-        e.preventDefault();
-        execCommand('redo');
+      switch (e.key) {
+        case 'b':
+          e.preventDefault();
+          execCommand('bold');
+          break;
+        case 'i':
+          e.preventDefault();
+          execCommand('italic');
+          break;
+        case 'u':
+          e.preventDefault();
+          execCommand('underline');
+          break;
+        case 'z':
+          if (!e.shiftKey) {
+            e.preventDefault();
+            execCommand('undo');
+          }
+          break;
+        case 'y':
+          e.preventDefault();
+          execCommand('redo');
+          break;
       }
     }
   }, [execCommand]);
 
-  const insertLink = () => {
-    const url = prompt('URL du lien:');
-    const text = prompt('Texte du lien:');
-    if (url && text) {
-      execCommand('insertHTML', `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`);
-    }
+  const getSelectedText = () => {
+    const selection = window.getSelection();
+    return selection?.toString() || '';
   };
 
-  const insertImage = () => {
-    const url = prompt('URL de l\'image:');
-    if (url) {
-      execCommand('insertImage', url);
+  const insertLink = () => {
+    const selected = getSelectedText();
+    setSelectedText(selected);
+    setLinkText(selected || '');
+    setLinkUrl('');
+    setIsLinkDialogOpen(true);
+  };
+
+  const handleInsertLink = () => {
+    if (linkUrl && linkText) {
+      const html = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+      execCommand('insertHTML', html);
+    }
+    setIsLinkDialogOpen(false);
+    setLinkUrl('');
+    setLinkText('');
+  };
+
+  const handleInsertImage = () => {
+    if (imageUrl && imageAlt) {
+      const html = `<img src="${imageUrl}" alt="${imageAlt}" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
+      execCommand('insertHTML', html);
+    }
+    setIsImageDialogOpen(false);
+    setImageUrl('');
+    setImageAlt('');
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      // En production, vous uploaderiez vers un service comme Cloudinary
+      // Ici, on utilise FileReader pour une démo
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setImageUrl(result);
+        setImageAlt(file.name);
+        setIsImageDialogOpen(true);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   return (
     <TooltipProvider>
       <div className={cn('border rounded-lg overflow-hidden', className)}>
-        {/* Barre d'outils avec tooltips */}
+        {/* Barre d'outils */}
         <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1">
+          {/* Styles de police */}
+          <div className="flex items-center gap-1 mr-2">
+            <Select onValueChange={(value) => execCommand('fontName', value)}>
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue placeholder="Police" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                <SelectItem value="'Times New Roman', serif">Times</SelectItem>
+                <SelectItem value="'Courier New', monospace">Courier</SelectItem>
+                <SelectItem value="Helvetica, sans-serif">Helvetica</SelectItem>
+                <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select onValueChange={(value) => execCommand('fontSize', value)}>
+              <SelectTrigger className="h-8 w-16">
+                <SelectValue placeholder="12" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">8pt</SelectItem>
+                <SelectItem value="2">10pt</SelectItem>
+                <SelectItem value="3">12pt</SelectItem>
+                <SelectItem value="4">14pt</SelectItem>
+                <SelectItem value="5">18pt</SelectItem>
+                <SelectItem value="6">24pt</SelectItem>
+                <SelectItem value="7">36pt</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          {/* Formatage de base */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -138,6 +312,61 @@ export function RichTextEditor({
 
           <div className="w-px h-6 bg-border mx-1" />
 
+          {/* Alignement */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => execCommand('justifyLeft')}
+                className="h-8 w-8 p-0"
+              >
+                <AlignLeft className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Aligner à gauche</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => execCommand('justifyCenter')}
+                className="h-8 w-8 p-0"
+              >
+                <AlignCenter className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Centrer</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => execCommand('justifyRight')}
+                className="h-8 w-8 p-0"
+              >
+                <AlignRight className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Aligner à droite</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          {/* Listes */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -174,6 +403,7 @@ export function RichTextEditor({
 
           <div className="w-px h-6 bg-border mx-1" />
 
+          {/* Liens et images */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -197,19 +427,37 @@ export function RichTextEditor({
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={insertImage}
+                onClick={() => fileInputRef.current?.click()}
+                className="h-8 w-8 p-0"
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Télécharger une image</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsImageDialogOpen(true)}
                 className="h-8 w-8 p-0"
               >
                 <Image className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Insérer une image</p>
+              <p>Insérer image par URL</p>
             </TooltipContent>
           </Tooltip>
 
           <div className="w-px h-6 bg-border mx-1" />
 
+          {/* Annuler/Refaire */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -253,11 +501,105 @@ export function RichTextEditor({
           style={{ minHeight: height }}
           onInput={handleContentChange}
           onKeyDown={handleKeyDown}
-          dangerouslySetInnerHTML={{ __html: value }}
           suppressContentEditableWarning={true}
           data-placeholder={placeholder}
         />
+
+        {/* Input file caché */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="hidden"
+        />
       </div>
+
+      {/* Dialog pour les liens */}
+      <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter un lien</DialogTitle>
+            <DialogDescription>
+              Saisissez l'URL et le texte à afficher pour votre lien.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Texte du lien</label>
+              <Input
+                value={linkText}
+                onChange={(e) => setLinkText(e.target.value)}
+                placeholder="Texte à afficher"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">URL</label>
+              <Input
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="https://exemple.com"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsLinkDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleInsertLink} disabled={!linkUrl || !linkText}>
+              Ajouter le lien
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour les images */}
+      <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Insérer une image</DialogTitle>
+            <DialogDescription>
+              Saisissez l'URL de l'image et sa description.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">URL de l'image</label>
+              <Input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://exemple.com/image.jpg"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description (alt text)</label>
+              <Input
+                value={imageAlt}
+                onChange={(e) => setImageAlt(e.target.value)}
+                placeholder="Description de l'image"
+              />
+            </div>
+            {imageUrl && (
+              <div className="border rounded p-2">
+                <img 
+                  src={imageUrl} 
+                  alt={imageAlt} 
+                  className="max-w-full h-auto max-h-32 object-contain"
+                  onError={() => setImageUrl('')}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsImageDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleInsertImage} disabled={!imageUrl || !imageAlt}>
+              Insérer l'image
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }

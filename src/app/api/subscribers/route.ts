@@ -1,4 +1,3 @@
-// src/app/api/subscribers/route.ts
 import { NextResponse } from 'next/server';
 import { addSubscriber, getSubscribers } from '@/lib/data';
 
