@@ -51,8 +51,7 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
         const result = e.target?.result as string;
         setPreview(result);
         
-        // Pour l'instant, on utilise la preview locale
-        // Dans un vrai projet, vous uploaderiez vers Firebase Storage
+        // La chaîne base64 est passée au formulaire parent
         onImageSelect({
           src: result,
           alt: file.name

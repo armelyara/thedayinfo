@@ -251,7 +251,7 @@ export async function addArticle(article: {
         status: isScheduled ? 'scheduled' : 'published',
         image: {
             id: String(Date.now()),
-            src: article.image.src,
+            src: article.image.src, // Utilise l'image téléversée
             alt: article.image.alt,
             aiHint: 'user uploaded'
         },
@@ -276,7 +276,7 @@ export async function addArticle(article: {
 
 export async function updateArticle(
     slug: string, 
-    data: Partial<Omit<Article, 'slug' | 'scheduledFor' | 'image'>> & { image: ArticleImage, scheduledFor?: Date | null }
+    data: Partial<Omit<Article, 'slug' | 'scheduledFor'>> & { scheduledFor?: Date | null }
 ): Promise<Article> {
     const db = await initializeDb();
     const docRef = db.collection('articles').doc(slug);

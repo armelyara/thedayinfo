@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { addArticle } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
-import type { Article } from '@/lib/data'; // CORRIGÉ - Import pour le type de retour
+import type { Article } from '@/lib/data';
 
 const formSchema = z.object({
   title: z.string(),

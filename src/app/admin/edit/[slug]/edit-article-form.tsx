@@ -40,7 +40,7 @@ const formSchema = z.object({
     message: 'Le titre doit comporter au moins 10 caractères.',
   }),
   author: z.string().min(2, {
-    message: 'L\'auteur doit comporter au moins 2 caractères.',
+    message: "L'auteur doit comporter au moins 2 caractères.",
   }),
   category: z.string({
     required_error: 'Veuillez sélectionner une catégorie.',
