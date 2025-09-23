@@ -25,7 +25,7 @@ export async function postCommentAction(slug: string, comments: Comment[]): Prom
 export async function getRelatedContentAction(input: SuggestRelatedContentInput): Promise<{title: string, slug: string | null}[]> {
     try {
         // Utiliser l'API route au lieu d'import direct
-        const response = await fetch('/api/admin/articles');
+        const response = await fetch('/api/articles');
         if (!response.ok) {
             throw new Error('Failed to fetch articles');
         }
