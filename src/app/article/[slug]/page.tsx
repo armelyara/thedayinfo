@@ -10,6 +10,7 @@ import Feedback from '@/components/article/feedback';
 import { parseISO } from 'date-fns';
 import { PublicCommentsSection } from '@/components/article/public-comments-section';
 import { ArticleClientWrapper } from '@/components/article/article-client-wrapper';
+import { SubscriptionModal } from '@/components/newsletter/subscription-modal';
 
 type ArticlePageProps = {
   params: Promise<{
@@ -84,6 +85,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           initialViews={article.views}
           initialComments={article.comments || []}
         />
+        
+        {/* Section d'abonnement newsletter */}
+        <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg text-center border">
+          <h3 className="text-lg font-semibold mb-2">📧 Restez informé</h3>
+          <p className="text-muted-foreground mb-4">
+            Recevez une notification par email à chaque nouvel article ou modification
+          </p>
+          <SubscriptionModal />
+        </div>
         
         {/* Section des commentaires publics - Wrapper client */}
         <ArticleClientWrapper 

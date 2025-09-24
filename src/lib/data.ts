@@ -245,7 +245,6 @@ export async function updateArticleComments(slug: string, comments: Comment[]): 
     }
 }
 
-
 // =====================================================================
 // Fonctions d'écriture utilisant le SDK ADMIN (privé)
 // =====================================================================
@@ -259,6 +258,35 @@ const initializeAdminDb = async () => {
   return adminDb;
 };
 
+// Fonction pour déclencher l'envoi de newsletter
+async function sendNewsletterNotification(
+    article: Article, 
+    isUpdate: boolean = false
+) {
+    try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/send-newsletter`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                articleTitle: article.title,
+                articleSlug: article.slug,
+                articleAuthor: article.author,
+                isUpdate
+            }),
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Newsletter envoyée:', result);
+        } else {
+            console.error('Erreur envoi newsletter:', await response.text());
+        }
+    } catch (error) {
+        console.error('Erreur envoi newsletter:', error);
+    }
+}
 
 export async function addArticle(article: { 
     title: string, 
@@ -286,7 +314,7 @@ export async function addArticle(article: {
         author: article.author,
         category: article.category,
         content: article.content,
-        publishedAt: Timestamp.fromDate(publishedAt),
+        publishedAt: Timestamp.fromDate(publishedAt || now),
         status: isScheduled ? 'scheduled' : 'published',
         image: {
             id: String(Date.now()),
@@ -306,18 +334,24 @@ export async function addArticle(article: {
     const docRef = articlesCollection.doc(slug);
     await docRef.set(dataForFirestore);
     
-    // We can't use convertDocToArticle because the admin SDK returns different types
-    return {
+    const createdArticle = {
         ...article,
         slug,
         status: dataForFirestore.status,
-        publishedAt: publishedAt.toISOString(),
+        publishedAt: (isScheduled && scheduledDate ? scheduledDate : now).toISOString(),
         scheduledFor: scheduledDate?.toISOString(),
         image: dataForFirestore.image,
         views: 0,
         comments: [],
         viewHistory: [],
-    };
+    } as Article;
+    
+    // Envoyer newsletter si publié immédiatement
+    if (!isScheduled) {
+        await sendNewsletterNotification(createdArticle, false);
+    }
+    
+    return createdArticle;
 }
 
 export async function updateArticle(
@@ -341,7 +375,7 @@ export async function updateArticle(
 
     if (data.hasOwnProperty('scheduledFor')) {
         const scheduledDate = data.scheduledFor;
-        if (scheduledDate) {
+        if (scheduledDate && scheduledDate instanceof Date) {
             const now = new Date();
             dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
             dataForFirestore.publishedAt = Timestamp.fromDate(scheduledDate);
@@ -370,7 +404,7 @@ export async function updateArticle(
     
     // We can't use convertDocToArticle on the admin SDK doc
     const updatedData = updatedDocSnap.data()!;
-    return {
+    const updatedArticle = {
         slug: updatedDocSnap.id,
         title: updatedData.title,
         author: updatedData.author,
@@ -383,9 +417,15 @@ export async function updateArticle(
         views: updatedData.views,
         comments: updatedData.comments,
         viewHistory: updatedData.viewHistory,
-    };
+    } as Article;
+    
+    // Envoyer newsletter si article publié
+    if (updatedArticle.status === 'published') {
+        await sendNewsletterNotification(updatedArticle, true);
+    }
+    
+    return updatedArticle;
 }
-
 
 export async function deleteArticle(slug: string): Promise<boolean> {
     const db = await initializeAdminDb();
@@ -459,6 +499,26 @@ export async function deleteSubscriber(subscriberId: string): Promise<void> {
     await deleteDoc(docRef);
 }
 
+export async function getSubscribersCount(): Promise<{
+    total: number;
+    active: number;
+    unsubscribed: number;
+}> {
+    try {
+        const subscribers = await getSubscribers();
+        const active = subscribers.filter(s => s.status === 'active').length;
+        const unsubscribed = subscribers.filter(s => s.status === 'unsubscribed').length;
+        
+        return {
+            total: subscribers.length,
+            active,
+            unsubscribed
+        };
+    } catch (error) {
+        console.error("Error getting subscribers count:", error);
+        return { total: 0, active: 0, unsubscribed: 0 };
+    }
+}
 
 // Cette fonction reste côté admin car elle ne doit pas être publique
 export async function getAdminArticles(): Promise<Article[]> {
@@ -487,7 +547,6 @@ export async function getAdminArticles(): Promise<Article[]> {
     };
     return snapshot.docs.map(convertAdminDocToArticle);
 }
-
 
 // Données initiales - utilise le SDK Admin
 const initialArticles = [
