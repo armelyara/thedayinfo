@@ -1,15 +1,28 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Send, User, Reply, ThumbsUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Comment } from '@/types/comment';
+
+// Fonction pour générer et récupérer le nom d'auteur anonyme
+const getAnonymousAuthorName = (): string => {
+  if (typeof window === 'undefined') return 'Visiteur Anonyme';
+
+  let authorName = localStorage.getItem('anonymous-commenter-name');
+  if (!authorName) {
+    const randomNumber = Math.floor(Math.random() * 10000);
+    authorName = `Visiteur Anonyme #${randomNumber}`;
+    localStorage.setItem('anonymous-commenter-name', authorName);
+  }
+  return authorName;
+};
+
 
 interface PublicCommentsSectionProps {
   articleSlug: string;
@@ -34,23 +47,23 @@ function CommentThread({
 }) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyText, setReplyText] = useState('');
-  const [replyAuthor, setReplyAuthor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const handlePostReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!replyText.trim() || !replyAuthor.trim()) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez remplir tous les champs' });
+    if (!replyText.trim()) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez remplir le champ de réponse' });
       return;
     }
     setIsSubmitting(true);
     try {
+      const authorName = getAnonymousAuthorName();
       const newReply: Comment = {
         id: Date.now(),
-        author: replyAuthor.trim(),
+        author: authorName,
         text: replyText.trim(),
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${replyAuthor}`,
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${authorName.replace('#', '')}`,
         parentId: comment.id,
         likes: 0
       };
@@ -67,7 +80,6 @@ function CommentThread({
       onCommentsUpdate(updatedComments);
       setShowReplyForm(false);
       setReplyText('');
-      setReplyAuthor('');
       toast({ title: 'Réponse publiée' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de publier la réponse' });
@@ -129,16 +141,12 @@ function CommentThread({
         <div className="ml-13 p-4 bg-muted/50 rounded-lg">
           <form onSubmit={handlePostReply} className="space-y-3">
             <div>
-              <Label htmlFor={`replyAuthor-${comment.id}`} className="text-sm">Votre nom</Label>
-              <Input id={`replyAuthor-${comment.id}`} value={replyAuthor} onChange={(e) => setReplyAuthor(e.target.value)} placeholder="Entrez votre nom" disabled={isSubmitting} className="text-sm mt-1" />
-            </div>
-            <div>
               <Label htmlFor={`replyText-${comment.id}`} className="text-sm">Votre réponse</Label>
               <Textarea id={`replyText-${comment.id}`} value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Répondre..." rows={3} disabled={isSubmitting} className="text-sm mt-1" />
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="ghost" size="sm" onClick={() => setShowReplyForm(false)}>Annuler</Button>
-              <Button type="submit" size="sm" disabled={isSubmitting}>
+              <Button type="submit" size="sm" disabled={isSubmitting || !replyText.trim()}>
                 {isSubmitting ? 'Publication...' : 'Publier'}
               </Button>
             </div>
@@ -174,9 +182,13 @@ export function PublicCommentsSection({
   onCommentsUpdate 
 }: PublicCommentsSectionProps) {
   const [newComment, setNewComment] = useState('');
-  const [authorName, setAuthorName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentAuthor, setCurrentAuthor] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    setCurrentAuthor(getAnonymousAuthorName());
+  }, []);
 
   const { rootComments, commentsByParent } = useMemo(() => {
     const rootComments = comments.filter(comment => !comment.parentId);
@@ -192,17 +204,18 @@ export function PublicCommentsSection({
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || !authorName.trim()) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez remplir tous les champs' });
+    if (!newComment.trim()) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez écrire un commentaire' });
         return;
     }
     setIsSubmitting(true);
     try {
+      const authorName = getAnonymousAuthorName();
       const comment: Comment = {
         id: Date.now(),
-        author: authorName.trim(),
+        author: authorName,
         text: newComment.trim(),
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`,
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${authorName.replace('#', '')}`,
         likes: 0,
         parentId: null
       };
@@ -218,7 +231,6 @@ export function PublicCommentsSection({
       
       onCommentsUpdate(updatedComments);
       setNewComment('');
-      setAuthorName('');
       toast({ title: 'Commentaire ajouté', description: 'Votre commentaire a été publié' });
 
     } catch (error) {
@@ -254,17 +266,16 @@ export function PublicCommentsSection({
         )}
       </div>
       <div className="border-t pt-8">
-        <h4 className="font-semibold mb-4">Laisser un commentaire</h4>
+        <h4 className="font-semibold mb-2">Laisser un commentaire</h4>
+        <p className="text-sm text-muted-foreground mb-4">
+          Vous commentez en tant que : <span className="font-medium text-foreground">{currentAuthor}</span>
+        </p>
         <form onSubmit={handleSubmitComment} className="space-y-4">
           <div>
-            <Label htmlFor="authorName">Votre nom</Label>
-            <Input id="authorName" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Entrez votre nom" disabled={isSubmitting} className="mt-1" />
-          </div>
-          <div>
-            <Label htmlFor="newComment">Votre commentaire</Label>
+            <Label htmlFor="newComment" className="sr-only">Votre commentaire</Label>
             <Textarea id="newComment" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Partagez votre avis sur cet article..." rows={4} disabled={isSubmitting} className="mt-1" />
           </div>
-          <Button type="submit" disabled={isSubmitting || !newComment.trim() || !authorName.trim()}>
+          <Button type="submit" disabled={isSubmitting || !newComment.trim()}>
             {isSubmitting ? 'Publication...' : <><Send className="w-4 h-4 mr-2" /> Publier le commentaire</>}
           </Button>
         </form>
