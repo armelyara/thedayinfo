@@ -69,10 +69,6 @@ const MissingIndexError = ({ message }: { message: string }) => {
 };
 
 export default async function Home() {
-  // Seed initial articles if the collection is empty.
-  // In a real app, this might be a one-time script.
-  // await seedInitialArticles();
-
   const articlesResult = await getPublishedArticles();
 
   // Type guard pour vérifier si c'est une erreur
