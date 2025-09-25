@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateSubscriberStatus, deleteSubscriber } from '@/lib/data';
-import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth';
 
 async function checkAuth(request: NextRequest) {
