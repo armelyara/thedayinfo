@@ -143,7 +143,8 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
   
         const q = query(
             articlesCollection,
-            where('status', '==', 'published'),
+            where('status', '!=', 'scheduled'),
+            orderBy('status', 'asc'),
             orderBy('publishedAt', 'desc')
         );
   
