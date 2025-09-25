@@ -1,6 +1,6 @@
 // src/app/api/admin/articles/route.ts
 import { NextResponse } from 'next/server';
-import { getAdminArticles } from '@/lib/data';
+import { getAdminArticles } from '@/lib/data-admin';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth';
 

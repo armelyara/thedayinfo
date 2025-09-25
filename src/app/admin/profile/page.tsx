@@ -19,7 +19,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import { getProfileAction, updateProfileAction } from './actions';
-import { Profile } from '@/lib/data';
+import { Profile } from '@/lib/data-types';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 

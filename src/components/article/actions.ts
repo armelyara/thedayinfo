@@ -1,17 +1,11 @@
+
 'use server';
 
-import { updateArticleComments } from '@/lib/data';
+import { updateArticleComments } from '@/lib/data-client';
 import { suggestRelatedContent, type SuggestRelatedContentInput } from '@/ai/flows/related-content-suggestions';
 import { revalidatePath } from 'next/cache';
 import { summarizeArticleFlow, type SummarizeArticleInput, type SummarizeArticleOutput } from '@/ai/flows/article-summarization';
-
-// Type local pour éviter l'import de @/lib/data dans les composants clients
-type Comment = {
-  id: number;
-  author: string;
-  text: string;
-  avatar: string;
-};
+import type { Comment } from '@/lib/data-types';
 
 export async function postCommentAction(slug: string, comments: Comment[]): Promise<Comment[]> {
     const success = await updateArticleComments(slug, comments);
@@ -19,18 +13,26 @@ export async function postCommentAction(slug: string, comments: Comment[]): Prom
         revalidatePath(`/article/${slug}`);
         return comments;
     }
+    // In case of failure, return original comments to avoid UI inconsistency
+    // (though the optimistic update on client-side might need reverting)
     return comments;
 }
 
 export async function getRelatedContentAction(input: SuggestRelatedContentInput): Promise<{title: string, slug: string | null}[]> {
     try {
-        // Utiliser l'API route au lieu d'import direct
-        const response = await fetch('/api/articles');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/articles`);
         if (!response.ok) {
-            throw new Error('Failed to fetch articles');
+            throw new Error('Failed to fetch articles for related content');
         }
         
         const publishedArticles = await response.json();
+        
+        // Ensure we don't get an error object
+        if (!Array.isArray(publishedArticles)) {
+            console.error("Received non-array from /api/articles:", publishedArticles);
+            return [];
+        }
+
         const suggestionResult = await suggestRelatedContent(input);
                 
         if (suggestionResult.suggestedArticles) {

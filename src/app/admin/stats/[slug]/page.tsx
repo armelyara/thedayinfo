@@ -9,7 +9,7 @@ import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { ArrowLeft, Eye, MessageCircle, Calendar } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { Article } from '@/lib/data'; // CORRIGÉ - Import du vrai type
+import type { Article } from '@/lib/data-types';
 
 type StatsPageProps = {
   params: {

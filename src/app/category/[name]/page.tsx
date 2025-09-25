@@ -1,36 +1,8 @@
 import { notFound } from 'next/navigation';
-import { getArticlesByCategory } from '@/lib/data';
+import { getArticlesByCategory } from '@/lib/data-client';
 import { ArticleCard } from '@/components/article/article-card';
 import { categories } from '@/components/layout/main-layout';
-
-// Type local pour éviter l'import de @/lib/data dans les composants clients
-type Article = {
-  slug: string;
-  title: string;
-  author: string;
-  category: string;
-  publishedAt: string;
-  status: 'published' | 'scheduled';
-  scheduledFor?: string;
-  image: {
-    id: string;
-    src: string;
-    alt: string;
-    aiHint: string;
-  };
-  content: string;
-  views: number;
-  comments: Array<{
-    id: number;
-    author: string;
-    text: string;
-    avatar: string;
-  }>;
-  viewHistory: Array<{
-    date: string;
-    views: number;
-  }>;
-};
+import type { Article } from '@/lib/data-types';
 
 type CategoryPageProps = {
   params: {

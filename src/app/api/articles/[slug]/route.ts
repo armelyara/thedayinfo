@@ -1,6 +1,6 @@
 // src/app/api/articles/[slug]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getArticleBySlug } from '@/lib/data';
+import { getArticleBySlug } from '@/lib/data-client';
 
 export async function GET(
   request: NextRequest,

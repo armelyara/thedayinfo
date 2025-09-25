@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Send, User, Reply, ThumbsUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Comment } from '@/types/comment';
+import type { Comment } from '@/lib/data-types';
 
 // Fonction pour générer et récupérer le nom d'auteur anonyme
 const getAnonymousAuthorName = (): string => {

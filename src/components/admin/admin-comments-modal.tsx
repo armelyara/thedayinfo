@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, Send, User, Reply, ThumbsUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { Comment } from '@/types/comment';
+import type { Comment } from '@/lib/data-types';
 
 interface AdminCommentsModalProps {
   isOpen: boolean;

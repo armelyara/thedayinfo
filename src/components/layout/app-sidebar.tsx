@@ -17,24 +17,13 @@ import * as Lucide from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { ArrowRight } from 'lucide-react';
-import { getProfile, type Profile } from '@/lib/data';
+import { getProfile } from '@/lib/data-client';
+import type { Profile, Article, Category } from '@/lib/data-types';
 
-type Category = {
-  name: string;
-  slug: string;
-};
-
-// Type local pour les articles
-type Article = {
-  category: string;
-  status: 'published' | 'scheduled';
-  publishedAt: string;
-};
 
 // Fonction client pour récupérer les compteurs via API publique
 async function getCategoryCounts() {
   try {
-    // Utilise la route publique des articles, qui est accessible sans authentification admin
     const response = await fetch('/api/articles'); 
     if (!response.ok) {
       throw new Error('Erreur lors du chargement des articles pour le comptage');
@@ -42,7 +31,11 @@ async function getCategoryCounts() {
     
     const articles: Article[] = await response.json();
     
-    // Compter les articles par catégorie
+    if (!Array.isArray(articles)) {
+        console.error("Expected an array of articles, but got:", articles);
+        return {};
+    }
+
     const counts = articles.reduce((acc: Record<string, number>, article: Article) => {
       acc[article.category] = (acc[article.category] || 0) + 1;
       return acc;
@@ -93,7 +86,6 @@ function CategoryList({ categories }: { categories: Category[] }) {
 const categoryIcons: { [key: string]: keyof typeof Lucide } = {
     Technologie: 'Cpu',
     Actualité: 'Newspaper',
-    // Ajoutez d'autres icônes pour d'autres catégories ici
 };
 
 function AuthorProfile() {
@@ -104,7 +96,6 @@ function AuthorProfile() {
   }, []);
 
   if (!profile) {
-    // Affichez un squelette ou un état de chargement
     return (
       <div className="flex flex-col items-center text-center p-2">
         <div className="h-20 w-20 rounded-full bg-muted animate-pulse mb-3"></div>

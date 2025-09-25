@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { addSubscriber, getSubscribers } from '@/lib/data';
+import { addSubscriber, getSubscribers } from '@/lib/data-client';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth';
 

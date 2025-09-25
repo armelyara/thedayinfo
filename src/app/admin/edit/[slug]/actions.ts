@@ -2,9 +2,10 @@
 'use server';
 
 import { z } from 'zod';
-import { updateArticle, getArticleBySlug } from '@/lib/data';
+import { updateArticle } from '@/lib/data-admin';
+import { getArticleBySlug } from '@/lib/data-client';
 import { revalidatePath } from 'next/cache';
-import type { Article } from '@/lib/data';
+import type { Article } from '@/lib/data-types';
 
 const formSchema = z.object({
   title: z.string(),

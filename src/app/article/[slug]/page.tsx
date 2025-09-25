@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { Comment, getArticleBySlug } from '@/lib/data';
+import { getArticleBySlug } from '@/lib/data-client';
+import type { Comment } from '@/lib/data-types';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CalendarDays, User } from 'lucide-react';
@@ -25,7 +26,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
 
-  if (!article || (article.status === 'scheduled' && parseISO(article.publishedAt) > new Date())) {
+  if (!article || (article.status === 'scheduled' && article.publishedAt && parseISO(article.publishedAt) > new Date())) {
     notFound();
   }
 

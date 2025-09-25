@@ -1,11 +1,13 @@
 
 'use server';
 
-import { deleteArticle as deleteArticleData, updateArticleComments, type Comment, getAdminArticles } from '@/lib/data';
+import { deleteArticle, updateArticle } from '@/lib/data-admin';
+import { updateArticleComments } from '@/lib/data-client';
+import type { Comment } from '@/lib/data-types';
 import { revalidatePath } from 'next/cache';
 
 export async function deleteArticleAction(slug: string) {
-  const result = await deleteArticleData(slug);
+  const result = await deleteArticle(slug);
   
   if (result) {
     revalidatePath('/admin');
@@ -18,8 +20,4 @@ export async function deleteArticleAction(slug: string) {
 
 export async function postCommentAdminAction(slug: string, comments: Comment[]) {
     return await updateArticleComments(slug, comments);
-}
-
-export async function getAdminArticlesAction() {
-    return getAdminArticles();
 }

@@ -36,7 +36,7 @@ const nextConfig = {
     ],
   },
   
-  // ✅ Exclure les modules admin du bundle client
+  // Exclure les modules admin du bundle client
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -47,7 +47,7 @@ const nextConfig = {
     return config;
   },
   
-  // ✅ Exclure 'firebase-admin' du traitement par Next.js sur le serveur
+  // Exclure 'firebase-admin' du traitement par Next.js sur le serveur
   experimental: {
     serverComponentsExternalPackages: [
       'firebase-admin',

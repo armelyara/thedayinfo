@@ -10,18 +10,7 @@ import { fr } from 'date-fns/locale';
 import { Users, Mail, UserX, Download, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-
-type Subscriber = {
-  id: string;
-  email: string;
-  name?: string;
-  subscribedAt: string;
-  status: 'active' | 'unsubscribed';
-  preferences: {
-    frequency: 'daily' | 'weekly' | 'monthly';
-    categories: string[];
-  };
-};
+import type { Subscriber } from '@/lib/data-types';
 
 export default function SubscribersPage() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
@@ -38,6 +27,8 @@ export default function SubscribersPage() {
       if (response.ok) {
         const data = await response.json();
         setSubscribers(data);
+      } else {
+        throw new Error('Failed to load subscribers');
       }
     } catch (error) {
       toast({
@@ -52,15 +43,12 @@ export default function SubscribersPage() {
 
   const handleStatusUpdate = async (subscriberId: string, newStatus: 'active' | 'unsubscribed') => {
     try {
-      const response = await fetch('/api/subscribers', {
+      const response = await fetch(`/api/subscribers/${subscriberId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          subscriberId,
-          status: newStatus,
-        }),
+        body: JSON.stringify({ status: newStatus }),
       });
 
       if (response.ok) {
@@ -73,6 +61,8 @@ export default function SubscribersPage() {
           title: 'Mise à jour réussie',
           description: `Statut de l'abonné mis à jour`,
         });
+      } else {
+        throw new Error('Failed to update status');
       }
     } catch (error) {
       toast({
@@ -96,7 +86,7 @@ export default function SubscribersPage() {
       ])
     ].map(row => row.join(',')).join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

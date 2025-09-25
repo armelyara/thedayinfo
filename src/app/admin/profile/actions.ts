@@ -1,7 +1,9 @@
 // src/app/admin/profile/actions.ts
 'use server';
 
-import { getProfile, updateProfile, type Profile } from '@/lib/data';
+import { getProfile } from '@/lib/data-client';
+import { updateProfile } from '@/lib/data-admin';
+import type { Profile } from '@/lib/data-types';
 import { revalidatePath } from 'next/cache';
 
 export async function getProfileAction(): Promise<Profile> {

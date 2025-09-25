@@ -1,38 +1,10 @@
-import { getPublishedArticles} from '@/lib/data';
+import { getPublishedArticles} from '@/lib/data-client';
+import type { Article } from '@/lib/data-types';
 import { ArticleCard } from '@/components/article/article-card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
 
-
-// Type local pour éviter l'import dans les composants clients
-type Article = {
-  slug: string;
-  title: string;
-  author: string;
-  category: string;
-  publishedAt: string;
-  status: 'published' | 'scheduled';
-  scheduledFor?: string;
-  image: {
-    id: string;
-    src: string;
-    alt: string;
-    aiHint: string;
-  };
-  content: string;
-  views: number;
-  comments: Array<{
-    id: number;
-    author: string;
-    text: string;
-    avatar: string;
-  }>;
-  viewHistory: Array<{
-    date: string;
-    views: number;
-  }>;
-};
 export const revalidate = 3600; // Revalidate every hour
 
 const MissingIndexError = ({ message }: { message: string }) => {
@@ -69,28 +41,14 @@ const MissingIndexError = ({ message }: { message: string }) => {
 };
 
 export default async function Home() {
-  console.log('=== PAGE HOME - DÉBUT CHARGEMENT ===');
-  
   const articlesResult = await getPublishedArticles();
-  console.log('Résultat getPublishedArticles:', articlesResult);
-  console.log('Type du résultat:', typeof articlesResult);
-  console.log('Est un tableau?', Array.isArray(articlesResult));
   
-  if (Array.isArray(articlesResult)) {
-    console.log('Nombre d\'articles dans le tableau:', articlesResult.length);
-    if (articlesResult.length > 0) {
-      console.log('Premier article:', articlesResult[0]);
-    }
-  }
-
   // Type guard pour vérifier si c'est une erreur
   const isErrorResult = (result: any): result is { error: string; message: string } => {
     return result && typeof result === 'object' && 'error' in result;
   };
 
   if (isErrorResult(articlesResult)) {
-    console.log('ERREUR détectée:', articlesResult.error, articlesResult.message);
-    
     if (articlesResult.error === 'missing_index') {
       return (
          <div className="container mx-auto px-4 py-8">
@@ -108,11 +66,29 @@ export default async function Home() {
          </div>
       )
     }
+    // Handle other errors gracefully
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <header className="mb-12 text-center">
+          <h1 className="text-4xl font-headline font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
+            The Day Info
+          </h1>
+          <p className="mt-3 text-lg text-muted-foreground sm:text-xl">
+            Votre dose d'information, organisée pour les esprits curieux.
+          </p>
+        </header>
+        <main>
+          <Alert variant="destructive">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Erreur de chargement</AlertTitle>
+            <AlertDescription>{articlesResult.message}</AlertDescription>
+          </Alert>
+        </main>
+      </div>
+    )
   }
 
-  // À ce point, TypeScript sait que articlesResult est Article[]
   const articles = articlesResult as Article[];
-  console.log('Articles final pour affichage:', articles.length);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -135,7 +111,6 @@ export default async function Home() {
         ) : (
           <div>
             <p>Aucun article publié pour le moment. Revenez bientôt !</p>
-            
           </div>
         )}
       </main>

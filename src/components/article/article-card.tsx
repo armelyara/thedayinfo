@@ -3,36 +3,8 @@ import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Eye, MessageCircle } from 'lucide-react';
+import type { Article } from '@/lib/data-types';
 
-
-// Type local pour éviter l'import de @/lib/data
-type Article = {
-  slug: string;
-  title: string;
-  author: string;
-  category: string;
-  publishedAt: string;
-  status: 'published' | 'scheduled';
-  scheduledFor?: string;
-  image: {
-    id: string;
-    src: string;
-    alt: string;
-    aiHint: string;
-  };
-  content: string;
-  views: number;
-  comments: Array<{
-    id: number;
-    author: string;
-    text: string;
-    avatar: string;
-  }>;
-  viewHistory: Array<{
-    date: string;
-    views: number;
-  }>;
-};
 
 type ArticleCardProps = {
   article: Article;

@@ -1,7 +1,7 @@
 // src/app/api/articles/[slug]/comments/route.ts
 import { NextResponse } from 'next/server';
-import { updateArticleComments } from '@/lib/data';
-import type { Comment } from '@/lib/data';
+import { updateArticleComments } from '@/lib/data-client';
+import type { Comment } from '@/lib/data-types';
 
 type RouteParams = {
   params: { slug: string }

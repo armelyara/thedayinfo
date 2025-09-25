@@ -6,14 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Comment as CommentType } from '@/types/comment';
+import type { Comment } from '@/lib/data-types';
 
 type Reaction = 'like' | 'dislike' | null;
 
 type FeedbackProps = {
     articleSlug: string;
     initialViews: number;
-    initialComments: CommentType[];
+    initialComments: Comment[];
 };
 
 export default function Feedback({ articleSlug, initialViews, initialComments }: FeedbackProps) {

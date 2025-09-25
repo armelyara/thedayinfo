@@ -1,6 +1,6 @@
 // src/app/api/articles/route.ts
 import { NextResponse } from 'next/server';
-import { getPublishedArticles } from '@/lib/data';
+import { getPublishedArticles } from '@/lib/data-client';
 
 // Nouvelle route publique pour obtenir tous les articles publiés
 export async function GET() {

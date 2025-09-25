@@ -8,49 +8,18 @@ import { Badge } from '@/components/ui/badge';
 import { 
   PlusCircle, 
   FileText, 
-  Users, 
-  TrendingUp, 
   Eye, 
   MessageCircle,
   Mail,
   UserCheck,
-  Calendar,
-  BarChart3,
-  Settings,
-  UserCircle
+  TrendingUp,
+  UserCircle,
+  BarChart3
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { AdminCommentsModal } from '@/components/admin/admin-comments-modal';
-
-// Type local pour éviter l'import de @/lib/data
-type Article = {
-  slug: string;
-  title: string;
-  author: string;
-  category: string;
-  publishedAt: string;
-  status: 'published' | 'scheduled';
-  scheduledFor?: string;
-  image: {
-    id: string;
-    src: string;
-    alt: string;
-    aiHint: string;
-  };
-  content: string;
-  views: number;
-  comments: Array<{
-    id: number;
-    author: string;
-    text: string;
-    avatar: string;
-  }>;
-  viewHistory: Array<{
-    date: string;
-    views: number;
-  }>;
-};
+import type { Article, Subscriber } from '@/lib/data-types';
 
 type DashboardStats = {
   totalArticles: number;
@@ -81,26 +50,23 @@ export default function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Récupérer les articles via l'API route sécurisée
       const articlesResponse = await fetch('/api/admin/articles');
       if (!articlesResponse.ok) {
         throw new Error('Failed to fetch articles');
       }
-      const articlesData = await articlesResponse.json();
+      const articlesData: Article[] = await articlesResponse.json();
       setArticles(articlesData);
 
-      // Récupérer les stats des abonnés
       const subscribersResponse = await fetch('/api/subscribers');
       if (!subscribersResponse.ok) {
         throw new Error('Failed to fetch subscribers');
       }
-      const subscribersData = await subscribersResponse.json();
+      const subscribersData: Subscriber[] = await subscribersResponse.json();
 
-      // Calculer les statistiques
-      const totalViews = articlesData.reduce((sum: number, article: Article) => sum + article.views, 0);
-      const totalComments = articlesData.reduce((sum: number, article: Article) => sum + (article.comments?.length || 0), 0);
-      const publishedArticles = articlesData.filter((article: Article) => article.status === 'published').length;
-      const activeSubscribers = subscribersData.filter((sub: any) => sub.status === 'active').length;
+      const totalViews = articlesData.reduce((sum, article) => sum + article.views, 0);
+      const totalComments = articlesData.reduce((sum, article) => sum + (article.comments?.length || 0), 0);
+      const publishedArticles = articlesData.filter((article) => article.status === 'published').length;
+      const activeSubscribers = subscribersData.filter((sub) => sub.status === 'active').length;
 
       setStats({
         totalArticles: articlesData.length,
