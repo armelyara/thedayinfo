@@ -1,3 +1,4 @@
+
 import { getPublishedArticles, seedInitialArticles} from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -70,7 +71,7 @@ const MissingIndexError = ({ message }: { message: string }) => {
 export default async function Home() {
   // Seed initial articles if the collection is empty.
   // In a real app, this might be a one-time script.
-  //await seedInitialArticles();
+  // await seedInitialArticles();
 
   const articlesResult = await getPublishedArticles();
 
