@@ -20,6 +20,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import { getProfileAction, updateProfileAction } from './actions';
 import { Profile } from '@/lib/data';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Le nom doit comporter au moins 2 caractères." }),
@@ -88,6 +90,13 @@ export default function ProfilePage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8">
+        <Link 
+          href="/admin" 
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4 transition-colors"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour au Tableau de Bord
+        </Link>
         <h1 className="text-4xl font-headline font-bold">Modifier votre Profil</h1>
         <p className="text-muted-foreground mt-2">
           Ces informations seront affichées sur la page "À propos".

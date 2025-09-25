@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Users, Mail, UserX, Download } from 'lucide-react';
+import { Users, Mail, UserX, Download, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 type Subscriber = {
   id: string;
@@ -118,12 +119,21 @@ export default function SubscribersPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Abonnés Newsletter</h1>
-        <Button onClick={exportSubscribers} variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          Exporter CSV
-        </Button>
+      <div className="mb-8">
+        <Link 
+            href="/admin" 
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4 transition-colors"
+        >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour au Tableau de Bord
+        </Link>
+        <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold">Abonnés Newsletter</h1>
+            <Button onClick={exportSubscribers} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Exporter CSV
+            </Button>
+        </div>
       </div>
 
       {/* Statistiques */}

@@ -15,7 +15,7 @@ import {
     addDoc,
     Timestamp as ClientTimestamp,
 } from 'firebase/firestore';
-import { db } from './firebase-client';
+import { db } from '@/lib/firebase-client';
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp, FieldValue } from 'firebase-admin/firestore';
 import { initializeFirebaseAdmin } from './auth';
 

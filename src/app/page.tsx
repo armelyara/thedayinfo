@@ -4,6 +4,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
 
+
 // Type local pour éviter l'import dans les composants clients
 type Article = {
   slug: string;
