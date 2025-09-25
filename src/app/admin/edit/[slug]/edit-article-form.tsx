@@ -235,7 +235,12 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
           )}
         />
         
-        <Button type="submit">Mettre à Jour l'Article</Button>
+        <div className="flex gap-2">
+          <Button type="submit">Mettre à Jour l'Article</Button>
+          <Button type="button" variant="outline" onClick={() => router.back()}>
+            Annuler
+          </Button>
+        </div>
       </form>
     </Form>
   );
