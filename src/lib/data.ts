@@ -140,12 +140,10 @@ export async function getAllArticles(): Promise<Article[]> {
 export async function getPublishedArticles(): Promise<Article[] | { error: string; message: string }> {
     try {
         const articlesCollection = collection(clientDb, 'articles');
-        const now = new Date();
   
         const q = query(
             articlesCollection,
             where('status', '==', 'published'),
-            where('publishedAt', '<=', now),
             orderBy('publishedAt', 'desc')
         );
   
