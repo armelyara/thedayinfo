@@ -85,7 +85,9 @@ const SidebarProvider = React.forwardRef<
         }
 
         // This sets the cookie to keep the sidebar state.
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        if (typeof document !== 'undefined') {
+          document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        }
       },
       [setOpenProp, open]
     )
@@ -180,21 +182,6 @@ const Sidebar = React.forwardRef<
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
     
-    const [isClient, setIsClient] = React.useState(false);
-    React.useEffect(() => {
-        setIsClient(true);
-    }, [])
-
-    if (!isClient) {
-      return (
-        <div className="hidden md:block">
-            <div className="w-[--sidebar-width] h-svh p-2">
-                <Skeleton className="w-full h-full" />
-            </div>
-        </div>
-      );
-    }
-
     if (collapsible === "none") {
       return (
         <div
@@ -209,7 +196,8 @@ const Sidebar = React.forwardRef<
         </div>
       )
     }
-
+    
+    // On mobile, use the sheet component
     if (isMobile) {
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
@@ -230,6 +218,7 @@ const Sidebar = React.forwardRef<
       )
     }
 
+    // On desktop
     return (
       <div
         ref={ref}
@@ -779,3 +768,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+  
