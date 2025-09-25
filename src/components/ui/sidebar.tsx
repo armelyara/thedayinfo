@@ -186,7 +186,13 @@ const Sidebar = React.forwardRef<
     }, [])
 
     if (!isClient) {
-      return null;
+      return (
+        <div className="hidden md:block">
+            <div className="w-[--sidebar-width] h-svh p-2">
+                <Skeleton className="w-full h-full" />
+            </div>
+        </div>
+      );
     }
 
     if (collapsible === "none") {
@@ -773,5 +779,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    
