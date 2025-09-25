@@ -106,7 +106,7 @@ Se désabonner : ${process.env.NEXT_PUBLIC_SITE_URL}/unsubscribe
     // Envoyer l'email à tous les abonnés
     const emailPromises = activeSubscribers.map(subscriber => 
       resend.emails.send({
-        from: 'The Day Info <noreply@votredomaine.com>', // Changez par votre domaine vérifié
+        from: 'The Day Info <armelyara@thedayinfo.com>',
         to: subscriber.email,
         subject: subject,
         html: htmlContent,

@@ -13,11 +13,10 @@ import {
     setDoc,
     deleteDoc,
     addDoc,
-    Timestamp,
-    FieldValue
+    Timestamp as ClientTimestamp,
 } from 'firebase/firestore';
 import { db as clientDb } from './firebase-client'; // SDK Client
-import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore'; // SDK Admin
+import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp, FieldValue } from 'firebase-admin/firestore'; // SDK Admin
 import { initializeFirebaseAdmin } from './auth';
 
 // Data Types
@@ -83,7 +82,7 @@ const convertDocToArticle = (doc: any): Article => {
     
     const toISOString = (timestamp: any) => {
         if (!timestamp) return new Date().toISOString();
-        if (timestamp instanceof Timestamp) {
+        if (timestamp instanceof ClientTimestamp || timestamp instanceof AdminTimestamp) {
             return timestamp.toDate().toISOString();
         }
         return new Date(timestamp).toISOString();
@@ -109,7 +108,7 @@ const convertDocToSubscriber = (doc: any): Subscriber => {
     const data = doc.data();
     const toISOString = (timestamp: any) => {
         if (!timestamp) return new Date().toISOString();
-        if (timestamp instanceof Timestamp) {
+        if (timestamp instanceof ClientTimestamp || timestamp instanceof AdminTimestamp) {
             return timestamp.toDate().toISOString();
         }
         return new Date(timestamp).toISOString();
@@ -314,7 +313,7 @@ export async function addArticle(article: {
         author: article.author,
         category: article.category,
         content: article.content,
-        publishedAt: Timestamp.fromDate(publishedAt || now),
+        publishedAt: AdminTimestamp.fromDate(publishedAt || now),
         status: isScheduled ? 'scheduled' : 'published',
         image: {
             id: String(Date.now()),
@@ -328,7 +327,7 @@ export async function addArticle(article: {
     };
     
     if (isScheduled && scheduledDate) {
-        dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
+        dataForFirestore.scheduledFor = AdminTimestamp.fromDate(scheduledDate);
     }
 
     const docRef = articlesCollection.doc(slug);
@@ -361,7 +360,6 @@ export async function updateArticle(
     const db = await initializeAdminDb();
     const docRef = db.collection('articles').doc(slug);
 
-    // Fetch the current document to merge data correctly
     const currentDoc = await docRef.get();
     if (!currentDoc.exists) {
         throw new Error("Article not found");
@@ -370,22 +368,20 @@ export async function updateArticle(
     const dataForFirestore: { [key: string]: any } = { ...data };
 
     if (data.publishedAt) {
-        dataForFirestore.publishedAt = Timestamp.fromDate(new Date(data.publishedAt));
+        dataForFirestore.publishedAt = AdminTimestamp.fromDate(new Date(data.publishedAt));
     }
 
     if (data.hasOwnProperty('scheduledFor')) {
         const scheduledDate = data.scheduledFor;
         if (scheduledDate && scheduledDate instanceof Date) {
             const now = new Date();
-            dataForFirestore.scheduledFor = Timestamp.fromDate(scheduledDate);
-            dataForFirestore.publishedAt = Timestamp.fromDate(scheduledDate);
+            dataForFirestore.scheduledFor = AdminTimestamp.fromDate(scheduledDate);
+            dataForFirestore.publishedAt = AdminTimestamp.fromDate(scheduledDate);
             dataForFirestore.status = scheduledDate > now ? 'scheduled' : 'published';
         } else {
-            // Import FieldValue from the admin SDK
-            const { FieldValue } = await import('firebase-admin/firestore');
             dataForFirestore.scheduledFor = FieldValue.delete();
             dataForFirestore.status = 'published';
-            dataForFirestore.publishedAt = Timestamp.now();
+            dataForFirestore.publishedAt = AdminTimestamp.now();
         }
     }
     
@@ -402,7 +398,6 @@ export async function updateArticle(
     
     const updatedDocSnap = await docRef.get();
     
-    // We can't use convertDocToArticle on the admin SDK doc
     const updatedData = updatedDocSnap.data()!;
     const updatedArticle = {
         slug: updatedDocSnap.id,
@@ -419,7 +414,6 @@ export async function updateArticle(
         viewHistory: updatedData.viewHistory,
     } as Article;
     
-    // Envoyer newsletter si article publié
     if (updatedArticle.status === 'published') {
         await sendNewsletterNotification(updatedArticle, true);
     }
@@ -613,8 +607,8 @@ export async function seedInitialArticles() {
                 const { slug, ...data } = article;
                 const dataForFirestore = {
                     ...data,
-                    publishedAt: Timestamp.fromDate(new Date(data.publishedAt)),
-                    viewHistory: data.viewHistory.map(vh => ({...vh, date: Timestamp.fromDate(new Date(vh.date))}))
+                    publishedAt: AdminTimestamp.fromDate(new Date(data.publishedAt)),
+                    viewHistory: data.viewHistory.map(vh => ({...vh, date: AdminTimestamp.fromDate(new Date(vh.date))}))
                 };
                 batch.set(docRef, dataForFirestore);
             });

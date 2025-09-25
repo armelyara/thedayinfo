@@ -15,22 +15,19 @@
 # Production
 /build
 
-# d.ts files
-next-env.d.ts
-
 # Vercel
 .vercel
 
-# Misc
+# Other
 .DS_Store
 *.pem
 
-# Local Environment Variables
+# Environment variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*.local
+
+# Project IDX configuration
+/.idx/
 
 # Log files
 npm-debug.log*
@@ -39,12 +36,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Editor directories and files
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.idea
+.vscode
 *.suo
 *.ntvs*
 *.njsproj
