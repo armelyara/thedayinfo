@@ -16,7 +16,8 @@ import {
   UserCheck,
   Calendar,
   BarChart3,
-  Settings
+  Settings,
+  UserCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -142,10 +143,10 @@ export default function AdminDashboard() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Link href="/admin/subscribers">
+          <Link href="/admin/profile">
             <Button variant="outline" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Gérer les Abonnés
+              <UserCircle className="w-4 h-4" />
+              Modifier le Profil
             </Button>
           </Link>
           <Link href="/admin/create-article">

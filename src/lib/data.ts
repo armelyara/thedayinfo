@@ -15,11 +15,17 @@ import {
     addDoc,
     Timestamp as ClientTimestamp,
 } from 'firebase/firestore';
-import { db, initializeFirebaseClient } from './firebase-client';
+import { db } from './firebase-client';
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp, FieldValue } from 'firebase-admin/firestore';
 import { initializeFirebaseAdmin } from './auth';
 
 // Data Types
+export type Profile = {
+    name: string;
+    biography: string;
+    imageUrl: string;
+};
+
 export type Comment = {
     id: number;
     author: string;
@@ -121,7 +127,6 @@ const convertDocToSubscriber = (doc: any): Subscriber => {
 
 export async function getAllArticles(): Promise<Article[]> {
     try {
-        await initializeFirebaseClient();
         if (!db) return [];
         
         const articlesCollection = collection(db, 'articles');
@@ -136,7 +141,6 @@ export async function getAllArticles(): Promise<Article[]> {
 
 export async function getPublishedArticles(): Promise<Article[] | { error: string; message: string }> {
     try {
-        await initializeFirebaseClient();
         if (!db) throw new Error('Firebase client db non initialisé');
         
         const articlesCollection = collection(db, 'articles');
@@ -144,7 +148,8 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
 
         const q = query(
             articlesCollection,
-            where('status', '==', 'published'),
+            where('status', '!=', 'scheduled'),
+            orderBy('status'), // This is needed for the inequality
             orderBy('publishedAt', 'desc')
         );
         
@@ -174,7 +179,6 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
     try {
-        await initializeFirebaseClient();
         if (!db) return null;
         
         const docRef = doc(db, 'articles', slug);
@@ -198,7 +202,6 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
 
 export async function getArticlesByCategory(categorySlug: string, categories: Category[]): Promise<Article[]> {
     try {
-        await initializeFirebaseClient();
         if (!db) return [];
         
         const category = categories.find(c => c.slug === categorySlug);
@@ -231,15 +234,16 @@ export async function searchArticles(queryText: string): Promise<Article[]> {
         return [];
     }
     
+    const plainTextContent = (html: string) => html.replace(/<[^>]*>?/gm, '');
+
     return articlesResult.filter(article => 
         article.title.toLowerCase().includes(queryText.toLowerCase()) ||
-        article.content.toLowerCase().includes(queryText.toLowerCase())
+        plainTextContent(article.content).toLowerCase().includes(queryText.toLowerCase())
     );
 }
 
 export async function updateArticleComments(slug: string, comments: Comment[]): Promise<boolean> {
     try {
-        await initializeFirebaseClient();
         if (!db) return false;
         
         const docRef = doc(db, 'articles', slug);
@@ -439,7 +443,6 @@ export async function addSubscriber(subscriberData: {
       categories: string[];
     };
 }): Promise<Subscriber> {
-    await initializeFirebaseClient();
     if (!db) throw new Error('Firebase client non initialisé');
     
     const subscribersCollection = collection(db, 'subscribers');
@@ -470,7 +473,6 @@ export async function addSubscriber(subscriberData: {
 
 export async function getSubscribers(): Promise<Subscriber[]> {
     try {
-        await initializeFirebaseClient();
         if (!db) return [];
         
         const subscribersCollection = collection(db, 'subscribers');
@@ -486,7 +488,6 @@ export async function updateSubscriberStatus(
     subscriberId: string, 
     status: 'active' | 'unsubscribed'
 ): Promise<void> {
-    await initializeFirebaseClient();
     if (!db) throw new Error('Firebase client non initialisé');
     
     const docRef = doc(db, 'subscribers', subscriberId);
@@ -494,7 +495,6 @@ export async function updateSubscriberStatus(
 }
 
 export async function deleteSubscriber(subscriberId: string): Promise<void> {
-    await initializeFirebaseClient();
     if (!db) throw new Error('Firebase client non initialisé');
     
     const docRef = doc(db, 'subscribers', subscriberId);
@@ -546,4 +546,56 @@ export async function getAdminArticles(): Promise<Article[]> {
         } as Article;
     };
     return snapshot.docs.map(convertAdminDocToArticle);
+}
+
+// Profile Data Functions
+const DEFAULT_PROFILE: Profile = {
+    name: 'Armel Yara',
+    biography: `
+      Bienvenue ! Je suis Armel Yara, developer advocate avec plus de 5 ans d'expérience dans les domaines de la science des données, du web,
+      des applications mobiles, du machine learning et deep learning. 
+      <br/><br/>
+      Mon rôle est de traduire les besoins du client en solution numérique. 
+      <br/><br/>
+      Bref, je passe mon temps à résoudre des problèmes🤔. 
+      <br/><br/>
+      J'ai crée The Day Info dans le but de partager mon savoir-faire acquis lors de la réalisation de mes projets. 
+      Cela me permet de cronstruit un pont entre les développeurs et les entreprises/particuliers afin de rendre accessible l'information à la majorité du publique.
+      <br/><br/>
+      La compréhension par un large éventail de la population, pour mart, des concepts fondamentaux de l'intelligence artificielle, permettra de s'approprier ce domaine.
+      <br/><br/>
+      Merci de vous joindre à moi dans cette aventure. <br/><br/>
+      J'espère que mes articles vous inspireront, 
+      éveilleront votre curiosité et ajouteront quelque chose de spécial à votre journée.
+    `,
+    imageUrl: 'https://picsum.photos/seed/author-pic/200/200'
+};
+
+export async function getProfile(): Promise<Profile> {
+    try {
+        if (!db) return DEFAULT_PROFILE;
+        const docRef = doc(db, 'site-config', 'profile');
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            return docSnap.data() as Profile;
+        } else {
+            // If profile doesn't exist, create it with default data
+            await setDoc(docRef, DEFAULT_PROFILE);
+            return DEFAULT_PROFILE;
+        }
+    } catch (error) {
+        console.error("Error fetching profile:", error);
+        return DEFAULT_PROFILE;
+    }
+}
+
+export async function updateProfile(data: Partial<Profile>): Promise<Profile> {
+    const db = await initializeAdminDb();
+    const docRef = db.collection('site-config').doc('profile');
+    
+    await docRef.set(data, { merge: true });
+    
+    const updatedDoc = await docRef.get();
+    return updatedDoc.data() as Profile;
 }

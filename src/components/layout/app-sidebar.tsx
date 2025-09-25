@@ -17,6 +17,7 @@ import * as Lucide from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { ArrowRight } from 'lucide-react';
+import { getProfile, type Profile } from '@/lib/data';
 
 type Category = {
   name: string;
@@ -95,12 +96,58 @@ const categoryIcons: { [key: string]: keyof typeof Lucide } = {
     // Ajoutez d'autres icônes pour d'autres catégories ici
 };
 
-export function AppSidebar({ categories }: { categories: Category[] }) {
-  const authorName = 'L\'Auteur';
-  const shortBio = `
-    Écrivain passionné dédié à l'exploration de la technologie, de la science et de la culture.
-  `;
+function AuthorProfile() {
+  const [profile, setProfile] = useState<Profile | null>(null);
 
+  useEffect(() => {
+    getProfile().then(setProfile);
+  }, []);
+
+  if (!profile) {
+    // Affichez un squelette ou un état de chargement
+    return (
+      <div className="flex flex-col items-center text-center p-2">
+        <div className="h-20 w-20 rounded-full bg-muted animate-pulse mb-3"></div>
+        <div className="h-4 w-24 rounded bg-muted animate-pulse mb-2"></div>
+        <div className="h-3 w-32 rounded bg-muted animate-pulse mb-3"></div>
+        <div className="h-8 w-full rounded bg-muted animate-pulse"></div>
+      </div>
+    );
+  }
+  
+  const shortBio = profile.biography
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]*>?/gm, '')
+    .substring(0, 100);
+
+
+  return (
+    <div className="flex flex-col items-center text-center p-2">
+      <Avatar className="h-20 w-20 mx-auto mb-3 border-4 border-primary/20">
+        <AvatarImage 
+          src={profile.imageUrl}
+          alt={`Un portrait de ${profile.name}`}
+          data-ai-hint="portrait auteur"
+        />
+        <AvatarFallback>
+          <Lucide.User className="h-10 w-10 text-muted-foreground" />
+        </AvatarFallback>
+      </Avatar>
+      <h3 className="text-md font-headline font-bold">{profile.name}</h3>
+      <p className="text-xs text-muted-foreground mt-1 mb-3">
+        Developer Advocate
+      </p>
+      <Link href="/about" className="w-full">
+        <Button variant="secondary" size="sm" className="w-full">
+          Lire la suite
+          <ArrowRight className="ml-1 h-3 w-3" />
+        </Button>
+      </Link>
+    </div>
+  );
+}
+
+export function AppSidebar({ categories }: { categories: Category[] }) {
   return (
     <>
       <SidebarHeader>
@@ -114,28 +161,7 @@ export function AppSidebar({ categories }: { categories: Category[] }) {
           <SearchInput />
         </SidebarGroup>
         <SidebarGroup>
-          <div className="flex flex-col items-center text-center p-2">
-            <Avatar className="h-20 w-20 mx-auto mb-3 border-4 border-primary/20">
-              <AvatarImage 
-                src="https://picsum.photos/seed/author-pic/150/150"
-                alt={`Un portrait de ${authorName}`}
-                data-ai-hint="portrait auteur"
-              />
-              <AvatarFallback>
-                <Lucide.User className="h-10 w-10 text-muted-foreground" />
-              </AvatarFallback>
-            </Avatar>
-            <h3 className="text-md font-headline font-bold">Armel Yara</h3>
-            <p className="text-xs text-muted-foreground mt-1 mb-3">
-              {shortBio}
-            </p>
-            <Link href="/about" className="w-full">
-              <Button variant="secondary" size="sm" className="w-full">
-                Lire la suite
-                <ArrowRight className="ml-1 h-3 w-3" />
-              </Button>
-            </Link>
-          </div>
+          <AuthorProfile />
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Catégories</SidebarGroupLabel>
