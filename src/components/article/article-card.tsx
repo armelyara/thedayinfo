@@ -39,6 +39,9 @@ type ArticleCardProps = {
 };
 
 export function ArticleCard({ article }: ArticleCardProps) {
+  // Supprimer les balises HTML du contenu pour l'aperçu
+  const plainTextContent = article.content.replace(/<[^>]*>?/gm, '');
+
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
       <CardHeader className="p-0">
@@ -63,7 +66,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
           </h3>
         </Link>
         <p className="flex-1 text-muted-foreground line-clamp-3">
-          {article.content.substring(0, 120)}...
+          {plainTextContent.substring(0, 120)}...
         </p>
       </CardContent>
       
