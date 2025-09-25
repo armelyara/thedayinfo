@@ -3,9 +3,9 @@ import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/a
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-let app;
-let db;
-let auth;
+let app: ReturnType<typeof getApp> | undefined;
+let db: ReturnType<typeof getFirestore> | undefined;
+let auth: ReturnType<typeof getAuth> | undefined;
 
 // Helper function to fetch config
 async function getFirebaseConfig(): Promise<FirebaseOptions | null> {
@@ -44,27 +44,6 @@ export async function initializeFirebaseClient() {
   auth = getAuth(app);
 }
 
-// Export a getter for the services that ensures initialization
-function getDb() {
-  if (!db) throw new Error("Firestore is not initialized. Call initializeFirebaseClient first.");
-  return db;
-}
-
-function getAuthInstance() {
-  if (!auth) throw new Error("Auth is not initialized. Call initializeFirebaseClient first.");
-  return auth;
-}
-
-function getClientApp() {
-    if (!app) throw new Error("Firebase App is not initialized. Call initializeFirebaseClient first.");
-    return app;
-}
-
-
 // We will not export db and auth directly anymore.
-// Instead, we export the app instance and a function to get the services.
-export { 
-  getClientApp as app,
-  getDb as db,
-  getAuthInstance as auth
-};
+// Instead, we export them as they are, but their initialization is now async.
+export { app, db, auth };
