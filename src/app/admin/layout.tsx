@@ -4,7 +4,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { app } from '@/lib/firebase-client';
+import { initializeFirebaseClient } from '@/lib/firebase-client';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 
@@ -34,10 +34,21 @@ export default function AdminLayout({
   children: React.ReactNode;
 }>) {
   const router = useRouter();
-  const auth = getAuth(app);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [firebaseInitialized, setFirebaseInitialized] = useState(false);
 
   useEffect(() => {
+    async function init() {
+        await initializeFirebaseClient();
+        setFirebaseInitialized(true);
+    }
+    init();
+  }, []);
+
+  useEffect(() => {
+    if (!firebaseInitialized) return;
+
+    const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, user => {
         // We also need to check for the session cookie.
         // A user object existing doesn't mean they have an active admin session.
@@ -58,9 +69,9 @@ export default function AdminLayout({
     });
 
     return () => unsubscribe();
-  }, [auth, router]);
+  }, [firebaseInitialized, router]);
   
-  if (isAuthenticated === null) {
+  if (isAuthenticated === null || !firebaseInitialized) {
       return (
           <div className="flex h-screen items-center justify-center">
               <p>Vérification de l'authentification...</p>
@@ -87,5 +98,3 @@ export default function AdminLayout({
     </Suspense>
   );
 }
-
-    

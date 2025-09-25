@@ -16,9 +16,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { app } from '@/lib/firebase-client';
+import { initializeFirebaseClient } from '@/lib/firebase-client';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -37,7 +37,15 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
-  const auth = getAuth(app);
+  const [firebaseInitialized, setFirebaseInitialized] = useState(false);
+
+  useEffect(() => {
+    async function init() {
+      await initializeFirebaseClient();
+      setFirebaseInitialized(true);
+    }
+    init();
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -48,9 +56,19 @@ export default function LoginPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!firebaseInitialized) {
+        toast({
+            variant: 'destructive',
+            title: 'Initialisation en cours',
+            description: 'Veuillez patienter pendant que Firebase est initialisé.',
+        });
+        return;
+    }
+    
     setError(null);
     startTransition(async () => {
       try {
+        const auth = getAuth();
         const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
         const idToken = await userCredential.user.getIdToken();
         
@@ -90,6 +108,9 @@ export default function LoginPage() {
             case 'auth/user-disabled':
               errorMessage = 'Ce compte utilisateur a été désactivé.';
               break;
+            case 'auth/invalid-api-key':
+              errorMessage = 'Clé d\'API Firebase invalide. La configuration a peut-être échoué.';
+              break;
             default:
               errorMessage = `Une erreur s'est produite: ${e.message}`;
               break;
@@ -127,7 +148,7 @@ export default function LoginPage() {
                         type="email"
                         placeholder="admin@example.com"
                         {...field}
-                        disabled={isPending}
+                        disabled={isPending || !firebaseInitialized}
                       />
                     </FormControl>
                     <FormMessage />
@@ -146,7 +167,7 @@ export default function LoginPage() {
                           type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
                           {...field}
-                          disabled={isPending}
+                          disabled={isPending || !firebaseInitialized}
                           className="pr-10"
                         />
                       </FormControl>
@@ -167,8 +188,8 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending ? 'Connexion en cours...' : 'Se Connecter'}
+              <Button type="submit" className="w-full" disabled={isPending || !firebaseInitialized}>
+                {isPending ? 'Connexion en cours...' : !firebaseInitialized ? 'Initialisation...' : 'Se Connecter'}
               </Button>
             </form>
           </Form>
@@ -177,5 +198,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
