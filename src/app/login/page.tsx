@@ -129,9 +129,9 @@ export default function LoginPage() {
     <div className="flex justify-center items-center py-12">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Connexion Administrateur</CardTitle>
+          <CardTitle>Admin Login</CardTitle>
           <CardDescription>
-            Entrez vos identifiants pour accéder au tableau de bord.
+            Please, enter your email and password to login.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -160,7 +160,7 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mot de passe</FormLabel>
+                    <FormLabel>Password</FormLabel>
                     <div className="relative">
                       <FormControl>
                         <Input
@@ -189,7 +189,7 @@ export default function LoginPage() {
                 )}
               />
               <Button type="submit" className="w-full" disabled={isPending || !firebaseInitialized}>
-                {isPending ? 'Connexion en cours...' : !firebaseInitialized ? 'Initialisation...' : 'Se Connecter'}
+                {isPending ? 'Connexion en cours...' : !firebaseInitialized ? 'Initialisation...' : 'Login'}
               </Button>
             </form>
           </Form>

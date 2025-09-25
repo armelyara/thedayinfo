@@ -23,7 +23,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Bold,
@@ -32,16 +31,21 @@ import {
   List,
   ListOrdered,
   Link,
-  Image,
+  Image as ImageIcon, // Renamed to avoid conflict with Image component
   Type,
   Undo,
   Redo,
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Upload
+  Upload,
+  Palette,
+  CaseSensitive,
+  CaseUpper,
+  CaseLower
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 interface RichTextEditorProps {
   value: string;
@@ -50,6 +54,34 @@ interface RichTextEditorProps {
   className?: string;
   height?: number;
 }
+
+// Simple color picker component
+const ColorPicker = ({ command }: { command: 'foreColor' | 'backColor' }) => {
+  const colors = [
+    '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF',
+    '#808080', '#C0C0C0', '#800000', '#008000', '#000080', '#808000', '#800080', '#008080'
+  ];
+
+  const handleColorChange = (color: string) => {
+    document.execCommand(command, false, color);
+  };
+
+  return (
+    <div className="grid grid-cols-8 gap-1 p-2">
+      {colors.map(color => (
+        <button
+          key={color}
+          type="button"
+          className="h-6 w-6 rounded-sm border"
+          style={{ backgroundColor: color }}
+          onClick={() => handleColorChange(color)}
+          aria-label={`Set color to ${color}`}
+        />
+      ))}
+    </div>
+  );
+};
+
 
 export function RichTextEditor({
   value,
@@ -69,62 +101,34 @@ export function RichTextEditor({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Synchroniser le contenu sans causer de re-render intempestifs
-useEffect(() => {
-  if (editorRef.current && editorRef.current.innerHTML !== value) {
-    const selection = window.getSelection();
-    let range = null;
-    
-    // Vérifier s'il y a une sélection avant d'essayer d'accéder au range
-    try {
-      if (selection && selection.rangeCount > 0) {
-        range = selection.getRangeAt(0);
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      const selection = window.getSelection();
+      let range = null;
+      
+      try {
+        if (selection && selection.rangeCount > 0) {
+          range = selection.getRangeAt(0);
+        }
+      } catch (e) {
+        // Ignorer l'erreur si pas de range disponible
       }
-    } catch (e) {
-      // Ignorer l'erreur si pas de range disponible
+      
+      const isEditorFocused = document.activeElement === editorRef.current || 
+        editorRef.current?.contains(document.activeElement);
+      
+      if (!isEditorFocused) {
+        editorRef.current.innerHTML = value;
+      }
     }
-    
-    const isEditorFocused = document.activeElement === editorRef.current || 
-      editorRef.current?.contains(document.activeElement);
-    
-    if (!isEditorFocused) {
-      editorRef.current.innerHTML = value;
-    }
-  }
-}, [value]);
+  }, [value]);
 
   const execCommand = useCallback((command: string, value?: string) => {
     if (!editorRef.current) return;
     
     editorRef.current.focus();
     
-    // Utiliser les API modernes quand possible
-    if (command === 'bold') {
-      document.execCommand('bold', false);
-    } else if (command === 'italic') {
-      document.execCommand('italic', false);
-    } else if (command === 'underline') {
-      document.execCommand('underline', false);
-    } else if (command === 'insertUnorderedList') {
-      document.execCommand('insertUnorderedList', false);
-    } else if (command === 'insertOrderedList') {
-      document.execCommand('insertOrderedList', false);
-    } else if (command === 'justifyLeft') {
-      document.execCommand('justifyLeft', false);
-    } else if (command === 'justifyCenter') {
-      document.execCommand('justifyCenter', false);
-    } else if (command === 'justifyRight') {
-      document.execCommand('justifyRight', false);
-    } else if (command === 'fontSize') {
-      document.execCommand('fontSize', false, value);
-    } else if (command === 'fontName') {
-      document.execCommand('fontName', false, value);
-    } else if (command === 'insertHTML') {
-      document.execCommand('insertHTML', false, value);
-    } else if (command === 'undo') {
-      document.execCommand('undo', false);
-    } else if (command === 'redo') {
-      document.execCommand('redo', false);
-    }
+    document.execCommand(command, false, value);
     
     // Mettre à jour le contenu après l'exécution
     setTimeout(() => {
@@ -134,6 +138,19 @@ useEffect(() => {
     }, 10);
   }, [onChange]);
 
+  const changeCase = (caseType: 'upper' | 'lower') => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    const selectedText = range.toString();
+
+    if (selectedText) {
+      const newText = caseType === 'upper' ? selectedText.toUpperCase() : selectedText.toLowerCase();
+      document.execCommand('insertText', false, newText);
+    }
+  };
+
   const handleContentChange = useCallback(() => {
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
@@ -141,31 +158,13 @@ useEffect(() => {
   }, [onChange]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // Gérer les raccourcis clavier
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
-        case 'b':
-          e.preventDefault();
-          execCommand('bold');
-          break;
-        case 'i':
-          e.preventDefault();
-          execCommand('italic');
-          break;
-        case 'u':
-          e.preventDefault();
-          execCommand('underline');
-          break;
-        case 'z':
-          if (!e.shiftKey) {
-            e.preventDefault();
-            execCommand('undo');
-          }
-          break;
-        case 'y':
-          e.preventDefault();
-          execCommand('redo');
-          break;
+        case 'b': e.preventDefault(); execCommand('bold'); break;
+        case 'i': e.preventDefault(); execCommand('italic'); break;
+        case 'u': e.preventDefault(); execCommand('underline'); break;
+        case 'z': if (!e.shiftKey) { e.preventDefault(); execCommand('undo'); } break;
+        case 'y': e.preventDefault(); execCommand('redo'); break;
       }
     }
   }, [execCommand]);
@@ -206,8 +205,6 @@ useEffect(() => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      // En production, vous uploaderiez vers un service comme Cloudinary
-      // Ici, on utilise FileReader pour une démo
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
@@ -223,9 +220,9 @@ useEffect(() => {
     <TooltipProvider>
       <div className={cn('border rounded-lg overflow-hidden', className)}>
         {/* Barre d'outils */}
-        <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1">
+        <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
           {/* Styles de police */}
-          <div className="flex items-center gap-1 mr-2">
+          <div className="flex items-center gap-1">
             <Select onValueChange={(value) => execCommand('fontName', value)}>
               <SelectTrigger className="h-8 w-32">
                 <SelectValue placeholder="Police" />
@@ -237,12 +234,13 @@ useEffect(() => {
                 <SelectItem value="'Courier New', monospace">Courier</SelectItem>
                 <SelectItem value="Helvetica, sans-serif">Helvetica</SelectItem>
                 <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
+                <SelectItem value="'Trebuchet MS', sans-serif">Trebuchet MS</SelectItem>
               </SelectContent>
             </Select>
 
             <Select onValueChange={(value) => execCommand('fontSize', value)}>
               <SelectTrigger className="h-8 w-16">
-                <SelectValue placeholder="12" />
+                <SelectValue placeholder="Taille" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="1">8pt</SelectItem>
@@ -257,240 +255,62 @@ useEffect(() => {
           </div>
 
           <div className="w-px h-6 bg-border mx-1" />
+          
+          {/* Couleurs */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Palette className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <div className="p-2">
+                <p className="text-xs font-medium text-muted-foreground p-1">Couleur du texte</p>
+                <ColorPicker command="foreColor" />
+                <p className="text-xs font-medium text-muted-foreground p-1 mt-2">Couleur de fond</p>
+                <ColorPicker command="backColor" />
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <div className="w-px h-6 bg-border mx-1" />
 
           {/* Formatage de base */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => execCommand('bold')}
-                className="h-8 w-8 p-0"
-              >
-                <Bold className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Gras (Ctrl+B)</p>
-            </TooltipContent>
-          </Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('bold')} className="h-8 w-8 p-0"><Bold className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Gras (Ctrl+B)</p></TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('italic')} className="h-8 w-8 p-0"><Italic className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Italique (Ctrl+I)</p></TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('underline')} className="h-8 w-8 p-0"><Underline className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Souligné (Ctrl+U)</p></TooltipContent></Tooltip>
+          
+          <div className="w-px h-6 bg-border mx-1" />
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => execCommand('italic')}
-                className="h-8 w-8 p-0"
-              >
-                <Italic className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Italique (Ctrl+I)</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => execCommand('underline')}
-                className="h-8 w-8 p-0"
-              >
-                <Underline className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Souligné (Ctrl+U)</p>
-            </TooltipContent>
-          </Tooltip>
+          {/* Changement de casse */}
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => changeCase('upper')} className="h-8 w-8 p-0"><CaseUpper className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Majuscules</p></TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => changeCase('lower')} className="h-8 w-8 p-0"><CaseLower className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Minuscules</p></TooltipContent></Tooltip>
 
           <div className="w-px h-6 bg-border mx-1" />
 
           {/* Alignement */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => execCommand('justifyLeft')}
-                className="h-8 w-8 p-0"
-              >
-                <AlignLeft className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Aligner à gauche</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => execCommand('justifyCenter')}
-                className="h-8 w-8 p-0"
-              >
-                <AlignCenter className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Centrer</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => execCommand('justifyRight')}
-                className="h-8 w-8 p-0"
-              >
-                <AlignRight className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Aligner à droite</p>
-            </TooltipContent>
-          </Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('justifyLeft')} className="h-8 w-8 p-0"><AlignLeft className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Aligner à gauche</p></TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('justifyCenter')} className="h-8 w-8 p-0"><AlignCenter className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Centrer</p></TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('justifyRight')} className="h-8 w-8 p-0"><AlignRight className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Aligner à droite</p></TooltipContent></Tooltip>
 
           <div className="w-px h-6 bg-border mx-1" />
 
           {/* Listes */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => execCommand('insertUnorderedList')}
-                className="h-8 w-8 p-0"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Liste à puces</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => execCommand('insertOrderedList')}
-                className="h-8 w-8 p-0"
-              >
-                <ListOrdered className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Liste numérotée</p>
-            </TooltipContent>
-          </Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('insertUnorderedList')} className="h-8 w-8 p-0"><List className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Liste à puces</p></TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('insertOrderedList')} className="h-8 w-8 p-0"><ListOrdered className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Liste numérotée</p></TooltipContent></Tooltip>
 
           <div className="w-px h-6 bg-border mx-1" />
 
           {/* Liens et images */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={insertLink}
-                className="h-8 w-8 p-0"
-              >
-                <Link className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Ajouter un lien</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                className="h-8 w-8 p-0"
-              >
-                <Upload className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Télécharger une image</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsImageDialogOpen(true)}
-                className="h-8 w-8 p-0"
-              >
-                <Image className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Insérer image par URL</p>
-            </TooltipContent>
-          </Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={insertLink} className="h-8 w-8 p-0"><Link className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Ajouter un lien</p></TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="h-8 w-8 p-0"><Upload className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Télécharger une image</p></TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => setIsImageDialogOpen(true)} className="h-8 w-8 p-0"><ImageIcon className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Insérer image par URL</p></TooltipContent></Tooltip>
 
           <div className="w-px h-6 bg-border mx-1" />
 
           {/* Annuler/Refaire */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => execCommand('undo')}
-                className="h-8 w-8 p-0"
-              >
-                <Undo className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Annuler (Ctrl+Z)</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => execCommand('redo')}
-                className="h-8 w-8 p-0"
-              >
-                <Redo className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Refaire (Ctrl+Y)</p>
-            </TooltipContent>
-          </Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('undo')} className="h-8 w-8 p-0"><Undo className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Annuler (Ctrl+Z)</p></TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('redo')} className="h-8 w-8 p-0"><Redo className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Refaire (Ctrl+Y)</p></TooltipContent></Tooltip>
         </div>
 
         {/* Zone d'édition */}
@@ -507,7 +327,7 @@ useEffect(() => {
 
         {/* Input file caché */}
         <input
-          ref={fileInputRef}
+          ref={fileInputref}
           type="file"
           accept="image/*"
           onChange={handleImageUpload}
@@ -520,35 +340,15 @@ useEffect(() => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Ajouter un lien</DialogTitle>
-            <DialogDescription>
-              Saisissez l'URL et le texte à afficher pour votre lien.
-            </DialogDescription>
+            <DialogDescription>Saisissez l'URL et le texte à afficher pour votre lien.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Texte du lien</label>
-              <Input
-                value={linkText}
-                onChange={(e) => setLinkText(e.target.value)}
-                placeholder="Texte à afficher"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">URL</label>
-              <Input
-                value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
-                placeholder="https://exemple.com"
-              />
-            </div>
+            <div><label className="text-sm font-medium">Texte du lien</label><Input value={linkText} onChange={(e) => setLinkText(e.target.value)} placeholder="Texte à afficher" /></div>
+            <div><label className="text-sm font-medium">URL</label><Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://exemple.com" /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsLinkDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button onClick={handleInsertLink} disabled={!linkUrl || !linkText}>
-              Ajouter le lien
-            </Button>
+            <Button variant="outline" onClick={() => setIsLinkDialogOpen(false)}>Annuler</Button>
+            <Button onClick={handleInsertLink} disabled={!linkUrl || !linkText}>Ajouter le lien</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -558,45 +358,16 @@ useEffect(() => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Insérer une image</DialogTitle>
-            <DialogDescription>
-              Saisissez l'URL de l'image et sa description.
-            </DialogDescription>
+            <DialogDescription>Saisissez l'URL de l'image et sa description.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">URL de l'image</label>
-              <Input
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://exemple.com/image.jpg"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Description (alt text)</label>
-              <Input
-                value={imageAlt}
-                onChange={(e) => setImageAlt(e.target.value)}
-                placeholder="Description de l'image"
-              />
-            </div>
-            {imageUrl && (
-              <div className="border rounded p-2">
-                <img 
-                  src={imageUrl} 
-                  alt={imageAlt} 
-                  className="max-w-full h-auto max-h-32 object-contain"
-                  onError={() => setImageUrl('')}
-                />
-              </div>
-            )}
+            <div><label className="text-sm font-medium">URL de l'image</label><Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://exemple.com/image.jpg" /></div>
+            <div><label className="text-sm font-medium">Description (alt text)</label><Input value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} placeholder="Description de l'image" /></div>
+            {imageUrl && (<div className="border rounded p-2"><img src={imageUrl} alt={imageAlt} className="max-w-full h-auto max-h-32 object-contain" onError={() => setImageUrl('')} /></div>)}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsImageDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button onClick={handleInsertImage} disabled={!imageUrl || !imageAlt}>
-              Insérer l'image
-            </Button>
+            <Button variant="outline" onClick={() => setIsImageDialogOpen(false)}>Annuler</Button>
+            <Button onClick={handleInsertImage} disabled={!imageUrl || !imageAlt}>Insérer l'image</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
