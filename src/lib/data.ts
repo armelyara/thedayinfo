@@ -1,3 +1,4 @@
+
 'use server';
 // src/lib/data.ts
 import { 
@@ -141,10 +142,10 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
         const articlesCollection = collection(clientDb, 'articles');
         const now = new Date();
   
+        // Requête simplifiée pour éviter l'index composite
         const q = query(
             articlesCollection,
-            where('status', '==', 'published'),
-            orderBy('publishedAt', 'desc')
+            where('status', '==', 'published')
         );
   
         const snapshot = await getDocs(q);
@@ -152,6 +153,9 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
         const articles = snapshot.docs
             .map(convertDocToArticle)
             .filter(article => new Date(article.publishedAt) <= now);
+        
+        // Tri en JavaScript côté serveur
+        articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
   
         return articles;
     } catch (error: any) {
@@ -620,3 +624,5 @@ export async function seedInitialArticles() {
         }
     }
 }
+
+    
