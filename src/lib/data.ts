@@ -144,7 +144,7 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
         const q = query(
             articlesCollection,
             where('status', '!=', 'scheduled'),
-            orderBy('status', 'asc'),
+            orderBy('status'), // Firestore requires an orderBy on the same field as the inequality filter.
             orderBy('publishedAt', 'desc')
         );
   
