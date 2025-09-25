@@ -1,5 +1,4 @@
-
-import { getPublishedArticles, seedInitialArticles} from '@/lib/data';
+import { getPublishedArticles} from '@/lib/data';
 import { ArticleCard } from '@/components/article/article-card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
@@ -69,33 +68,50 @@ const MissingIndexError = ({ message }: { message: string }) => {
 };
 
 export default async function Home() {
+  console.log('=== PAGE HOME - DÉBUT CHARGEMENT ===');
+  
   const articlesResult = await getPublishedArticles();
+  console.log('Résultat getPublishedArticles:', articlesResult);
+  console.log('Type du résultat:', typeof articlesResult);
+  console.log('Est un tableau?', Array.isArray(articlesResult));
+  
+  if (Array.isArray(articlesResult)) {
+    console.log('Nombre d\'articles dans le tableau:', articlesResult.length);
+    if (articlesResult.length > 0) {
+      console.log('Premier article:', articlesResult[0]);
+    }
+  }
 
   // Type guard pour vérifier si c'est une erreur
   const isErrorResult = (result: any): result is { error: string; message: string } => {
     return result && typeof result === 'object' && 'error' in result;
   };
 
-  if (isErrorResult(articlesResult) && articlesResult.error === 'missing_index') {
-    return (
-       <div className="container mx-auto px-4 py-8">
-          <header className="mb-12 text-center">
-            <h1 className="text-4xl font-headline font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-              The Day Info
-            </h1>
-            <p className="mt-3 text-lg text-muted-foreground sm:text-xl">
-              Votre dose quotidienne d'information, organisée pour les esprits curieux.
-            </p>
-          </header>
-          <main>
-             <MissingIndexError message={articlesResult.message} />
-          </main>
-       </div>
-    )
+  if (isErrorResult(articlesResult)) {
+    console.log('ERREUR détectée:', articlesResult.error, articlesResult.message);
+    
+    if (articlesResult.error === 'missing_index') {
+      return (
+         <div className="container mx-auto px-4 py-8">
+            <header className="mb-12 text-center">
+              <h1 className="text-4xl font-headline font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
+                The Day Info
+              </h1>
+              <p className="mt-3 text-lg text-muted-foreground sm:text-xl">
+                Votre dose quotidienne d'information, organisée pour les esprits curieux.
+              </p>
+            </header>
+            <main>
+               <MissingIndexError message={articlesResult.message} />
+            </main>
+         </div>
+      )
+    }
   }
 
   // À ce point, TypeScript sait que articlesResult est Article[]
   const articles = articlesResult as Article[];
+  console.log('Articles final pour affichage:', articles.length);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -116,7 +132,10 @@ export default async function Home() {
             ))}
           </div>
         ) : (
-          <p>Aucun article publié pour le moment. Revenez bientôt !</p>
+          <div>
+            <p>Aucun article publié pour le moment. Revenez bientôt !</p>
+            
+          </div>
         )}
       </main>
     </div>

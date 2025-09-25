@@ -1,49 +1,26 @@
-// src/lib/firebase-client.ts
-import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-let app: ReturnType<typeof getApp> | undefined;
-let db: ReturnType<typeof getFirestore> | undefined;
-let auth: ReturnType<typeof getAuth> | undefined;
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
 
-// Helper function to fetch config
-async function getFirebaseConfig(): Promise<FirebaseOptions | null> {
-  try {
-    // This will work on the client-side
-    const res = await fetch('/api/firebase-config');
-    if (!res.ok) {
-      console.error("Failed to fetch Firebase config:", res.status, await res.text());
-      return null;
-    }
-    return res.json();
-  } catch (error) {
-    console.error("Error fetching Firebase config:", error);
-    return null;
-  }
-}
+// Initialize Firebase
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Asynchronously initialize Firebase
-// This function will be called before any Firebase service is used.
+// Initialize services
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Simple function that does nothing - for compatibility
 export async function initializeFirebaseClient() {
-  if (getApps().length) {
-    app = getApp();
-  } else {
-    const firebaseConfig = await getFirebaseConfig();
-    if (firebaseConfig) {
-      app = initializeApp(firebaseConfig);
-    } else {
-      console.error("Firebase initialization failed: No config received.");
-      // Handle the error appropriately in your app
-      // Maybe show an error message to the user
-      return;
-    }
-  }
-  
-  db = getFirestore(app);
-  auth = getAuth(app);
+  return Promise.resolve();
 }
 
-// We will not export db and auth directly anymore.
-// Instead, we export them as they are, but their initialization is now async.
 export { app, db, auth };
