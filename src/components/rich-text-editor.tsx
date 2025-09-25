@@ -327,7 +327,7 @@ export function RichTextEditor({
 
         {/* Input file caché */}
         <input
-          ref={fileInputref}
+          ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={handleImageUpload}
