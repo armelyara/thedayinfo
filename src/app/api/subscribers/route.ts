@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { addSubscriber, getSubscribers } from '@/lib/data';
+import { cookies } from 'next/headers';
+import { verifySession } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
@@ -31,7 +33,16 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
+  const sessionCookie = (await cookies()).get('session')?.value;
+  if (!sessionCookie) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+
   try {
+    const decodedClaims = await verifySession(sessionCookie);
+    if (!decodedClaims) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
     const subscribers = await getSubscribers();
     return NextResponse.json(subscribers);
   } catch (error) {
