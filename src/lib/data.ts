@@ -1,3 +1,4 @@
+'use server';
 // src/lib/data.ts
 import { 
     getFirestore, 
