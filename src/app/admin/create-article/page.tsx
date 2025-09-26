@@ -45,7 +45,7 @@ export default function CreateArticlePage() {
   const [currentDraftId, setCurrentDraftId] = useState<string>();
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [showScheduleConfirm, setShowScheduleConfirm] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'publish' | 'schedule'>('publish');
+  const [pendingAction, setPendingAction] = useState<'publish' | 'schedule' | 'draft'>('publish');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -131,7 +131,7 @@ export default function CreateArticlePage() {
         title: 'Brouillon sauvegardé',
         description: 'Votre article a été sauvegardé en brouillon.',
       });
-      
+      router.push('/admin/drafts');
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -182,7 +182,8 @@ export default function CreateArticlePage() {
       
       // Supprimer le brouillon externe si il existe
       if (currentDraftId) {
-        // deleteDraftAction appelé automatiquement
+        // La logique de suppression du brouillon externe
+        // peut être gérée dans publishFromDraftAction si nécessaire.
       }
       
       const successMessage = pendingAction === 'publish' 
@@ -232,7 +233,7 @@ export default function CreateArticlePage() {
       </header>
       
       {showPublishConfirm && (
-        <Alert className="mb-6 border-orange-200 bg-orange-50">
+        <Alert className="mb-6 border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-500/30">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
             <span>Cette action publiera l'article immédiatement et enverra un email à tous vos abonnés.</span>
@@ -249,11 +250,11 @@ export default function CreateArticlePage() {
       )}
 
       {showScheduleConfirm && (
-        <Alert className="mb-6 border-blue-200 bg-blue-50">
+        <Alert className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-500/30">
           <Clock className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
             <span>
-              L'article sera publié automatiquement le {format(scheduledDate!, 'PPP à HH:mm', { locale: fr })} 
+              L'article sera publié automatiquement le {scheduledDate ? format(scheduledDate, 'PPP à HH:mm', { locale: fr }) : ''} 
               et l'email sera envoyé à ce moment-là.
             </span>
             <div className="flex gap-2 ml-4">
@@ -270,7 +271,7 @@ export default function CreateArticlePage() {
       
       <main>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(confirmAction)} className="space-y-8">
+          <form onSubmit={(e) => { e.preventDefault(); }} className="space-y-8">
             <FormField
               control={form.control}
               name="title"
@@ -284,7 +285,145 @@ export default function CreateArticlePage() {
                 </FormItem>
               )}
             />
-            {/* The rest of the form fields will go here */}
+            
+            <FormField
+              control={form.control}
+              name="author"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Auteur</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Jean Dupont" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Catégorie</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionnez une catégorie" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.slug} value={category.name}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ImageUpload
+                      currentImage={field.value.src}
+                      onImageSelect={(imageData) => {
+                        form.setValue('image.src', imageData.src);
+                        form.setValue('image.alt', form.getValues('title') || 'Image de l\'article');
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="scheduledFor"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Programmer la Publication</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-[240px] pl-3 text-left font-normal',
+                            !field.value && 'text-muted-foreground'
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, 'PPP', { locale: fr })
+                          ) : (
+                            <span>Choisissez une date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date < new Date(new Date().setHours(0, 0, 0, 0))
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="content"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contenu</FormLabel>
+                  <FormControl>
+                    <RichTextEditor
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Racontez votre histoire avec style..."
+                      height={500}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex gap-4">
+                <Button variant="outline" onClick={handleSaveAsDraft}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Sauvegarder en brouillon
+                </Button>
+
+                {scheduledDate ? (
+                    <Button onClick={handleSchedule} className="bg-blue-600 hover:bg-blue-700">
+                        <Clock className="h-4 w-4 mr-2" />
+                        Programmer
+                    </Button>
+                ) : (
+                    <Button onClick={handlePublish}>
+                        <Send className="h-4 w-4 mr-2" />
+                        Publier Maintenant
+                    </Button>
+                )}
+            </div>
+
           </form>
         </Form>
       </main>
