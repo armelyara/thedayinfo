@@ -36,13 +36,18 @@ export type Article = {
     author: string;
     category: string;
     publishedAt: string;
-    status: 'published' | 'scheduled';
+    status: 'drafts' | 'published' | 'scheduled';
     scheduledFor?: string | null;
     image: ArticleImage;
     content: string;
     views: number;
     comments: Comment[];
     viewHistory: ViewHistory[];
+    lastSaved?: string;
+    autoSavedId?: string;
+    isDraft?: boolean;
+    version?: number;
+    originalVersion?: number;
 };
 
 export type Category = {
@@ -60,4 +65,33 @@ export type Subscriber = {
       categories: string[];
     };
 
+};
+
+export type Draft = {
+    autoSaveId: string;
+    title: string;
+    author: string;
+    category: string;
+    content: string;
+    image?: Partial<ArticleImage>;
+    scheduledFor?: string | null;
+    lastSaved: string;
+    createdAt: string;
+    status: 'draft';
+    originalArticleSlug?: string;
+    isEditing?: boolean;
+    editingVersion?: number; 
+};
+export type ArticleVersion = {
+    versionId: string;
+    articleSlug: string;
+    version: number;
+    title: string;
+    content: string;
+    author: string;
+    category: string;
+    image: ArticleImage;
+    createdAt: string;
+    publishedAt: string;
+    reason: 'creation' | 'update' | 'schedule';
 };

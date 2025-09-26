@@ -20,7 +20,6 @@ import { ArrowRight } from 'lucide-react';
 import { getProfile } from '@/lib/data-client';
 import type { Profile, Article, Category } from '@/lib/data-types';
 
-
 // Fonction client pour récupérer les compteurs via API publique
 async function getCategoryCounts() {
   try {
