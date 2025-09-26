@@ -1,7 +1,7 @@
 
 'use server';
 
-import { updateArticleComments } from '@/lib/data-client';
+import { updateArticleComments } from '@/lib/data-admin';
 import { suggestRelatedContent, type SuggestRelatedContentInput } from '@/ai/flows/related-content-suggestions';
 import { revalidatePath } from 'next/cache';
 import { summarizeArticleFlow, type SummarizeArticleInput, type SummarizeArticleOutput } from '@/ai/flows/article-summarization';

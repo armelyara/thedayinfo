@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { addSubscriber, getSubscribers } from '@/lib/data-client';
+import { addSubscriber, getSubscribers } from '@/lib/data-admin'; // ✅ Changé vers data-admin
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth';
 
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const subscriber = await addSubscriber({ email, name, preferences });
+    const subscriber = await addSubscriber(email, name); // ✅ Signature corrigée selon data-admin
     return NextResponse.json(subscriber, { status: 201 });
   } catch (error) {
     console.error('Erreur lors de l\'ajout de l\'abonné:', error);

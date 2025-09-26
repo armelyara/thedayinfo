@@ -1,8 +1,6 @@
-
 'use server';
 
-import { deleteArticle, updateArticle } from '@/lib/data-admin';
-import { updateArticleComments } from '@/lib/data-client';
+import { deleteArticle, updateArticle, updateArticleComments } from '@/lib/data-admin';
 import type { Comment } from '@/lib/data-types';
 import { revalidatePath } from 'next/cache';
 
@@ -19,5 +17,13 @@ export async function deleteArticleAction(slug: string) {
 }
 
 export async function postCommentAdminAction(slug: string, comments: Comment[]) {
-    return await updateArticleComments(slug, comments);
+    const result = await updateArticleComments(slug, comments);
+    
+    if (result) {
+        // Revalider les pages pour afficher les nouveaux commentaires
+        revalidatePath(`/article/${slug}`);
+        revalidatePath('/');
+    }
+    
+    return result;
 }

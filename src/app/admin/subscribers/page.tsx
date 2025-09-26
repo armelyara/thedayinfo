@@ -41,9 +41,9 @@ export default function SubscribersPage() {
     }
   };
 
-  const handleStatusUpdate = async (subscriberId: string, newStatus: 'active' | 'unsubscribed') => {
+  const handleStatusUpdate = async (subscriberEmail: string, newStatus: 'active' | 'unsubscribed') => {
     try {
-      const response = await fetch(`/api/subscribers/${subscriberId}`, {
+      const response = await fetch(`/api/subscribers/${subscriberEmail}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ export default function SubscribersPage() {
       if (response.ok) {
         setSubscribers(prev =>
           prev.map(sub =>
-            sub.id === subscriberId ? { ...sub, status: newStatus } : sub
+            sub.email === subscriberEmail ? { ...sub, status: newStatus } : sub
           )
         );
         toast({
@@ -81,8 +81,8 @@ export default function SubscribersPage() {
         sub.name || '',
         sub.status,
         format(parseISO(sub.subscribedAt), 'dd/MM/yyyy', { locale: fr }),
-        sub.preferences.frequency,
-        sub.preferences.categories.join('; ')
+        sub.preferences?.frequency || 'N/A',
+        sub.preferences?.categories?.join('; ') || 'N/A'
       ])
     ].map(row => row.join(',')).join('\n');
 
@@ -168,7 +168,7 @@ export default function SubscribersPage() {
           <div className="space-y-4">
             {subscribers.map((subscriber) => (
               <div
-                key={subscriber.id}
+                key={subscriber.email}
                 className="flex items-center justify-between p-4 border rounded-lg"
               >
                 <div className="flex-1">
@@ -187,8 +187,8 @@ export default function SubscribersPage() {
                       Abonné le {format(parseISO(subscriber.subscribedAt), 'dd MMMM yyyy', { locale: fr })}
                     </p>
                     <p>
-                      Fréquence: {subscriber.preferences.frequency} | 
-                      Catégories: {subscriber.preferences.categories.join(', ')}
+                      Fréquence: {subscriber.preferences?.frequency || 'Non définie'} | 
+                      Catégories: {subscriber.preferences?.categories?.join(', ') || 'Aucune'}
                     </p>
                   </div>
                 </div>
@@ -198,7 +198,7 @@ export default function SubscribersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleStatusUpdate(subscriber.id, 'unsubscribed')}
+                      onClick={() => handleStatusUpdate(subscriber.email, 'unsubscribed')}
                     >
                       Désabonner
                     </Button>
@@ -206,7 +206,7 @@ export default function SubscribersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleStatusUpdate(subscriber.id, 'active')}
+                      onClick={() => handleStatusUpdate(subscriber.email, 'active')}
                     >
                       Réactiver
                     </Button>

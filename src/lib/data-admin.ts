@@ -3,7 +3,7 @@
 
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp, FieldValue } from 'firebase-admin/firestore';
 import { initializeFirebaseAdmin } from './auth';
-import type { Article, Profile, Subscriber } from './data-types';
+import type { Article, ArticleImage, Profile, Subscriber } from './data-types';
 
 let adminDb: FirebaseFirestore.Firestore;
 const initializeAdminDb = async () => {
@@ -19,7 +19,6 @@ async function sendNewsletterNotification(
     article: Article, 
     isUpdate: boolean = false
 ) {
-    // Ensure this runs in an environment where NEXT_PUBLIC_SITE_URL is available
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:9002';
     try {
         const response = await fetch(`${siteUrl}/api/send-newsletter`, {
@@ -63,7 +62,7 @@ export async function addArticle(article: {
     }
 
     const isScheduled = scheduledDate && scheduledDate > now;
-    const publishedAt = isScheduled ? scheduledDate : now;
+    const publishedAt = isScheduled && scheduledDate ? scheduledDate : now;
 
     const dataForFirestore: any = {
         title: article.title,
@@ -111,7 +110,10 @@ export async function addArticle(article: {
 
 export async function updateArticle(
     slug: string, 
-    data: Partial<Omit<Article, 'slug' | 'scheduledFor'>> & { scheduledFor?: Date | string | null }
+    data: Partial<Omit<Article, 'slug' | 'scheduledFor' | 'image'>> & { 
+        scheduledFor?: Date | string | null;
+        image?: Partial<ArticleImage>; // Image peut être partielle
+    }
 ): Promise<Article> {
     const db = await initializeAdminDb();
     const docRef = db.collection('articles').doc(slug);
@@ -143,15 +145,15 @@ export async function updateArticle(
     }
     
     if (data.image) {
+        const imageData = data.image as Partial<ArticleImage>;
         dataForFirestore.image = {
-            id: data.image.id || String(Date.now()),
-            src: data.image.src,
-            alt: data.image.alt,
-            aiHint: data.image.aiHint || 'user uploaded'
+            id: imageData.id || String(Date.now()),
+            src: imageData.src!,
+            alt: imageData.alt!,
+            aiHint: imageData.aiHint || 'user uploaded'
         }
     }
     
-    // Remove slug from data to prevent trying to update it
     delete (dataForFirestore as any).slug;
 
     await docRef.update(dataForFirestore);
@@ -226,4 +228,216 @@ export async function updateProfile(data: Partial<Profile>): Promise<Profile> {
     
     const updatedDoc = await docRef.get();
     return updatedDoc.data() as Profile;
+}
+
+export async function addSubscriber(email: string, name?: string): Promise<Subscriber> {
+    const db = await initializeAdminDb();
+    const subscribersCollection = db.collection('subscribers');
+    
+    const subscriberData = {
+        email,
+        name: name || '',
+        subscribedAt: AdminTimestamp.now(),
+        status: 'active' as const
+    };
+    
+    const docRef = subscribersCollection.doc(email);
+    await docRef.set(subscriberData);
+    
+    return {
+        email,
+        name: subscriberData.name,
+        subscribedAt: subscriberData.subscribedAt.toDate().toISOString(),
+        status: subscriberData.status
+    };
+}
+
+export async function getSubscribers(): Promise<Subscriber[]> {
+    const db = await initializeAdminDb();
+    const subscribersCollection = db.collection('subscribers');
+    const snapshot = await subscribersCollection.get();
+    
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            email: doc.id, // L'email est l'ID du document
+            name: data.name || '',
+            subscribedAt: data.subscribedAt.toDate().toISOString(),
+            status: (data.status as 'active' | 'inactive' | 'unsubscribed') || 'active',
+            preferences: data.preferences
+        };
+    });
+}
+
+export async function getSubscribersCount(): Promise<number> {
+    const db = await initializeAdminDb();
+    const subscribersCollection = db.collection('subscribers');
+    const snapshot = await subscribersCollection.get();
+    return snapshot.size;
+}
+
+export async function deleteSubscriber(email: string): Promise<boolean> {
+    const db = await initializeAdminDb();
+    const docRef = db.collection('subscribers').doc(email);
+    
+    try {
+        await docRef.delete();
+        return true;
+    } catch (error) {
+        console.error("Error deleting subscriber:", error);
+        return false;
+    }
+}
+
+export async function updateSubscriberStatus(email: string, status: 'active' | 'inactive' | 'unsubscribed'): Promise<boolean> {
+    const db = await initializeAdminDb();
+    const docRef = db.collection('subscribers').doc(email);
+    
+    try {
+        await docRef.update({ status });
+        return true;
+    } catch (error) {
+        console.error("Error updating subscriber status:", error);
+        return false;
+    }
+}
+
+export async function searchArticles(query: string): Promise<Article[]> {
+    const db = await initializeAdminDb();
+    const articlesCollection = db.collection('articles');
+    
+    const snapshot = await articlesCollection
+        .where('status', '==', 'published')
+        .orderBy('publishedAt', 'desc')
+        .get();
+    
+    const allArticles = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            slug: doc.id,
+            title: data.title,
+            author: data.author,
+            category: data.category,
+            publishedAt: data.publishedAt.toDate().toISOString(),
+            status: data.status,
+            scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
+            image: data.image,
+            content: data.content,
+            views: data.views || 0,
+            comments: data.comments || [],
+            viewHistory: data.viewHistory || [],
+        } as Article;
+    });
+    
+    const lowerQuery = query.toLowerCase();
+    return allArticles.filter(article => 
+        article.title.toLowerCase().includes(lowerQuery) ||
+        article.content.toLowerCase().includes(lowerQuery) ||
+        article.category.toLowerCase().includes(lowerQuery)
+    );
+}
+
+export async function updateArticleComments(slug: string, comments: any[]): Promise<boolean> {
+    const db = await initializeAdminDb();
+    const docRef = db.collection('articles').doc(slug);
+    
+    try {
+        await docRef.update({ comments });
+        return true;
+    } catch (error) {
+        console.error("Error updating article comments:", error);
+        return false;
+    }
+}
+
+export async function getAllArticles(): Promise<Article[]> {
+    return await getAdminArticles();
+}
+
+export async function seedInitialArticles(): Promise<void> {
+    const db = await initializeAdminDb();
+    console.log('Seeding initial articles...');
+}
+
+export async function getArticleBySlug(slug: string): Promise<Article | null> {
+    const db = await initializeAdminDb();
+    const docRef = db.collection('articles').doc(slug);
+    const doc = await docRef.get();
+    
+    if (!doc.exists) {
+        return null;
+    }
+    
+    const data = doc.data()!;
+    return {
+        slug: doc.id,
+        title: data.title,
+        author: data.author,
+        category: data.category,
+        publishedAt: data.publishedAt.toDate().toISOString(),
+        status: data.status,
+        scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
+        image: data.image,
+        content: data.content,
+        views: data.views || 0,
+        comments: data.comments || [],
+        viewHistory: data.viewHistory || [],
+    } as Article;
+}
+
+export async function getArticlesByCategory(category: string): Promise<Article[]> {
+    const db = await initializeAdminDb();
+    const articlesCollection = db.collection('articles');
+    const q = articlesCollection
+        .where('category', '==', category)
+        .where('status', '==', 'published')
+        .orderBy('publishedAt', 'desc');
+    
+    const snapshot = await q.get();
+    
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            slug: doc.id,
+            title: data.title,
+            author: data.author,
+            category: data.category,
+            publishedAt: data.publishedAt.toDate().toISOString(),
+            status: data.status,
+            scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
+            image: data.image,
+            content: data.content,
+            views: data.views || 0,
+            comments: data.comments || [],
+            viewHistory: data.viewHistory || [],
+        } as Article;
+    });
+}
+
+export async function getPublishedArticles(): Promise<Article[]> {
+    const db = await initializeAdminDb();
+    const articlesCollection = db.collection('articles');
+    const q = articlesCollection
+        .where('status', '==', 'published')
+        .orderBy('publishedAt', 'desc');
+    
+    const snapshot = await q.get();
+    
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            slug: doc.id,
+            title: data.title,
+            author: data.author,
+            category: data.category,
+            publishedAt: data.publishedAt.toDate().toISOString(),
+            status: data.status,
+            scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
+            image: data.image,
+            content: data.content,
+            views: data.views || 0,
+            comments: data.comments || [],
+            viewHistory: data.viewHistory || [],
+        } as Article;
+    });
 }

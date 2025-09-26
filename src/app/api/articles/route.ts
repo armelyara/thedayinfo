@@ -1,20 +1,11 @@
 // src/app/api/articles/route.ts
 import { NextResponse } from 'next/server';
-import { getPublishedArticles } from '@/lib/data-client';
+import { getPublishedArticles } from '@/lib/data-admin'; // ✅ Utiliser data-admin pour les routes API
 
-// Nouvelle route publique pour obtenir tous les articles publiés
+// Route publique pour obtenir tous les articles publiés
 export async function GET() {
   try {
     const articles = await getPublishedArticles();
-    
-    if ('error' in articles) {
-      // Si getPublishedArticles retourne une erreur, la propager
-      return NextResponse.json(
-        { error: articles.message },
-        { status: 500 }
-      );
-    }
-    
     return NextResponse.json(articles);
   } catch (error) {
     console.error('Erreur API articles:', error);

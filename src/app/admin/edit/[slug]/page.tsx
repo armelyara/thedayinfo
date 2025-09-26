@@ -4,7 +4,7 @@
 import { notFound, useParams } from 'next/navigation';
 import EditArticleForm from './edit-article-form';
 import { useEffect, useState } from 'react';
-import type { Article } from '@/lib/data';
+import type { Article } from '@/lib/data-types';
 import { getArticleAction } from './actions';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';

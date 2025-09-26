@@ -1,6 +1,6 @@
 // src/app/api/articles/[slug]/comments/route.ts
 import { NextResponse } from 'next/server';
-import { updateArticleComments } from '@/lib/data-client';
+import { updateArticleComments } from '@/lib/data-admin'; // ✅ Changé de data-client vers data-admin
 import type { Comment } from '@/lib/data-types';
 
 type RouteParams = {

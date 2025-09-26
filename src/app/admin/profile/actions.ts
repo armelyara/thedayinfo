@@ -7,7 +7,18 @@ import type { Profile } from '@/lib/data-types';
 import { revalidatePath } from 'next/cache';
 
 export async function getProfileAction(): Promise<Profile> {
-  return await getProfile();
+  const profile = await getProfile();
+  
+  if (!profile) {
+    // Retourner un profil par défaut
+    return {
+      name: 'Armel Yara',
+      biography: 'Créateur de The Day Info...',
+      imageUrl: '/default-avatar.png'
+    };
+  }
+  
+  return profile;
 }
 
 export async function updateProfileAction(data: Partial<Profile>): Promise<Profile> {

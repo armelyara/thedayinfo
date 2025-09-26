@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { getSubscribers } from '@/lib/data';
+import { getSubscribers } from '@/lib/data-admin';
 
 // Initialiser Resend avec votre clé API
 const resend = new Resend(process.env.RESEND_API_KEY);

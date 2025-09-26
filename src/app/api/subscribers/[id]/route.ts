@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateSubscriberStatus, deleteSubscriber } from '@/lib/data';
+import { updateSubscriberStatus, deleteSubscriber } from '@/lib/data-admin';
 import { verifySession } from '@/lib/auth';
 
 async function checkAuth(request: NextRequest) {

@@ -31,9 +31,10 @@ export async function updateArticleAction(slug: string, values: z.infer<typeof f
   
   const updatedArticle = await updateArticle(slug, {
     ...rest,
-    // La conversion en Date est gérée dans la fonction updateArticle de data.ts
+    // rest.image contient seulement { src, alt } du formulaire
+    // data-admin.ts va automatiquement ajouter id et aiHint
     scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
-  });
+});
 
   // Revalidate paths to show the changes immediately
   revalidatePath('/');

@@ -1,4 +1,4 @@
-{'use server';
+'use server';
 import admin from 'firebase-admin';
 
 // Garde une trace de l'initialisation pour éviter de le faire plusieurs fois.

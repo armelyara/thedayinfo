@@ -51,13 +51,13 @@ export type Category = {
 };
 
 export type Subscriber = {
-    id: string;
-    email: string;
+    email: string;  // L'email sert d'identifiant unique
     name?: string;
     subscribedAt: string;
-    status: 'active' | 'unsubscribed';
-    preferences: {
+    status: 'active' | 'inactive' | 'unsubscribed';
+    preferences?: {
       frequency: 'daily' | 'weekly' | 'monthly' | 'immediate';
       categories: string[];
     };
+
 };

@@ -8,6 +8,18 @@ export const revalidate = 3600; // Revalidate every hour
 export default async function AboutPage() {
   const profile = await getProfile();
 
+  // Gérer le cas où le profil n'existe pas
+  if (!profile) {
+    return (
+      <div className="container mx-auto max-w-4xl px-4 py-12">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Profil non trouvé</h1>
+          <p className="text-muted-foreground">Le profil de l'auteur n'a pas pu être chargé.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto max-w-4xl px-4 py-12">
       <main className="flex flex-col items-center text-center">
