@@ -12,11 +12,6 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const decodedClaims = await checkAuth(request);
-  if (!decodedClaims) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-  }
-
   try {
     const body = await request.json();
     const { status } = body;
@@ -26,6 +21,18 @@ export async function PATCH(
         { error: 'Status invalide' },
         { status: 400 }
       );
+    }
+    
+    // Pour la route de désabonnement publique, on n'exige pas d'être admin
+    if (status === 'unsubscribed') {
+        await updateSubscriberStatus(params.id, 'unsubscribed');
+        return NextResponse.json({ success: true });
+    }
+
+    // Pour toute autre action (comme réactiver), on vérifie si l'utilisateur est admin
+    const decodedClaims = await checkAuth(request);
+    if (!decodedClaims) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
     await updateSubscriberStatus(params.id, status);

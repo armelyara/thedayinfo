@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server';
 import { updateArticleComments } from '@/lib/data-admin'; // ✅ Changé de data-client vers data-admin
 import type { Comment } from '@/lib/data-types';
+import { cookies } from 'next/headers';
+import { verifySession } from '@/lib/auth';
 
 type RouteParams = {
   params: { slug: string }
@@ -18,7 +20,11 @@ export async function POST(request: Request, { params }: RouteParams) {
         { status: 400 }
       );
     }
-
+    
+    // Le commentaire peut être posté par un user public ou par un admin
+    // La différence est dans le nom de l'auteur ("Armel Yara" pour l'admin)
+    // On ne met pas de check d'auth ici pour permettre les commentaires publics.
+    // L'auth est gérée côté admin pour les actions de modération
     const success = await updateArticleComments(params.slug, comments);
 
     if (success) {

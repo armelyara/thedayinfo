@@ -230,25 +230,32 @@ export async function updateProfile(data: Partial<Profile>): Promise<Profile> {
     return updatedDoc.data() as Profile;
 }
 
-export async function addSubscriber(email: string, name?: string): Promise<Subscriber> {
+export async function addSubscriber(email: string, name?: string, preferences?: any): Promise<Subscriber> {
     const db = await initializeAdminDb();
     const subscribersCollection = db.collection('subscribers');
+    
+    const docRef = subscribersCollection.doc(email);
+    const existingDoc = await docRef.get();
+    if (existingDoc.exists) {
+        throw new Error('Cette adresse email est déjà abonnée.');
+    }
     
     const subscriberData = {
         email,
         name: name || '',
         subscribedAt: AdminTimestamp.now(),
-        status: 'active' as const
+        status: 'active' as const,
+        preferences: preferences || {}
     };
     
-    const docRef = subscribersCollection.doc(email);
     await docRef.set(subscriberData);
     
     return {
         email,
         name: subscriberData.name,
         subscribedAt: subscriberData.subscribedAt.toDate().toISOString(),
-        status: subscriberData.status
+        status: subscriberData.status,
+        preferences: subscriberData.preferences
     };
 }
 
@@ -260,7 +267,7 @@ export async function getSubscribers(): Promise<Subscriber[]> {
     return snapshot.docs.map(doc => {
         const data = doc.data();
         return {
-            email: data.email, // L'email est l'ID du document
+            email: doc.id,
             name: data.name || '',
             subscribedAt: data.subscribedAt.toDate().toISOString(),
             status: (data.status as 'active' | 'inactive' | 'unsubscribed') || 'active',
@@ -278,16 +285,9 @@ export async function getSubscribersCount(): Promise<number> {
 
 export async function deleteSubscriber(email: string): Promise<boolean> {
     const db = await initializeAdminDb();
-    
-    // Trouver le document par email au lieu d'utiliser email comme ID
-    const snapshot = await db.collection('subscribers').where('email', '==', email).get();
-    
-    if (snapshot.empty) {
-        return false;
-    }
+    const docRef = db.collection('subscribers').doc(email);
     
     try {
-        const docRef = snapshot.docs[0].ref;
         await docRef.delete();
         return true;
     } catch (error) {
@@ -298,16 +298,9 @@ export async function deleteSubscriber(email: string): Promise<boolean> {
 
 export async function updateSubscriberStatus(email: string, status: 'active' | 'inactive' | 'unsubscribed'): Promise<boolean> {
     const db = await initializeAdminDb();
-    
-    // Trouver le document par email au lieu d'utiliser email comme ID
-    const snapshot = await db.collection('subscribers').where('email', '==', email).get();
-    
-    if (snapshot.empty) {
-        return false;
-    }
+    const docRef = db.collection('subscribers').doc(email);
     
     try {
-        const docRef = snapshot.docs[0].ref;
         await docRef.update({ status });
         return true;
     } catch (error) {

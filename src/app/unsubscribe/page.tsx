@@ -26,12 +26,24 @@ export default function UnsubscribePage() {
     }
 
     setIsSubmitting(true);
+    setStatus('idle');
 
     try {
-      // Ici vous pourriez ajouter une API route pour gérer le désabonnement
-      // Pour l'instant, on simule le processus
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch(`/api/subscribers/${encodeURIComponent(email)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // On envoie le statut 'unsubscribed' depuis le frontend
+        // Note: l'API devrait vérifier si l'action est autorisée
+        body: JSON.stringify({ status: 'unsubscribed' }),
+      });
       
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de la requête.');
+      }
+
       setStatus('success');
       toast({
         title: 'Désabonnement réussi',
@@ -43,7 +55,7 @@ export default function UnsubscribePage() {
       toast({
         variant: 'destructive',
         title: 'Erreur',
-        description: 'Une erreur est survenue lors du désabonnement.',
+        description: error instanceof Error ? error.message : 'Une erreur est survenue lors du désabonnement.',
       });
     } finally {
       setIsSubmitting(false);
@@ -107,7 +119,7 @@ export default function UnsubscribePage() {
             <div>
               <h2 className="text-xl font-semibold">Erreur</h2>
               <p className="text-muted-foreground mt-2">
-                Une erreur est survenue. Veuillez réessayer.
+                Une erreur est survenue. L'email est peut-être incorrect ou vous êtes déjà désabonné.
               </p>
             </div>
             <Button onClick={() => setStatus('idle')}>
