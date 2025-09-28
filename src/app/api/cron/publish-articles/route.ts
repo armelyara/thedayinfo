@@ -6,14 +6,26 @@ import {
   publishScheduledArticle,
 } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
+import { initializeFirebaseAdmin } from '@/lib/auth';
 
+// Fonction handler unifiée pour GET et POST
 async function handler(request: NextRequest) {
-  // NOTE: La vérification de sécurité a été temporairement retirée pour le débogage.
-  // Elle devra être réactivée en s'assurant que le secret correspond
-  // entre le Cron Job et les variables d'environnement du backend.
+  // 1. Réactiver la sécurité (cause probable de l'erreur 401 précédente si mal configuré)
+  // Assurez-vous que la variable d'environnement CRON_SECRET est définie dans App Hosting.
+  const cronSecret = process.env.CRON_SECRET;
+  const requestHeaderSecret = request.headers.get('x-cron-secret');
+  
+  if (!cronSecret || requestHeaderSecret !== cronSecret) {
+    // Si le secret du Cron Job ne correspond pas, refuser la requête.
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
 
   try {
-    // 2. Récupérer les articles à publier
+    // 2. Initialiser Firebase Admin (CORRECTION MAJEURE)
+    // C'est l'étape qui manquait et qui causait l'erreur 500.
+    await initializeFirebaseAdmin();
+
+    // 3. Récupérer les articles à publier
     const draftsToPublish = await getScheduledArticlesToPublish();
 
     if (draftsToPublish.length === 0) {
@@ -23,7 +35,7 @@ async function handler(request: NextRequest) {
       });
     }
 
-    // 3. Publier chaque article
+    // 4. Publier chaque article
     const publicationResults = [];
     for (const draft of draftsToPublish) {
       try {
@@ -36,7 +48,7 @@ async function handler(request: NextRequest) {
           title: publishedArticle.title,
         });
 
-        // 4. Invalider les caches pour mettre le site à jour
+        // 5. Invalider les caches pour mettre le site à jour
         revalidatePath('/');
         revalidatePath('/admin/drafts');
         revalidatePath(`/article/${publishedArticle.slug}`);
@@ -52,7 +64,7 @@ async function handler(request: NextRequest) {
       }
     }
 
-    // 5. Renvoyer une réponse de succès
+    // 6. Renvoyer une réponse de succès
     const successCount = publicationResults.filter(r => r.status === 'success').length;
     
     return NextResponse.json({
