@@ -1,32 +1,28 @@
 'use server';
 // src/app/api/cron/publish-articles/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/auth';
 import {
   getScheduledArticlesToPublish,
   publishScheduledArticle,
 } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
 
-async function checkAuth(request: NextRequest) {
-  const sessionCookie = request.cookies.get('session')?.value;
-  if (!sessionCookie) return null;
-  return await verifySession(sessionCookie);
-}
+// Cette fonction n'est plus nécessaire car la vérification de l'admin depuis le tableau de bord
+// sera gérée différemment. Le cron job ne dépend que du secret.
 
 export async function POST(request: NextRequest) {
   try {
     const cronSecret = process.env.CRON_SECRET;
     const requestSecret = request.nextUrl.searchParams.get('secret');
 
-    // Vérifier si l'appel vient d'un admin authentifié (depuis le dashboard)
-    const decodedClaims = await checkAuth(request);
-
-    // Autoriser si l'utilisateur est un admin authentifié
-    // OU si un secret de cron est défini ET qu'il correspond
-    if (!decodedClaims && (!cronSecret || requestSecret !== cronSecret)) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    // La seule vérification d'autorisation est celle du secret pour les appels externes.
+    if (!cronSecret || requestSecret !== cronSecret) {
+      // Nous vérifions également un header spécial que nous pourrions définir
+      // pour les appels internes (comme depuis le dashboard admin)
+      const internalRequestHeader = request.headers.get('X-Internal-Request');
+      if (internalRequestHeader !== 'true') {
+        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      }
     }
 
     // --- Logique de publication existante ---

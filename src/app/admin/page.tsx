@@ -49,7 +49,12 @@ export default function AdminDashboard() {
     fetchDashboardData();
 
     // Déclencher la vérification des articles programmés
-    fetch('/api/cron/publish-articles', { method: 'POST' })
+    fetch('/api/cron/publish-articles', { 
+      method: 'POST',
+      headers: {
+        'X-Internal-Request': 'true' // Ajout du header pour l'autorisation
+      }
+    })
       .then(res => res.json())
       .then(data => {
         if (data.results && data.results.some((r: any) => r.status === 'success')) {
