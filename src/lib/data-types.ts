@@ -24,10 +24,9 @@ export type ViewHistory = {
 };
   
 export type ArticleImage = {
-    id: string;
     src: string;
     alt: string;
-    aiHint: string;
+    aiHint?: string;
 };
 
 export type Article = {

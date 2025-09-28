@@ -9,8 +9,6 @@ import {
 } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
 
-export const revalidate = 0;
-
 export async function POST() {
     // La route peut être appelée par un admin authentifié (depuis le dashboard)
     // ou par un service de cron externe (sans cookie de session).

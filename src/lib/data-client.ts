@@ -1,4 +1,4 @@
-// src/lib/data-client.ts
+// src/app/lib/data-client.ts
 import { db } from './firebase-client';
 import { 
     collection, 
@@ -10,13 +10,12 @@ import {
     orderBy, 
     limit,
     updateDoc,
-    increment 
+    increment, 
+    runTransaction
 } from 'firebase/firestore';
 import type { Article, Profile, Subscriber } from './data-types';
 
-// Fonctions de lecture publique utilisant le SDK client Firebase
-
-export async function getPublishedArticles(): Promise<Article[]> {
+export async function getPublishedArticles(): Promise<Article[] | { error: string; message: string; }> {
     try {
         const articlesCollection = collection(db, 'articles');
         const q = query(
@@ -35,7 +34,6 @@ export async function getPublishedArticles(): Promise<Article[]> {
                 category: data.category,
                 publishedAt: data.publishedAt.toDate().toISOString(),
                 status: data.status,
-                scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
                 image: data.image,
                 content: data.content,
                 views: data.views || 0,
@@ -43,22 +41,81 @@ export async function getPublishedArticles(): Promise<Article[]> {
                 viewHistory: data.viewHistory || [],
             } as Article;
         });
-    } catch (error) {
+    } catch (error: any) {
+        if (error.code === 'failed-precondition' && error.message.includes('index')) {
+            return {
+                error: 'missing_index',
+                message: error.message
+            };
+        }
         console.error('Error getting published articles:', error);
-        return [];
+        return {
+            error: 'unknown',
+            message: 'An unexpected error occurred while fetching articles.'
+        };
     }
 }
 
-export async function getAllArticles(): Promise<Article[]> {
-    return await getPublishedArticles();
+
+export async function getArticleBySlug(slug: string): Promise<Article | null> {
+    try {
+        const docRef = doc(db, 'articles', slug);
+        
+        // Use a transaction to safely increment the view count
+        await runTransaction(db, async (transaction) => {
+            const docSnap = await transaction.get(docRef);
+            if (!docSnap.exists()) {
+                throw new Error("Document does not exist!");
+            }
+            const newViews = (docSnap.data().views || 0) + 1;
+            transaction.update(docRef, { views: newViews });
+        });
+
+        const updatedDoc = await getDoc(docRef);
+        if (!updatedDoc.exists()) {
+            return null;
+        }
+
+        const data = updatedDoc.data();
+        // Check if the article is actually published
+        if (data.status !== 'published') {
+            const now = new Date();
+            const scheduledFor = data.scheduledFor ? data.scheduledFor.toDate() : null;
+            // Allow access only if it was scheduled and the time has passed (should have been published by cron)
+            if (!scheduledFor || scheduledFor > now) {
+                return null;
+            }
+        }
+        
+        return {
+            slug: updatedDoc.id,
+            title: data.title,
+            author: data.author,
+            category: data.category,
+            publishedAt: data.publishedAt.toDate().toISOString(),
+            status: data.status,
+            image: data.image,
+            content: data.content,
+            views: data.views || 0, // The updated view count
+            comments: data.comments || [],
+            viewHistory: data.viewHistory || [],
+        } as Article;
+    } catch (error) {
+        console.error('Error getting article by slug:', error);
+        return null;
+    }
 }
 
-export async function getArticlesByCategory(category: string, categories: { name: string; slug: string; }[]): Promise<Article[]> {
+
+export async function getArticlesByCategory(categorySlug: string, categories: { name: string; slug: string; }[]): Promise<Article[]> {
     try {
+        const category = categories.find(c => c.slug === categorySlug);
+        if (!category) return [];
+
         const articlesCollection = collection(db, 'articles');
         const q = query(
             articlesCollection,
-            where('category', '==', category),
+            where('category', '==', category.name),
             where('status', '==', 'published'),
             orderBy('publishedAt', 'desc')
         );
@@ -73,7 +130,6 @@ export async function getArticlesByCategory(category: string, categories: { name
                 category: data.category,
                 publishedAt: data.publishedAt.toDate().toISOString(),
                 status: data.status,
-                scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
                 image: data.image,
                 content: data.content,
                 views: data.views || 0,
@@ -87,50 +143,16 @@ export async function getArticlesByCategory(category: string, categories: { name
     }
 }
 
-export async function getArticleBySlug(slug: string): Promise<Article | null> {
+export async function searchArticles(queryText: string): Promise<Article[]> {
     try {
-        const docRef = doc(db, 'articles', slug);
-        const docSnap = await getDoc(docRef);
-        
-        if (!docSnap.exists()) {
-            return null;
+        const articlesResult = await getPublishedArticles();
+        if ('error' in articlesResult) {
+            return [];
         }
-        
-        const data = docSnap.data();
-        
-        // Increment view count
-        await updateDoc(docRef, {
-            views: increment(1)
-        });
-        
-        return {
-            slug: docSnap.id,
-            title: data.title,
-            author: data.author,
-            category: data.category,
-            publishedAt: data.publishedAt.toDate().toISOString(),
-            status: data.status,
-            scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
-            image: data.image,
-            content: data.content,
-            views: (data.views || 0) + 1,
-            comments: data.comments || [],
-            viewHistory: data.viewHistory || [],
-        } as Article;
-    } catch (error) {
-        console.error('Error getting article by slug:', error);
-        return null;
-    }
-}
 
-export async function searchArticles(query: string): Promise<Article[]> {
-    try {
-        // Firebase ne supporte pas la recherche full-text native
-        // On récupère tous les articles publiés et on filtre côté client
-        const articles = await getPublishedArticles();
-        const lowerQuery = query.toLowerCase();
+        const lowerQuery = queryText.toLowerCase();
         
-        return articles.filter(article => 
+        return articlesResult.filter(article => 
             article.title.toLowerCase().includes(lowerQuery) ||
             article.content.toLowerCase().includes(lowerQuery) ||
             article.category.toLowerCase().includes(lowerQuery) ||
@@ -155,110 +177,5 @@ export async function getProfile(): Promise<Profile | null> {
     } catch (error) {
         console.error('Error getting profile:', error);
         return null;
-    }
-}
-
-export async function getRecentArticles(limitCount: number = 5): Promise<Article[]> {
-    try {
-        const articlesCollection = collection(db, 'articles');
-        const q = query(
-            articlesCollection,
-            where('status', '==', 'published'),
-            orderBy('publishedAt', 'desc'),
-            limit(limitCount)
-        );
-        const snapshot = await getDocs(q);
-        
-        return snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                slug: doc.id,
-                title: data.title,
-                author: data.author,
-                category: data.category,
-                publishedAt: data.publishedAt.toDate().toISOString(),
-                status: data.status,
-                scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
-                image: data.image,
-                content: data.content,
-                views: data.views || 0,
-                comments: data.comments || [],
-                viewHistory: data.viewHistory || [],
-            } as Article;
-        });
-    } catch (error) {
-        console.error('Error getting recent articles:', error);
-        return [];
-    }
-}
-
-export async function getPopularArticles(limitCount: number = 5): Promise<Article[]> {
-    try {
-        const articlesCollection = collection(db, 'articles');
-        const q = query(
-            articlesCollection,
-            where('status', '==', 'published'),
-            orderBy('views', 'desc'),
-            limit(limitCount)
-        );
-        const snapshot = await getDocs(q);
-        
-        return snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                slug: doc.id,
-                title: data.title,
-                author: data.author,
-                category: data.category,
-                publishedAt: data.publishedAt.toDate().toISOString(),
-                status: data.status,
-                scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
-                image: data.image,
-                content: data.content,
-                views: data.views || 0,
-                comments: data.comments || [],
-                viewHistory: data.viewHistory || [],
-            } as Article;
-        });
-    } catch (error) {
-        console.error('Error getting popular articles:', error);
-        return [];
-    }
-}
-
-export async function getArticleCategories(): Promise<string[]> {
-    try {
-        const articles = await getPublishedArticles();
-        const categories = [...new Set(articles.map(article => article.category))];
-        return categories.sort();
-    } catch (error) {
-        console.error('Error getting article categories:', error);
-        return [];
-    }
-}
-
-// Fonction pour les statistiques publiques (sans informations sensibles)
-export async function getPublicStats(): Promise<{ 
-    totalArticles: number; 
-    totalViews: number; 
-    categories: string[] 
-}> {
-    try {
-        const articles = await getPublishedArticles();
-        const totalViews = articles.reduce((sum, article) => sum + (article.views || 0), 0);
-        const categories = [...new Set(articles.map(article => article.category))];
-        
-        return {
-            totalArticles: articles.length,
-            totalViews,
-            categories
-        };
-    } catch (error) {
-        console.error('Error getting public stats:', error);
-        return {
-            totalArticles: 0,
-            totalViews: 0,
-            categories: []
-        };
     }
 }

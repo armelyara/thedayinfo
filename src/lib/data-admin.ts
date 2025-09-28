@@ -128,6 +128,7 @@ export async function saveArticleAction(articleData: {
   scheduledFor?: string;
   actionType: 'draft' | 'publish' | 'schedule';
   id?: string; // id for existing drafts
+  slug?: string; // slug for existing articles
 }): Promise<Article | Draft> {
   
   const payload = {
@@ -145,6 +146,10 @@ export async function saveArticleAction(articleData: {
         // C'est un brouillon qui est publié, il faut le supprimer de la collection drafts
         await deleteDraft(articleData.id);
     }
+    // Si c'est une mise à jour d'un article publié, on le republie.
+    // publishArticleNow gère la création d'un slug pour les nouveaux articles
+    // et nous devrons ajouter une logique pour mettre à jour un slug existant si nécessaire.
+    // Pour l'instant, c'est principalement pour la création.
     return publishArticleNow(payload);
   } else {
     // Sauvegarder comme brouillon ou programmer -> collection `drafts`

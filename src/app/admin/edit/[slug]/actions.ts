@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { saveArticle as saveArticleAdmin, getDraft as getDraftAdmin, getArticleBySlug as getArticleAdmin } from '@/lib/data-admin';
+import { saveArticleAction as saveArticleAdmin, getDraft as getDraftAdmin, getArticleBySlug as getArticleAdmin } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
 import type { Article, Draft } from '@/lib/data-types';
 
@@ -36,7 +36,8 @@ export async function updateItemAction(
   
   const articleData = {
       ...rest,
-      id: isDraft ? idOrSlug : undefined,
+      id: isDraft ? idOrSlug : undefined, // L'ID n'est pertinent que pour les brouillons/articles
+      slug: isDraft ? undefined : idOrSlug, // Le slug n'est pertinent que pour les articles publiés
       scheduledFor: scheduledFor ? new Date(scheduledFor).toISOString() : undefined,
       actionType,
   };
