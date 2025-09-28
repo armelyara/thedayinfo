@@ -7,7 +7,7 @@ import { ArrowLeft, BarChart2, Eye, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer, YAxis } from 'recharts';
 import type { Article } from '@/lib/data-types';
 
 type CategoryStats = {
@@ -54,21 +54,19 @@ export default function AdvancedStatsPage() {
       .sort((a, b) => b.views - a.views);
   }, [articles]);
 
-  const chartConfig = useMemo(() => {
-    const config: any = {};
-    categoryViews.forEach((cat, index) => {
-      config[cat.name] = {
-        label: cat.name,
-        color: `hsl(var(--chart-${(index % 5) + 1}))`,
-      };
-    });
-    // Add a config for the 'views' dataKey used in the Bar component
-    config.views = {
+  const chartConfig = useMemo(() => ({
+    views: {
       label: "Vues",
-      color: `hsl(var(--chart-1))`,
-    };
-    return config;
-  }, [categoryViews]);
+    },
+    Technologie: {
+      label: "Technologie",
+      color: "hsl(var(--primary))", // Bleu
+    },
+    Actualité: {
+      label: "Actualité",
+      color: "hsl(var(--secondary))", // Orange
+    },
+  }), []);
 
 
   if (isLoading) {
@@ -148,33 +146,35 @@ export default function AdvancedStatsPage() {
           <CardContent>
             {categoryViews.length > 0 ? (
               <ChartContainer config={chartConfig} className="h-80 w-full">
-                <BarChart data={categoryViews} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                    width={100}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <ChartTooltip
-                    cursor={{ fill: 'hsl(var(--accent))' }}
-                    content={<ChartTooltipContent />}
-                  />
-                  <Bar dataKey="views" layout="vertical" radius={4}>
-                    {categoryViews.map((entry) => (
-                      <Bar
-                        key={`bar-${entry.name}`}
-                        dataKey="views"
-                        name={entry.name}
-                        fill={chartConfig[entry.name]?.color || chartConfig.views.color}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
+                <ResponsiveContainer>
+                  <BarChart data={categoryViews} layout="vertical" margin={{ left: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      width={100}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <ChartTooltip
+                      cursor={{ fill: 'hsl(var(--accent))' }}
+                      content={<ChartTooltipContent />}
+                    />
+                    <Bar dataKey="views" layout="vertical" radius={4}>
+                      {categoryViews.map((entry) => (
+                        <Bar
+                          key={`bar-${entry.name}`}
+                          dataKey="views"
+                          name={entry.name}
+                          fill={chartConfig[entry.name as keyof typeof chartConfig]?.color}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </ChartContainer>
             ) : (
               <div className="text-center py-10 text-muted-foreground">
