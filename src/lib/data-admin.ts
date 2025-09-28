@@ -252,7 +252,7 @@ export async function getSubscribers(): Promise<Subscriber[]> {
     return snapshot.docs.map(doc => {
         const data = doc.data();
         return {
-            email: doc.id,
+            email: data.email, // Corrected: read from data field
             name: data.name || '',
             subscribedAt: data.subscribedAt.toDate().toISOString(),
             status: (data.status as 'active' | 'inactive' | 'unsubscribed') || 'active',
@@ -811,5 +811,7 @@ export async function publishScheduledArticle(slug: string): Promise<Article> {
     
     return publishedArticle;
 }
+
+    
 
     
