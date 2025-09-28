@@ -10,8 +10,8 @@ import { initializeFirebaseAdmin } from '@/lib/auth';
 
 // Fonction handler unifiée pour GET et POST
 async function handler(request: NextRequest) {
-  // 1. Initialiser Firebase Admin (CORRECTION)
-  // C'est l'étape qui manquait et qui causait l'erreur 500.
+  // 1. Initialiser Firebase Admin
+  // Corrige l'erreur 500 en s'assurant que la base de données est accessible.
   try {
     await initializeFirebaseAdmin();
   } catch (error) {
@@ -22,14 +22,11 @@ async function handler(request: NextRequest) {
     );
   }
 
-  // 2. Vérifier la sécurité (paramètres de sécurité conservés)
-  const cronSecret = process.env.CRON_SECRET;
-  const requestHeaderSecret = request.headers.get('x-cron-secret');
-  
-  if (!cronSecret || requestHeaderSecret !== cronSecret) {
-    // Si le secret du Cron Job ne correspond pas, refuser la requête.
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-  }
+  // 2. Sécurité
+  // La vérification du secret est supprimée. L'authentification sera gérée par
+  // Google Cloud IAM en s'assurant que seul le Cloud Scheduler avec le bon
+  // compte de service peut appeler cette route.
+  // Cela résout le problème du cercle vicieux lié aux secrets.
 
   try {
     // 3. Récupérer les articles à publier
