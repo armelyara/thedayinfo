@@ -15,48 +15,64 @@ const initializeAdminDb = async () => {
 };
 
 /**
- * Publie un article directement.
- * Crée un document dans la collection 'articles'.
+ * Publie un article, soit en créant un nouveau, soit en mettant à jour un existant.
+ * @param articleData Données de l'article.
+ * @param existingSlug Slug de l'article existant à mettre à jour (optionnel).
  */
-async function publishArticleNow(articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory' | 'scheduledFor'>): Promise<Article> {
+async function publishArticle(articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory'> & { scheduledFor?: string | null }, existingSlug?: string): Promise<Article> {
     const db = await initializeAdminDb();
     const articlesCollection = db.collection('articles');
     
-    // Générer un slug unique
-    let slug = articleData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
-    const docSnapshot = await articlesCollection.doc(slug).get();
-    if(docSnapshot.exists) {
-        slug = `${slug}-${Date.now()}`;
+    let slug = existingSlug;
+    let isUpdate = !!existingSlug;
+
+    // Si c'est un nouvel article, générer un slug unique
+    if (!slug) {
+        slug = articleData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+        const docSnapshot = await articlesCollection.doc(slug).get();
+        if(docSnapshot.exists) {
+            slug = `${slug}-${Date.now()}`;
+        }
+        isUpdate = false;
     }
 
     const now = new Date();
-    const publishedArticleData: Omit<Article, 'slug' | 'publishedAt'> & { publishedAt: AdminTimestamp } = {
-        ...articleData,
-        publishedAt: AdminTimestamp.fromDate(now),
-        status: 'published' as const,
-        views: 0,
-        comments: [],
-        viewHistory: [],
-    };
+    
+    // Récupérer les données existantes si c'est une mise à jour
+    const existingArticleData = isUpdate ? (await articlesCollection.doc(slug).get()).data() : {};
 
-    await articlesCollection.doc(slug).set(publishedArticleData);
+    const articleToSave = {
+        ...existingArticleData, // Conserver les vues, commentaires, etc.
+        ...articleData,
+        publishedAt: isUpdate ? (existingArticleData?.publishedAt || AdminTimestamp.fromDate(now)) : AdminTimestamp.fromDate(now),
+        status: 'published' as const,
+        views: existingArticleData?.views || 0,
+        comments: existingArticleData?.comments || [],
+        viewHistory: existingArticleData?.viewHistory || [],
+    };
+    // Le 'scheduledFor' ne doit pas être dans l'article final publié
+    delete articleToSave.scheduledFor;
+
+
+    await articlesCollection.doc(slug).set(articleToSave, { merge: true });
     
     const finalArticle: Article = {
-        ...publishedArticleData,
-        slug,
-        publishedAt: now.toISOString(),
-    };
+        ...articleToSave,
+        slug: slug,
+        publishedAt: articleToSave.publishedAt.toDate().toISOString(),
+    } as Article;
 
     // Envoyer la newsletter
     try {
         const subscribers = await getSubscribers();
-        await sendNewsletterNotification(finalArticle, subscribers, false);
+        await sendNewsletterNotification(finalArticle, subscribers, isUpdate);
     } catch (error) {
-        console.error("Échec de l'envoi de la newsletter lors de la publication :", error);
+        console.error(`Échec de l'envoi de la newsletter pour ${isUpdate ? 'mise à jour' : 'publication'} :`, error);
     }
 
     return finalArticle;
 }
+
 
 /**
  * Crée ou met à jour un brouillon/article programmé.
@@ -127,12 +143,12 @@ export async function saveArticleAction(articleData: {
   image: { src: string; alt: string };
   scheduledFor?: string;
   actionType: 'draft' | 'publish' | 'schedule';
-  id?: string; // id for existing drafts
-  slug?: string; // slug for existing articles
+  id?: string; // id for existing drafts/articles
+  slug?: string; // slug for existing published articles
 }): Promise<Article | Draft> {
   
   const payload = {
-    id: articleData.id,
+    id: articleData.id || articleData.slug, // Utiliser l'ID ou le slug comme identifiant de brouillon
     title: articleData.title,
     author: articleData.author,
     category: articleData.category,
@@ -142,17 +158,15 @@ export async function saveArticleAction(articleData: {
   };
 
   if (articleData.actionType === 'publish') {
+    // Si on publie un brouillon, il faut le supprimer après publication
     if(articleData.id) {
-        // C'est un brouillon qui est publié, il faut le supprimer de la collection drafts
         await deleteDraft(articleData.id);
     }
-    // Si c'est une mise à jour d'un article publié, on le republie.
-    // publishArticleNow gère la création d'un slug pour les nouveaux articles
-    // et nous devrons ajouter une logique pour mettre à jour un slug existant si nécessaire.
-    // Pour l'instant, c'est principalement pour la création.
-    return publishArticleNow(payload);
-  } else {
-    // Sauvegarder comme brouillon ou programmer -> collection `drafts`
+    // Publier l'article, en passant le slug s'il existe (pour une mise à jour)
+    return publishArticle(payload, articleData.slug);
+
+  } else { // 'draft' ou 'schedule'
+    // Sauvegarder comme brouillon ou article programmé -> collection `drafts`
     return saveAsDraftOrScheduled(payload);
   }
 }
@@ -238,7 +252,7 @@ export async function publishScheduledArticle(draftId: string): Promise<Article>
         throw new Error('Brouillon invalide pour la publication.');
     }
 
-    const article = await publishArticleNow({
+    const article = await publishArticle({
         title: draft.title,
         author: draft.author,
         category: draft.category,
