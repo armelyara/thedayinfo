@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -46,10 +47,24 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Déclencher la vérification des articles programmés
+    fetch('/api/cron/publish-articles', { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.results && data.results.some((r: any) => r.status === 'success')) {
+          console.log('De nouveaux articles ont été publiés, rafraîchissement des données...');
+          fetchDashboardData(); // Rafraîchir les données si des articles ont été publiés
+        } else {
+          console.log('Vérification des articles programmés terminée. Aucun changement.');
+        }
+      })
+      .catch(error => console.error('Erreur lors du déclenchement du cron:', error));
   }, []);
 
   const fetchDashboardData = async () => {
     try {
+      setIsLoading(true);
       const articlesResponse = await fetch('/api/admin/articles');
       if (!articlesResponse.ok) {
         throw new Error('Failed to fetch articles');
@@ -253,7 +268,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-medium">{article.title}</h3>
                       <Badge variant={article.status === 'published' ? 'default' : 'secondary'}>
-                        {article.status === 'published' ? 'Publié' : 'Programmé'}
+                        {article.status === 'published' ? 'Publié' : article.status === 'scheduled' ? 'Programmé' : 'Brouillon'}
                       </Badge>
                     </div>
                     <div className="text-sm text-muted-foreground">

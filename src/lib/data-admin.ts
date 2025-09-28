@@ -218,15 +218,16 @@ export async function updateProfile(data: Partial<Profile>): Promise<Profile> {
 export async function addSubscriber(email: string, name?: string, preferences?: any): Promise<Subscriber> {
     const db = await initializeAdminDb();
     const subscribersCollection = db.collection('subscribers');
+    const emailId = email.toLowerCase(); // Utiliser l'email comme ID de document
     
-    const docRef = subscribersCollection.doc(email);
+    const docRef = subscribersCollection.doc(emailId);
     const existingDoc = await docRef.get();
     if (existingDoc.exists) {
         throw new Error('Cette adresse email est déjà abonnée.');
     }
     
     const subscriberData = {
-        email,
+        email: emailId,
         name: name || '',
         subscribedAt: AdminTimestamp.now(),
         status: 'active' as const,
@@ -236,11 +237,8 @@ export async function addSubscriber(email: string, name?: string, preferences?: 
     await docRef.set(subscriberData);
     
     return {
-        email,
-        name: subscriberData.name,
+        ...subscriberData,
         subscribedAt: subscriberData.subscribedAt.toDate().toISOString(),
-        status: subscriberData.status,
-        preferences: subscriberData.preferences
     };
 }
 
@@ -252,7 +250,7 @@ export async function getSubscribers(): Promise<Subscriber[]> {
     return snapshot.docs.map(doc => {
         const data = doc.data();
         return {
-            email: data.email, // Corrected: read from data field
+            email: data.email,
             name: data.name || '',
             subscribedAt: data.subscribedAt.toDate().toISOString(),
             status: (data.status as 'active' | 'inactive' | 'unsubscribed') || 'active',
@@ -260,6 +258,7 @@ export async function getSubscribers(): Promise<Subscriber[]> {
         };
     });
 }
+
 
 export async function getSubscribersCount(): Promise<number> {
     const db = await initializeAdminDb();
@@ -812,6 +811,32 @@ export async function publishScheduledArticle(slug: string): Promise<Article> {
     return publishedArticle;
 }
 
-    
+export async function getScheduledArticlesToPublish(): Promise<Article[]> {
+    const db = await initializeAdminDb();
+    const articlesCollection = db.collection('articles');
+    const now = AdminTimestamp.now();
 
-    
+    const q = articlesCollection
+        .where('status', '==', 'scheduled')
+        .where('publishedAt', '<=', now);
+
+    const snapshot = await q.get();
+
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            slug: doc.id,
+            title: data.title,
+            author: data.author,
+            category: data.category,
+            publishedAt: data.publishedAt.toDate().toISOString(),
+            status: data.status,
+            image: data.image,
+            content: data.content,
+            views: data.views || 0,
+            comments: data.comments || [],
+            viewHistory: data.viewHistory || [],
+            version: data.version
+        } as Article;
+    });
+}
