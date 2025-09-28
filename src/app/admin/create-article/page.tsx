@@ -353,10 +353,11 @@ export default function CreateArticlePage() {
                           className="w-[120px]"
                           defaultValue={format(field.value, 'HH:mm')}
                           onChange={(e) => {
+                            if (!field.value) return;
                             const time = e.target.value.split(':');
                             const hours = parseInt(time[0], 10);
                             const minutes = parseInt(time[1], 10);
-                            const newDate = setMinutes(setHours(field.value!, hours), minutes);
+                            const newDate = setMinutes(setHours(field.value, hours), minutes);
                             field.onChange(newDate);
                           }}
                         />

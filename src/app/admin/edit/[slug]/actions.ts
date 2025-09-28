@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -38,7 +39,7 @@ export async function updateItemAction(
       ...rest,
       id: isDraft ? idOrSlug : undefined, // L'ID n'est pertinent que pour les brouillons/articles
       slug: isDraft ? undefined : idOrSlug, // Le slug n'est pertinent que pour les articles publiés
-      scheduledFor: scheduledFor ? new Date(scheduledFor).toISOString() : undefined,
+      scheduledFor: scheduledFor ? scheduledFor : undefined,
       actionType,
   };
 
@@ -63,3 +64,5 @@ export async function getArticleAction(slug: string): Promise<Article | null> {
 export async function getDraftAction(id: string): Promise<Draft | null> {
     return getDraftAdmin(id);
 }
+
+    

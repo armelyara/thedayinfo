@@ -53,7 +53,7 @@ const formSchema = z.object({
     src: z.string().min(1, "L'image est requise."),
     alt: z.string().min(1, "La description de l'image est requise."),
   }),
-  scheduledFor: z.string().optional().nullable(),
+  scheduledFor: z.date().optional().nullable(),
 });
 
 type EditArticleFormProps = {
@@ -76,12 +76,11 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
         src: item.image?.src || '',
         alt: item.image?.alt || '',
       },
-      scheduledFor: item.scheduledFor,
+      scheduledFor: item.scheduledFor ? new Date(item.scheduledFor) : null,
     },
   });
 
-  const scheduledDateString = form.watch('scheduledFor');
-  const scheduledDate = scheduledDateString ? parseISO(scheduledDateString) : null;
+  const scheduledDate = form.watch('scheduledFor');
 
   async function handleAction(actionType: 'draft' | 'publish' | 'schedule') {
     const isValid = await form.trigger();
@@ -98,7 +97,13 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
     const idOrSlug = isDraft ? (item as Draft).id : (item as Article).slug;
 
     try {
-      const result = await updateItemAction(idOrSlug, values, actionType, isDraft);
+      // Cast 'scheduledFor' to a format suitable for the action
+      const submissionValues = {
+        ...values,
+        scheduledFor: values.scheduledFor ? values.scheduledFor.toISOString() : undefined,
+      };
+
+      const result = await updateItemAction(idOrSlug, submissionValues, actionType, isDraft);
       
       let successMessage = '';
       let redirectUrl = '/admin';
@@ -211,7 +216,6 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
           control={form.control}
           name="scheduledFor"
           render={({ field }) => {
-            const selectedDate = field.value ? parseISO(field.value) : undefined;
             return (
               <FormItem className="flex flex-col">
                 <FormLabel>Programmer la Publication</FormLabel>
@@ -223,11 +227,11 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
                           variant={'outline'}
                           className={cn(
                             'w-[240px] pl-3 text-left font-normal',
-                            !selectedDate && 'text-muted-foreground'
+                            !field.value && 'text-muted-foreground'
                           )}
                         >
-                          {selectedDate ? (
-                            format(selectedDate, 'PPP', { locale: fr })
+                          {field.value ? (
+                            format(field.value, 'PPP', { locale: fr })
                           ) : (
                             <span>Choisissez une date</span>
                           )}
@@ -238,8 +242,8 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => field.onChange(date ? date.toISOString() : undefined)}
+                        selected={field.value || undefined}
+                        onSelect={(date) => field.onChange(date)}
                         disabled={(date) =>
                           date < new Date(new Date().setHours(0, 0, 0, 0))
                         }
@@ -248,17 +252,18 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
                     </PopoverContent>
                   </Popover>
 
-                  {selectedDate && (
+                  {field.value && (
                     <Input
                       type="time"
                       className="w-[120px]"
-                      defaultValue={format(selectedDate, 'HH:mm')}
+                      defaultValue={field.value ? format(field.value, 'HH:mm') : ''}
                       onChange={(e) => {
+                          if (!field.value) return;
                           const time = e.target.value.split(':');
                           const hours = parseInt(time[0], 10);
                           const minutes = parseInt(time[1], 10);
-                          const newDate = setMinutes(setHours(selectedDate, hours), minutes);
-                          field.onChange(newDate.toISOString());
+                          const newDate = setMinutes(setHours(field.value, hours), minutes);
+                          field.onChange(newDate);
                       }}
                     />
                   )}
