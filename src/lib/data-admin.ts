@@ -351,8 +351,8 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
 }
 
 export async function getPublishedArticles(): Promise<Article[] | { error: string, message: string }> {
+    const db = await initializeAdminDb();
     try {
-        const db = await initializeAdminDb();
         const articlesCollection = db.collection('articles');
         const q = articlesCollection
             .where('status', '==', 'published')
