@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
@@ -5,6 +6,8 @@ import { initializeFirebaseAdmin } from './auth';
 import type { Article, ArticleImage, Draft, Profile, Subscriber } from './data-types';
 import { sendNewsletterNotification } from './newsletter-service';
 
+// Modifié: La base de données est initialisée via une fonction asynchrone
+// pour s'assurer que Firebase Admin est prêt.
 let adminDb: FirebaseFirestore.Firestore;
 const initializeAdminDb = async () => {
   if (!adminDb) {
@@ -13,6 +16,7 @@ const initializeAdminDb = async () => {
   }
   return adminDb;
 };
+
 
 /**
  * Publie un article, soit en créant un nouveau, soit en mettant à jour un existant.
@@ -483,3 +487,5 @@ export async function updateSubscriberStatus(email: string, status: 'active' | '
     }
 }
 // #endregion
+
+    
