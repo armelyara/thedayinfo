@@ -7,7 +7,7 @@ import { ArrowLeft, BarChart2, Eye, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer, YAxis, Cell } from 'recharts';
 import type { Article } from '@/lib/data-types';
 
 type CategoryStats = {
@@ -60,11 +60,11 @@ export default function AdvancedStatsPage() {
     },
     Technologie: {
       label: "Technologie",
-      color: "hsl(var(--primary))", // Bleu
+      color: "hsl(var(--primary))",
     },
     Actualité: {
       label: "Actualité",
-      color: "hsl(var(--secondary))", // Orange
+      color: "hsl(var(--secondary))",
     },
   }), []);
 
@@ -164,11 +164,9 @@ export default function AdvancedStatsPage() {
                       content={<ChartTooltipContent />}
                     />
                     <Bar dataKey="views" layout="vertical" radius={4}>
-                      {categoryViews.map((entry) => (
-                        <Bar
-                          key={`bar-${entry.name}`}
-                          dataKey="views"
-                          name={entry.name}
+                      {categoryViews.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
                           fill={chartConfig[entry.name as keyof typeof chartConfig]?.color}
                         />
                       ))}
