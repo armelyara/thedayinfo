@@ -220,11 +220,7 @@ export async function addSubscriber(email: string, name?: string, preferences?: 
     const subscribersCollection = db.collection('subscribers');
     const emailId = email.toLowerCase(); // Utiliser l'email comme ID de document
     
-    const docRef = subscribersCollection.doc(emailId);
-    const existingDoc = await docRef.get();
-    if (existingDoc.exists) {
-        throw new Error('Cette adresse email est déjà abonnée.');
-    }
+    const docRef = subscribersCollection.doc();
     
     const subscriberData = {
         email: emailId,
