@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,7 +14,7 @@ import { useRouter } from 'next/navigation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Save, Send, Clock, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, setHours, setMinutes } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { categories } from '@/components/layout/main-layout';
@@ -313,37 +314,54 @@ export default function CreateArticlePage() {
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Programmer la Publication</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={'outline'}
-                          className={cn(
-                            'w-[240px] pl-3 text-left font-normal',
-                            !field.value && 'text-muted-foreground'
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, 'PPP', { locale: fr })
-                          ) : (
-                            <span>Choisissez une date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date(new Date().setHours(0, 0, 0, 0))
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                   <div className="flex items-center gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={'outline'}
+                              className={cn(
+                                'w-[240px] pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, 'PPP', { locale: fr })
+                              ) : (
+                                <span>Choisissez une date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date < new Date(new Date().setHours(0, 0, 0, 0))
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      
+                      {field.value && (
+                        <Input
+                          type="time"
+                          className="w-[120px]"
+                          defaultValue={format(field.value, 'HH:mm')}
+                          onChange={(e) => {
+                            const time = e.target.value.split(':');
+                            const hours = parseInt(time[0], 10);
+                            const minutes = parseInt(time[1], 10);
+                            const newDate = setMinutes(setHours(field.value!, hours), minutes);
+                            field.onChange(newDate);
+                          }}
+                        />
+                      )}
+                    </div>
                   <FormDescription>
                     Laisser vide pour publier maintenant ou sauvegarder en brouillon.
                   </FormDescription>
@@ -396,3 +414,5 @@ export default function CreateArticlePage() {
     </div>
   );
 }
+
+    

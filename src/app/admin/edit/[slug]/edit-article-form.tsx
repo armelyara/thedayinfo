@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,7 +30,7 @@ import { useRouter } from 'next/navigation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Save, Send, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, setHours, setMinutes } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { categories } from '@/components/layout/main-layout';
@@ -79,7 +80,8 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
     },
   });
 
-  const scheduledDate = form.watch('scheduledFor');
+  const scheduledDateString = form.watch('scheduledFor');
+  const scheduledDate = scheduledDateString ? parseISO(scheduledDateString) : null;
 
   async function handleAction(actionType: 'draft' | 'publish' | 'schedule') {
     const isValid = await form.trigger();
@@ -208,46 +210,66 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
         <FormField
           control={form.control}
           name="scheduledFor"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Programmer la Publication</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={'outline'}
-                      className={cn(
-                        'w-[240px] pl-3 text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? (
-                        format(parseISO(field.value), 'PPP', { locale: fr })
-                      ) : (
-                        <span>Choisissez une date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value ? parseISO(field.value) : undefined}
-                    onSelect={(date) => field.onChange(date ? date.toISOString() : undefined)}
-                    disabled={(date) =>
-                      date < new Date(new Date().setHours(0, 0, 0, 0))
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-               <FormDescription>
-                    Si une date est définie, l'article sera sauvegardé comme brouillon programmé.
-                </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const selectedDate = field.value ? parseISO(field.value) : undefined;
+            return (
+              <FormItem className="flex flex-col">
+                <FormLabel>Programmer la Publication</FormLabel>
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-[240px] pl-3 text-left font-normal',
+                            !selectedDate && 'text-muted-foreground'
+                          )}
+                        >
+                          {selectedDate ? (
+                            format(selectedDate, 'PPP', { locale: fr })
+                          ) : (
+                            <span>Choisissez une date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => field.onChange(date ? date.toISOString() : undefined)}
+                        disabled={(date) =>
+                          date < new Date(new Date().setHours(0, 0, 0, 0))
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {selectedDate && (
+                    <Input
+                      type="time"
+                      className="w-[120px]"
+                      defaultValue={format(selectedDate, 'HH:mm')}
+                      onChange={(e) => {
+                          const time = e.target.value.split(':');
+                          const hours = parseInt(time[0], 10);
+                          const minutes = parseInt(time[1], 10);
+                          const newDate = setMinutes(setHours(selectedDate, hours), minutes);
+                          field.onChange(newDate.toISOString());
+                      }}
+                    />
+                  )}
+                </div>
+                 <FormDescription>
+                      Si une date est définie, l'article sera sauvegardé comme brouillon programmé.
+                  </FormDescription>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
         />
         
         <FormField
@@ -295,3 +317,5 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
     </Form>
   );
 }
+
+    
