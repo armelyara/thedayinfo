@@ -10,8 +10,19 @@ import { initializeFirebaseAdmin } from '@/lib/auth';
 
 // Fonction handler unifiée pour GET et POST
 async function handler(request: NextRequest) {
-  // 1. Réactiver la sécurité (cause probable de l'erreur 401 précédente si mal configuré)
-  // Assurez-vous que la variable d'environnement CRON_SECRET est définie dans App Hosting.
+  // 1. Initialiser Firebase Admin (CORRECTION)
+  // C'est l'étape qui manquait et qui causait l'erreur 500.
+  try {
+    await initializeFirebaseAdmin();
+  } catch (error) {
+    console.error('Échec de l\'initialisation de Firebase Admin:', error);
+    return NextResponse.json(
+      { error: 'Erreur critique du serveur lors de l\'initialisation.' },
+      { status: 500 }
+    );
+  }
+
+  // 2. Vérifier la sécurité (paramètres de sécurité conservés)
   const cronSecret = process.env.CRON_SECRET;
   const requestHeaderSecret = request.headers.get('x-cron-secret');
   
@@ -21,10 +32,6 @@ async function handler(request: NextRequest) {
   }
 
   try {
-    // 2. Initialiser Firebase Admin (CORRECTION MAJEURE)
-    // C'est l'étape qui manquait et qui causait l'erreur 500.
-    await initializeFirebaseAdmin();
-
     // 3. Récupérer les articles à publier
     const draftsToPublish = await getScheduledArticlesToPublish();
 
