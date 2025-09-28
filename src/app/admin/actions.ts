@@ -10,7 +10,6 @@ export async function deleteArticleAction(slug: string) {
   
   if (result) {
     revalidatePath('/admin');
-    revalidatePath('/');
     return { success: true };
   } else {
     return { success: false, error: 'Article non trouvé' };
