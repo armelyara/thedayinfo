@@ -20,7 +20,7 @@ export async function POST() {
     try {
         const decodedClaims = await verifySession(sessionCookie);
         if (!decodedClaims) {
-            return NextResponse.json({ error: 'Session invalide' }, { status unauthorized: 401 });
+            return NextResponse.json({ error: 'Session invalide' }, { status: 401 });
         }
 
         // 2. Récupérer les articles à publier
