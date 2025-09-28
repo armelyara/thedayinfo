@@ -21,7 +21,7 @@ export async function postCommentAdminAction(slug: string, comments: Comment[]) 
     const result = await updateArticleComments(slug, comments);
     
     if (result) {
-        // Revalider les pages pour afficher les nouveaux commentaires
+        // Revalider la page de l'article pour afficher les nouveaux commentaires
         revalidatePath(`/article/${slug}`);
     }
     

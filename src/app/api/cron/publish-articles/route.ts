@@ -9,23 +9,26 @@ import {
 import { revalidatePath } from 'next/cache';
 
 async function handler(request: NextRequest) {
+  // 1. Sécurité : Vérifier le secret du cron job
+  const cronSecret = process.env.CRON_SECRET;
+  const requestSecret = request.nextUrl.searchParams.get('secret');
+
+  if (!cronSecret || requestSecret !== cronSecret) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+
   try {
-    const cronSecret = process.env.CRON_SECRET;
-    const requestSecret = request.nextUrl.searchParams.get('secret');
-
-    // Sécurité : Vérifier le secret
-    if (requestSecret !== cronSecret) {
-        return NextResponse.json({ error: 'Non autorisé - Secret invalide' }, { status: 401 });
-    }
-
+    // 2. Récupérer les articles à publier
     const draftsToPublish = await getScheduledArticlesToPublish();
 
     if (draftsToPublish.length === 0) {
       return NextResponse.json({
         message: 'Aucun article programmé à publier.',
+        publishedCount: 0,
       });
     }
 
+    // 3. Publier chaque article
     const publicationResults = [];
     for (const draft of draftsToPublish) {
       try {
@@ -36,16 +39,14 @@ async function handler(request: NextRequest) {
           slug: publishedArticle.slug,
         });
 
-        // Invalider les caches nécessaires
+        // 4. Invalider les caches pour mettre le site à jour
         revalidatePath('/');
-        revalidatePath('/admin');
         revalidatePath('/admin/drafts');
         revalidatePath(`/article/${publishedArticle.slug}`);
+        revalidatePath(`/category/${publishedArticle.category.toLowerCase().replace(/ & /g, '-').replace(/\s+/g, '-')}`);
+
       } catch (error) {
-        console.error(
-          `Échec de la publication du brouillon ${draft.id}:`,
-          error
-        );
+        console.error(`Échec de la publication du brouillon ${draft.id}:`, error);
         publicationResults.push({
           draftId: draft.id,
           status: 'failed',
@@ -54,14 +55,17 @@ async function handler(request: NextRequest) {
       }
     }
 
+    // 5. Renvoyer une réponse de succès
     return NextResponse.json({
-      message: `${draftsToPublish.length} article(s) traité(s).`,
+      message: `${publicationResults.filter(r => r.status === 'success').length} article(s) publié(s).`,
       results: publicationResults,
+      publishedCount: publicationResults.filter(r => r.status === 'success').length,
     });
+
   } catch (error) {
     console.error('Erreur dans le cron de publication:', error);
     return NextResponse.json(
-      { error: 'Erreur serveur interne' },
+      { error: 'Erreur serveur interne lors du traitement du cron.' },
       { status: 500 }
     );
   }
