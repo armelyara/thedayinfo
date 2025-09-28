@@ -7,7 +7,7 @@ import { ArrowLeft, BarChart2, Eye, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import type { Article } from '@/lib/data-types';
 
 type CategoryStats = {
@@ -62,6 +62,11 @@ export default function AdvancedStatsPage() {
         color: `hsl(var(--chart-${(index % 5) + 1}))`,
       };
     });
+    // Add a config for the 'views' dataKey used in the Bar component
+    config.views = {
+      label: "Vues",
+      color: `hsl(var(--chart-1))`,
+    };
     return config;
   }, [categoryViews]);
 
@@ -142,37 +147,35 @@ export default function AdvancedStatsPage() {
           </CardHeader>
           <CardContent>
             {categoryViews.length > 0 ? (
-              <div className="h-80 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={categoryViews} layout="vertical" margin={{ left: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                      width={100}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <ChartTooltip
-                      cursor={{ fill: 'hsl(var(--accent))' }}
-                      content={<ChartTooltipContent />}
-                    />
-                    <Bar dataKey="views" layout="vertical" radius={4}>
-                      {categoryViews.map((entry, index) => (
-                        <Bar
-                          key={`bar-${entry.name}`}
-                          dataKey="views"
-                          name={entry.name}
-                          fill={`hsl(var(--chart-${(index % 5) + 1}))`}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <ChartContainer config={chartConfig} className="h-80 w-full">
+                <BarChart data={categoryViews} layout="vertical" margin={{ left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    width={100}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <ChartTooltip
+                    cursor={{ fill: 'hsl(var(--accent))' }}
+                    content={<ChartTooltipContent />}
+                  />
+                  <Bar dataKey="views" layout="vertical" radius={4}>
+                    {categoryViews.map((entry) => (
+                      <Bar
+                        key={`bar-${entry.name}`}
+                        dataKey="views"
+                        name={entry.name}
+                        fill={chartConfig[entry.name]?.color || chartConfig.views.color}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
             ) : (
               <div className="text-center py-10 text-muted-foreground">
                 <p>Aucune donnée de vue disponible pour les catégories.</p>
