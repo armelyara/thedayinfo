@@ -26,7 +26,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
 
-  if (!article || (article.status === 'scheduled' && article.publishedAt && parseISO(article.publishedAt) > new Date())) {
+  if (!article || article.status !== 'published') {
     notFound();
   }
 

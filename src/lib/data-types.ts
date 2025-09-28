@@ -36,18 +36,13 @@ export type Article = {
     author: string;
     category: string;
     publishedAt: string;
-    status: 'drafts' | 'published' | 'scheduled';
-    scheduledFor?: string | null;
+    status: 'published'; // Un article publié est toujours 'published'
     image: ArticleImage;
     content: string;
     views: number;
     comments: Comment[];
     viewHistory: ViewHistory[];
-    lastSaved?: string;
-    autoSavedId?: string;
-    isDraft?: boolean;
-    version?: number;
-    originalVersion?: number;
+    scheduledFor?: string | null; // Pour référence, mais n'affecte pas le statut
 };
 
 export type Category = {
@@ -56,7 +51,7 @@ export type Category = {
 };
 
 export type Subscriber = {
-    email: string;  // L'email sert d'identifiant unique
+    email: string;
     name?: string;
     subscribedAt: string;
     status: 'active' | 'inactive' | 'unsubscribed';
@@ -64,24 +59,21 @@ export type Subscriber = {
       frequency: 'daily' | 'weekly' | 'monthly' | 'immediate';
       categories: string[];
     };
-
 };
 
 export type Draft = {
-    autoSaveId: string;
+    id: string; // ID du document dans la collection 'drafts'
     title: string;
     author: string;
     category: string;
     content: string;
     image?: Partial<ArticleImage>;
-    scheduledFor?: string | null;
+    scheduledFor?: string | null; // Date de programmation
     lastSaved: string;
     createdAt: string;
-    status: 'draft';
-    originalArticleSlug?: string;
-    isEditing?: boolean;
-    editingVersion?: number; 
+    status: 'draft' | 'scheduled'; // Statut au sein des brouillons
 };
+
 export type ArticleVersion = {
     versionId: string;
     articleSlug: string;

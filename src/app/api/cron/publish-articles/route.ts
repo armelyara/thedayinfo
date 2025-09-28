@@ -1,4 +1,3 @@
-
 // src/app/api/cron/publish-articles/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
@@ -11,7 +10,7 @@ import {
 export const revalidate = 0;
 
 export async function POST() {
-    // 1. Sécuriser la route
+    // 1. Sécuriser la route (déclenché par un admin authentifié)
     const sessionCookie = (await cookies()).get('session')?.value;
     if (!sessionCookie) {
         return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
@@ -23,27 +22,28 @@ export async function POST() {
             return NextResponse.json({ error: 'Session invalide' }, { status: 401 });
         }
 
-        // 2. Récupérer les articles à publier
-        const articlesToPublish = await getScheduledArticlesToPublish();
+        // 2. Récupérer les brouillons programmés à publier
+        const draftsToPublish = await getScheduledArticlesToPublish();
         
-        if (articlesToPublish.length === 0) {
-            return NextResponse.json({ message: 'Aucun article à publier.' });
+        if (draftsToPublish.length === 0) {
+            return NextResponse.json({ message: 'Aucun article programmé à publier.' });
         }
 
         // 3. Publier chaque article
         const publicationResults = [];
-        for (const article of articlesToPublish) {
+        for (const draft of draftsToPublish) {
             try {
-                await publishScheduledArticle(article.slug);
-                publicationResults.push({ slug: article.slug, status: 'success' });
+                // La fonction `publishScheduledArticle` déplace le brouillon vers la collection `articles`
+                await publishScheduledArticle(draft.id);
+                publicationResults.push({ draftId: draft.id, status: 'success' });
             } catch (error) {
-                console.error(`Échec de la publication de l'article ${article.slug}:`, error);
-                publicationResults.push({ slug: article.slug, status: 'failed', error: (error as Error).message });
+                console.error(`Échec de la publication du brouillon ${draft.id}:`, error);
+                publicationResults.push({ draftId: draft.id, status: 'failed', error: (error as Error).message });
             }
         }
         
         return NextResponse.json({
-            message: `${articlesToPublish.length} article(s) traité(s).`,
+            message: `${draftsToPublish.length} article(s) traité(s).`,
             results: publicationResults,
         });
 

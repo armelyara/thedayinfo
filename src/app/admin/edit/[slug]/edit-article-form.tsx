@@ -12,9 +12,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import type { Article } from '@/lib/data-types';
+import type { Article, Draft } from '@/lib/data-types';
 import {
   Select,
   SelectContent,
@@ -23,11 +24,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RichTextEditor } from '@/components/rich-text-editor';
-import { updateArticleAction } from './actions';
+import { updateItemAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Save, Send, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -56,10 +57,11 @@ const formSchema = z.object({
 });
 
 type EditArticleFormProps = {
-  article: Article;
+  article: Article & Draft; // Combine types for simplicity
+  isDraft: boolean;
 };
 
-export default function EditArticleForm({ article }: EditArticleFormProps) {
+export default function EditArticleForm({ article, isDraft }: EditArticleFormProps) {
   const { toast } = useToast();
   const router = useRouter();
 
@@ -71,34 +73,64 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
       category: article.category,
       content: article.content,
       image: {
-        src: article.image.src,
-        alt: article.image.alt,
+        src: article.image?.src || '',
+        alt: article.image?.alt || '',
       },
       scheduledFor: article.scheduledFor,
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      const updatedArticle = await updateArticleAction(article.slug, values);
+  const scheduledDate = form.watch('scheduledFor');
+
+  async function handleAction(actionType: 'draft' | 'publish' | 'schedule') {
+    const isValid = await form.trigger();
+    if (!isValid) {
       toast({
-        title: 'Article Mis à Jour !',
-        description: 'Votre article a été mis à jour avec succès.',
+        variant: 'destructive',
+        title: 'Champs invalides',
+        description: 'Veuillez corriger les erreurs avant de continuer.',
       });
-      router.push(`/article/${updatedArticle.slug}`);
+      return;
+    }
+
+    const values = form.getValues();
+    const idOrSlug = isDraft ? article.id : article.slug;
+
+    try {
+      const result = await updateItemAction(idOrSlug, values, actionType);
+      
+      let successMessage = '';
+      let redirectUrl = '/admin';
+
+      if (actionType === 'draft') {
+        successMessage = 'Brouillon mis à jour !';
+        redirectUrl = '/admin/drafts';
+      } else if (actionType === 'schedule') {
+        successMessage = 'Article programmé avec succès !';
+        redirectUrl = '/admin/drafts';
+      } else if (actionType === 'publish' && 'slug' in result) {
+        successMessage = 'Article mis à jour et publié !';
+        redirectUrl = `/article/${result.slug}`;
+      }
+
+      toast({
+        title: 'Succès !',
+        description: successMessage,
+      });
+      router.push(redirectUrl);
     } catch (error) {
       console.error("Update failed:", error);
       toast({
         variant: 'destructive',
         title: 'Oh oh ! Quelque chose s\'est mal passé.',
-        description: 'Un problème est survenu avec votre demande.',
+        description: error instanceof Error ? error.message : 'Un problème est survenu avec votre demande.',
       });
     }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
         <FormField
           control={form.control}
           name="title"
@@ -211,6 +243,9 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
                   />
                 </PopoverContent>
               </Popover>
+               <FormDescription>
+                    Si une date est définie, l'article sera sauvegardé comme brouillon programmé.
+                </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -235,9 +270,25 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
           )}
         />
         
-        <div className="flex gap-2">
-          <Button type="submit">Mettre à Jour l'Article</Button>
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+        <div className="flex gap-4">
+          <Button variant="outline" onClick={() => handleAction('draft')}>
+              <Save className="h-4 w-4 mr-2" />
+              Sauvegarder les modifications
+          </Button>
+
+          {scheduledDate ? (
+              <Button onClick={() => handleAction('schedule')} className="bg-blue-600 hover:bg-blue-700">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Programmer
+              </Button>
+          ) : (
+              <Button onClick={() => handleAction('publish')}>
+                  <Send className="h-4 w-4 mr-2" />
+                  {isDraft ? "Publier Maintenant" : "Mettre à jour et Publier"}
+              </Button>
+          )}
+
+           <Button type="button" variant="ghost" onClick={() => router.back()}>
             Annuler
           </Button>
         </div>

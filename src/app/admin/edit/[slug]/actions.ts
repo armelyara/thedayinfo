@@ -2,16 +2,15 @@
 'use server';
 
 import { z } from 'zod';
-import { updateArticle } from '@/lib/data-admin';
-import { getArticleBySlug } from '@/lib/data-client';
+import { updateArticle, saveArticle, getDraft, getArticleBySlug } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
-import type { Article } from '@/lib/data-types';
+import type { Article, Draft } from '@/lib/data-types';
 
 const formSchema = z.object({
-  title: z.string(),
-  author: z.string(),
-  category: z.string(),
-  content: z.string(),
+  title: z.string().min(1, 'Le titre est requis.'),
+  author: z.string().min(1, "L'auteur est requis."),
+  category: z.string().min(1, 'La catégorie est requise.'),
+  content: z.string().min(1, 'Le contenu est requis.'),
   image: z.object({
     src: z.string().url().or(z.string().startsWith('data:image')),
     alt: z.string(),
@@ -19,7 +18,13 @@ const formSchema = z.object({
   scheduledFor: z.string().optional().nullable(),
 });
 
-export async function updateArticleAction(slug: string, values: z.infer<typeof formSchema>): Promise<Article> {
+type FormValues = z.infer<typeof formSchema>;
+
+export async function updateItemAction(
+    idOrSlug: string, 
+    values: FormValues,
+    actionType: 'draft' | 'publish' | 'schedule'
+): Promise<Article | Draft> {
   const validatedFields = formSchema.safeParse(values);
 
   if (!validatedFields.success) {
@@ -29,22 +34,32 @@ export async function updateArticleAction(slug: string, values: z.infer<typeof f
 
   const { scheduledFor, ...rest } = validatedFields.data;
   
-  const updatedArticle = await updateArticle(slug, {
-    ...rest,
-    // rest.image contient seulement { src, alt } du formulaire
-    // data-admin.ts va automatiquement ajouter id et aiHint
-    scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
-});
+  const articleData = {
+      ...rest,
+      id: idOrSlug, // Pour les brouillons
+      originalSlug: idOrSlug, // Pour les articles publiés
+      scheduledFor: scheduledFor ? new Date(scheduledFor).toISOString() : undefined,
+      actionType,
+  };
 
-  // Revalidate paths to show the changes immediately
+  const result = await saveArticle(articleData);
+
+  // Revalidate paths
   revalidatePath('/');
   revalidatePath('/admin');
-  revalidatePath(`/article/${updatedArticle.slug}`);
+  revalidatePath('/admin/drafts');
+  if ('slug' in result) {
+      revalidatePath(`/article/${result.slug}`);
+  }
   revalidatePath(`/category/${validatedFields.data.category.toLowerCase().replace(' & ', '-').replace(/\s+/g, '-')}`);
 
-  return updatedArticle;
+  return result;
 }
 
 export async function getArticleAction(slug: string): Promise<Article | null> {
     return getArticleBySlug(slug);
+}
+
+export async function getDraftAction(id: string): Promise<Draft | null> {
+    return getDraft(id);
 }

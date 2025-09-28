@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { FileEdit, Trash2, Send } from 'lucide-react';
+import { FileEdit, Trash2, Clock } from 'lucide-react';
 import { deleteDraftAction } from '@/app/admin/drafts/action';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -22,12 +22,12 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
     const { toast } = useToast();
     const router = useRouter();
 
-    const handleDelete = async (autoSaveId: string) => {
-        setIsDeleting(autoSaveId);
+    const handleDelete = async (id: string) => {
+        setIsDeleting(id);
         try {
-            const success = await deleteDraftAction(autoSaveId);
+            const success = await deleteDraftAction(id);
             if (success) {
-                setDrafts(prev => prev.filter(d => d.autoSaveId !== autoSaveId));
+                setDrafts(prev => prev.filter(d => d.id !== id));
                 toast({
                     title: 'Brouillon supprimé',
                     description: 'Le brouillon a été supprimé avec succès.',
@@ -46,8 +46,9 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
         }
     };
 
-    const handleEdit = (autoSaveId: string) => {
-        router.push(`/admin/edit-draft/${autoSaveId}`);
+    const handleEdit = (id: string) => {
+        // Rediriger vers une nouvelle page d'édition de brouillon
+        router.push(`/admin/edit-draft/${id}`);
     };
 
     if (drafts.length === 0) {
@@ -57,7 +58,7 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                     <FileEdit className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">Aucun brouillon</h3>
                     <p className="text-muted-foreground">
-                        Tous vos brouillons apparaîtront ici.
+                        Tous vos brouillons et articles programmés apparaîtront ici.
                     </p>
                 </CardContent>
             </Card>
@@ -67,7 +68,7 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
     return (
         <div className="space-y-4">
             {drafts.map((draft) => (
-                <Card key={draft.autoSaveId}>
+                <Card key={draft.id}>
                     <CardHeader>
                         <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -75,7 +76,14 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                                     {draft.title || 'Sans titre'}
                                 </CardTitle>
                                 <div className="flex items-center gap-2 mt-2">
-                                    <Badge variant="secondary">Brouillon</Badge>
+                                    {draft.status === 'scheduled' ? (
+                                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                            <Clock className="h-3 w-3 mr-1"/>
+                                            Programmé
+                                        </Badge>
+                                    ) : (
+                                        <Badge variant="outline">Brouillon</Badge>
+                                    )}
                                     {draft.category && (
                                         <Badge variant="outline">{draft.category}</Badge>
                                     )}
@@ -94,32 +102,35 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                             
                             <div className="flex items-center justify-between">
                                 <div className="text-xs text-muted-foreground">
-                                    <p>Créé {formatDistanceToNow(new Date(draft.createdAt), { 
+                                    {draft.status === 'scheduled' && draft.scheduledFor && (
+                                        <p className="font-semibold text-blue-700">
+                                            Publication le {format(parseISO(draft.scheduledFor), 'dd/MM/yyyy à HH:mm', { locale: fr })}
+                                        </p>
+                                    )}
+                                    <p>Dernière sauvegarde : {formatDistanceToNow(new Date(draft.lastSaved), { 
                                         addSuffix: true, 
                                         locale: fr 
                                     })}</p>
-                                    <p>Dernière sauvegarde : {format(new Date(draft.lastSaved), 
-                                        'dd/MM/yyyy à HH:mm', { locale: fr })}</p>
                                 </div>
                                 
                                 <div className="flex gap-2">
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handleEdit(draft.autoSaveId)}
+                                        onClick={() => handleEdit(draft.id)}
                                     >
                                         <FileEdit className="h-4 w-4 mr-2" />
-                                        Continuer
+                                        Modifier
                                     </Button>
                                     
                                     <Button
                                         variant="destructive"
                                         size="sm"
-                                        disabled={isDeleting === draft.autoSaveId}
-                                        onClick={() => handleDelete(draft.autoSaveId)}
+                                        disabled={isDeleting === draft.id}
+                                        onClick={() => handleDelete(draft.id)}
                                     >
                                         <Trash2 className="h-4 w-4 mr-2" />
-                                        {isDeleting === draft.autoSaveId ? 'Suppression...' : 'Supprimer'}
+                                        {isDeleting === draft.id ? 'Suppression...' : 'Supprimer'}
                                     </Button>
                                 </div>
                             </div>

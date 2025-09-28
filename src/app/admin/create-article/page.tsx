@@ -20,10 +20,11 @@ import { categories } from '@/components/layout/main-layout';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { SaveStatus } from '@/components/admin/save-status';
-import { saveDraftAction, saveArticleAction } from './actions';
+import { saveDraftActionServer, saveArticleAction } from './actions';
 import { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
+import type { Draft } from '@/lib/data-types';
 
 const formSchema = z.object({
   title: z.string().min(10, { message: 'Le titre doit comporter au moins 10 caractères.' }),
@@ -52,7 +53,7 @@ export default function CreateArticlePage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
-      author: '',
+      author: 'Armel Yara',
       content: '',
       image: { src: '', alt: '' },
     },
@@ -63,7 +64,7 @@ export default function CreateArticlePage() {
   
   useEffect(() => {
     setHasUnsavedChanges(true);
-  }, [watchedValues]);
+  }, [Object.values(watchedValues)]);
 
   // Auto-sauvegarde en brouillon externe
   const { saveNow } = useAutoSave(
@@ -71,22 +72,21 @@ export default function CreateArticlePage() {
     async (data) => {
       setIsSaving(true);
       try {
-        const draftData = {
-          autoSaveId: currentDraftId,
+        const draftData: Partial<Draft> = {
+          id: currentDraftId,
           title: data.title || '',
           author: data.author || '',
           category: data.category || '',
           content: data.content || '',
           image: data.image?.src ? { src: data.image.src, alt: data.image.alt } : undefined,
-          scheduledFor: data.scheduledFor?.toISOString() || null,
+          scheduledFor: data.scheduledFor?.toISOString(),
           createdAt: currentDraftId ? undefined : new Date().toISOString(),
-          isEditing: false
         };
 
-        const savedDraft = await saveDraftAction(draftData);
+        const savedDraft = await saveDraftActionServer(draftData);
         
         if (!currentDraftId) {
-          setCurrentDraftId(savedDraft.autoSaveId);
+          setCurrentDraftId(savedDraft.id);
         }
         
         setLastSaved(savedDraft.lastSaved);
@@ -100,117 +100,92 @@ export default function CreateArticlePage() {
     { delay: 30000, enabled: true }
   );
 
-  // Sauvegarder comme brouillon d'article
-  const handleSaveAsDraft = async () => {
+  const executeSaveAction = async (actionType: 'draft' | 'publish' | 'schedule') => {
     const values = form.getValues();
     
-    if (!values.title || !values.content) {
-      toast({
-        variant: 'destructive',
-        title: 'Contenu insuffisant',
-        description: 'Au minimum un titre et du contenu sont requis.',
-      });
-      return;
+    // Validation manuelle pour brouillon
+    if (actionType === 'draft' && (!values.title || !values.content)) {
+        toast({
+            variant: 'destructive',
+            title: 'Contenu insuffisant',
+            description: 'Un titre et du contenu sont requis pour sauvegarder un brouillon.',
+        });
+        return;
     }
 
+    // Validation complète pour publier/programmer
+    if (actionType === 'publish' || actionType === 'schedule') {
+        const isValid = await form.trigger();
+        if (!isValid) {
+            toast({
+                variant: 'destructive',
+                title: 'Champs invalides',
+                description: 'Veuillez corriger les erreurs avant de continuer.',
+            });
+            return;
+        }
+    }
+
+    setIsSaving(true);
     try {
-      setIsSaving(true);
-      
-      const articleData = {
-        title: values.title,
-        author: values.author || 'Armel Yara',
-        category: values.category || 'Technologie',
-        content: values.content,
-        image: values.image.src ? values.image : { src: '', alt: '' },
-        scheduledFor: values.scheduledFor?.toISOString(),
-        actionType: 'draft' as const
-      };
+        const articleData = {
+            id: currentDraftId,
+            title: values.title,
+            author: values.author,
+            category: values.category,
+            content: values.content,
+            image: values.image,
+            scheduledFor: values.scheduledFor?.toISOString(),
+            actionType,
+        };
 
-      await saveArticleAction(articleData);
-      
-      toast({
-        title: 'Brouillon sauvegardé',
-        description: 'Votre article a été sauvegardé en brouillon.',
-      });
-      router.push('/admin/drafts');
+        const result = await saveArticleAction(articleData);
+
+        let successMessageTitle = '';
+        let successMessageDesc = '';
+        let redirectUrl = '/admin/drafts';
+
+        if (actionType === 'draft' || (actionType === 'schedule' && 'status' in result && result.status === 'scheduled')) {
+            successMessageTitle = 'Brouillon sauvegardé';
+            successMessageDesc = `Votre article a été sauvegardé en tant que ${actionType === 'schedule' ? 'brouillon programmé' : 'brouillon'}.`;
+            setCurrentDraftId(result.id);
+        } else if (actionType === 'publish' && 'slug' in result) {
+            successMessageTitle = 'Article publié !';
+            successMessageDesc = 'Votre article est maintenant en ligne.';
+            redirectUrl = `/article/${result.slug}`;
+        }
+        
+        toast({
+            title: successMessageTitle,
+            description: successMessageDesc,
+        });
+
+        router.push(redirectUrl);
+
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de sauvegarde',
-        description: 'Impossible de sauvegarder le brouillon.',
-      });
+        toast({
+            variant: 'destructive',
+            title: 'Erreur de sauvegarde',
+            description: error instanceof Error ? error.message : 'Impossible de sauvegarder l\'article.',
+        });
     } finally {
-      setIsSaving(false);
+        setIsSaving(false);
+        setShowPublishConfirm(false);
+        setShowScheduleConfirm(false);
     }
   };
 
-  // Publication avec confirmation
-  const handlePublish = () => {
-    setPendingAction('publish');
-    setShowPublishConfirm(true);
-  };
-
-  // Programmation avec confirmation
+  const handleSaveAsDraft = () => executeSaveAction('draft');
+  const handlePublish = () => { setPendingAction('publish'); setShowPublishConfirm(true); };
   const handleSchedule = () => {
     if (!scheduledDate) {
-      toast({
-        variant: 'destructive',
-        title: 'Date manquante',
-        description: 'Veuillez choisir une date de publication.',
-      });
-      return;
+        toast({ variant: 'destructive', title: 'Date manquante', description: 'Veuillez choisir une date de publication.' });
+        return;
     }
-    
     setPendingAction('schedule');
-    setShowScheduleConfirm(true);
+    executeSaveAction('schedule'); // La nouvelle logique sauvegarde directement dans les brouillons
   };
-
-  const confirmAction = async () => {
-    const values = form.getValues();
-    
-    try {
-      const articleData = {
-        title: values.title,
-        author: values.author || 'Armel Yara',
-        category: values.category || 'Technologie',
-        content: values.content,
-        image: values.image.src ? values.image : { src: '', alt: '' },
-        scheduledFor: values.scheduledFor?.toISOString(),
-        actionType: pendingAction
-      };
-
-      const savedArticle = await saveArticleAction(articleData);
-      
-      // Supprimer le brouillon externe si il existe
-      if (currentDraftId) {
-        // La logique de suppression du brouillon externe
-        // peut être gérée dans publishFromDraftAction si nécessaire.
-      }
-      
-      const successMessage = pendingAction === 'publish' 
-        ? 'Article publié et newsletter envoyée!'
-        : 'Article programmé pour publication!';
-      
-      toast({
-        title: successMessage,
-        description: pendingAction === 'publish' 
-          ? 'Votre article est maintenant en ligne.'
-          : `Publication programmée le ${format(scheduledDate!, 'PPP', { locale: fr })}.`,
-      });
-      
-      router.push(`/article/${savedArticle.slug}`);
-    } catch (error) {
-      console.error(`Failed to ${pendingAction} article:`, error);
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: `Un problème est survenu lors de ${pendingAction === 'publish' ? 'la publication' : 'la programmation'}.`,
-      });
-    } finally {
-      setShowPublishConfirm(false);
-      setShowScheduleConfirm(false);
-    }
-  };
+  const confirmPublish = () => executeSaveAction('publish');
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -249,28 +224,8 @@ export default function CreateArticlePage() {
               <Button size="sm" variant="outline" onClick={() => setShowPublishConfirm(false)}>
                 Annuler
               </Button>
-              <Button size="sm" onClick={confirmAction}>
-                Confirmer Publication
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {showScheduleConfirm && (
-        <Alert className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-500/30">
-          <Clock className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>
-              L'article sera publié automatiquement le {scheduledDate ? format(scheduledDate, 'PPP à HH:mm', { locale: fr }) : ''} 
-              et l'email sera envoyé à ce moment-là.
-            </span>
-            <div className="flex gap-2 ml-4">
-              <Button size="sm" variant="outline" onClick={() => setShowScheduleConfirm(false)}>
-                Annuler
-              </Button>
-              <Button size="sm" onClick={confirmAction}>
-                Confirmer Programmation
+              <Button size="sm" onClick={confirmPublish} disabled={isSaving}>
+                {isSaving ? 'Publication...' : 'Confirmer Publication'}
               </Button>
             </div>
           </AlertDescription>
@@ -389,6 +344,9 @@ export default function CreateArticlePage() {
                       />
                     </PopoverContent>
                   </Popover>
+                  <FormDescription>
+                    Laisser vide pour publier maintenant ou sauvegarder en brouillon.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -414,18 +372,18 @@ export default function CreateArticlePage() {
             />
 
             <div className="flex gap-4">
-                <Button variant="outline" onClick={handleSaveAsDraft}>
+                <Button variant="outline" onClick={handleSaveAsDraft} disabled={isSaving}>
                     <Save className="h-4 w-4 mr-2" />
-                    Sauvegarder en brouillon
+                    {isSaving ? 'Sauvegarde...' : 'Sauvegarder en brouillon'}
                 </Button>
 
                 {scheduledDate ? (
-                    <Button onClick={handleSchedule} className="bg-blue-600 hover:bg-blue-700">
+                    <Button onClick={handleSchedule} className="bg-blue-600 hover:bg-blue-700" disabled={isSaving}>
                         <Clock className="h-4 w-4 mr-2" />
-                        Programmer
+                        {isSaving ? 'Programmation...' : 'Programmer'}
                     </Button>
                 ) : (
-                    <Button onClick={handlePublish}>
+                    <Button onClick={handlePublish} disabled={isSaving}>
                         <Send className="h-4 w-4 mr-2" />
                         Publier Maintenant
                     </Button>

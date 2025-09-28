@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { addArticle, saveDraft, saveArticle } from '@/lib/data-admin';
+import { saveDraftAction as saveDraft, saveArticleAction as saveArticle } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
 import type { Article, Draft } from '@/lib/data-types';
 
@@ -17,7 +17,8 @@ const formSchema = z.object({
   scheduledFor: z.string().optional(),
 });
 
-export async function createArticle(values: z.infer<typeof formSchema>): Promise<Article> {
+// Cette fonction n'est plus utilisée directement, saveArticleAction la remplace
+export async function createArticle(values: z.infer<typeof formSchema>): Promise<Article | Draft> {
   const validatedFields = formSchema.safeParse(values);
 
   if (!validatedFields.success) {
@@ -27,24 +28,33 @@ export async function createArticle(values: z.infer<typeof formSchema>): Promise
 
   const { scheduledFor, ...rest } = validatedFields.data;
 
-  const newArticle = await addArticle({
+  const actionType = scheduledFor ? 'schedule' : 'publish';
+
+  const newArticle = await saveArticle({
     ...rest,
     scheduledFor: scheduledFor,
+    actionType
   });
 
-  // Revalidate paths to show the new article immediately
   revalidatePath('/');
   revalidatePath('/admin');
-  revalidatePath('/article/[slug]', 'page');
-  revalidatePath(`/category/${validatedFields.data.category.toLowerCase().replace(' & ', '-').replace(/\s+/g, '-')}`);
+  revalidatePath('/admin/drafts');
+  
+  if (actionType === 'publish' && 'slug' in newArticle) {
+    revalidatePath(`/article/${newArticle.slug}`);
+  }
+  
+  if (rest.category) {
+      revalidatePath(`/category/${rest.category.toLowerCase().replace(' & ', '-').replace(/\s+/g, '-')}`);
+  }
 
   return newArticle;
 }
 
-// Nouvelle fonction pour sauvegarder un brouillon
-export async function saveDraftAction(draftData: Partial<Draft>) {
+export async function saveDraftActionServer(draftData: Partial<Draft>) {
   try {
     const savedDraft = await saveDraft(draftData);
+    revalidatePath('/admin/drafts');
     return savedDraft;
   } catch (error) {
     console.error('Error saving draft:', error);
@@ -52,8 +62,8 @@ export async function saveDraftAction(draftData: Partial<Draft>) {
   }
 }
 
-// Nouvelle fonction pour sauvegarder un article avec différents statuts
 export async function saveArticleAction(articleData: {
+  id?: string;
   title: string;
   author: string;
   category: string;
@@ -61,38 +71,21 @@ export async function saveArticleAction(articleData: {
   image: { src: string; alt: string };
   scheduledFor?: string;
   actionType: 'draft' | 'publish' | 'schedule';
-}) {
+}): Promise<Article | Draft> {
   try {
-    let savedArticle: Article;
+    const result = await saveArticle(articleData);
     
-    if (articleData.actionType === 'draft') {
-      // Sauvegarder comme brouillon
-      savedArticle = await saveArticle({
-        ...articleData,
-        forceStatus: 'draft'
-      });
-    } else if (articleData.actionType === 'schedule') {
-      // Programmer la publication
-      savedArticle = await saveArticle({
-        ...articleData,
-        forceStatus: 'scheduled'
-      });
-    } else {
-      // Publier immédiatement
-      savedArticle = await saveArticle({
-        ...articleData,
-        forceStatus: 'published'
-      });
-    }
-    
-    // Revalidate les paths
+    // Revalidate paths
     revalidatePath('/');
     revalidatePath('/admin');
-    revalidatePath('/article/[slug]', 'page');
+    revalidatePath('/admin/drafts');
+    if (articleData.actionType === 'publish' && 'slug' in result) {
+      revalidatePath(`/article/${result.slug}`);
+    }
     
-    return savedArticle;
+    return result;
   } catch (error) {
     console.error('Error saving article:', error);
-    throw new Error('Erreur lors de la sauvegarde de l\'article');
+    throw new Error("Erreur lors de la sauvegarde de l'article");
   }
 }
