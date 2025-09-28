@@ -7,25 +7,16 @@ import {
 } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
 
-// Cette fonction n'est plus nécessaire car la vérification de l'admin depuis le tableau de bord
-// sera gérée différemment. Le cron job ne dépend que du secret.
-
-export async function POST(request: NextRequest) {
+async function handler(request: NextRequest) {
   try {
     const cronSecret = process.env.CRON_SECRET;
     const requestSecret = request.nextUrl.searchParams.get('secret');
+    const internalRequestHeader = request.headers.get('X-Internal-Request');
 
-    // La seule vérification d'autorisation est celle du secret pour les appels externes.
-    if (!cronSecret || requestSecret !== cronSecret) {
-      // Nous vérifions également un header spécial que nous pourrions définir
-      // pour les appels internes (comme depuis le dashboard admin)
-      const internalRequestHeader = request.headers.get('X-Internal-Request');
-      if (internalRequestHeader !== 'true') {
+    if (requestSecret !== cronSecret && internalRequestHeader !== 'true') {
         return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-      }
     }
 
-    // --- Logique de publication existante ---
     const draftsToPublish = await getScheduledArticlesToPublish();
 
     if (draftsToPublish.length === 0) {
@@ -74,3 +65,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const GET = handler;
+export const POST = handler;
