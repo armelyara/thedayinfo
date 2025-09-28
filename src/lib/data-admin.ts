@@ -136,6 +136,7 @@ async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft>
 // #region --- Actions Principales Exportées ---
 
 export async function saveDraftAction(draftData: Partial<Draft>): Promise<Draft> {
+    await initializeAdminDb();
     return saveAsDraftOrScheduled(draftData);
 }
 
@@ -150,6 +151,7 @@ export async function saveArticleAction(articleData: {
   id?: string; // id for existing drafts/articles
   slug?: string; // slug for existing published articles
 }): Promise<Article | Draft> {
+  await initializeAdminDb();
   
   const payload = {
     id: articleData.id || articleData.slug, // Utiliser l'ID ou le slug comme identifiant de brouillon
@@ -249,7 +251,7 @@ export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
  * Publie un article programmé : le déplace de 'drafts' à 'articles'.
  */
 export async function publishScheduledArticle(draftId: string): Promise<Article> {
-    const db = await initializeAdminDb();
+    await initializeAdminDb();
     const draft = await getDraft(draftId);
 
     if (!draft || (draft.status !== 'scheduled' && draft.status !== 'draft')) {
