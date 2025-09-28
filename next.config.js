@@ -46,13 +46,6 @@ const nextConfig = {
     }
     return config;
   },
-  
-  // Exclure 'firebase-admin' du traitement par Next.js sur le serveur
-  experimental: {
-    serverComponentsExternalPackages: [
-      'firebase-admin',
-    ],
-  },
 };
 
 module.exports = nextConfig;
