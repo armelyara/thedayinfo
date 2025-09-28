@@ -1,3 +1,4 @@
+
 'use server';
 
 import { deleteArticle, updateArticleComments } from '@/lib/data-admin';
@@ -22,7 +23,6 @@ export async function postCommentAdminAction(slug: string, comments: Comment[]) 
     if (result) {
         // Revalider les pages pour afficher les nouveaux commentaires
         revalidatePath(`/article/${slug}`);
-        revalidatePath('/admin');
     }
     
     return result;
