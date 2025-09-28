@@ -11,12 +11,10 @@ import { revalidatePath } from 'next/cache';
 async function handler(request: NextRequest) {
   // 1. Sécurité : Vérifier le secret du cron job
   const cronSecret = process.env.CRON_SECRET;
-  const requestSecret = request.nextUrl.searchParams.get('secret');
-
-  // Une alternative est de vérifier un header, plus sécurisé
+  // La vérification se fait via un header pour plus de sécurité que les query params
   const requestHeaderSecret = request.headers.get('x-cron-secret');
   
-  if (!cronSecret || (requestSecret !== cronSecret && requestHeaderSecret !== cronSecret)) {
+  if (!cronSecret || requestHeaderSecret !== cronSecret) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
 
@@ -77,4 +75,3 @@ async function handler(request: NextRequest) {
 // Autoriser à la fois GET et POST pour plus de flexibilité avec les services de cron
 export const GET = handler;
 export const POST = handler;
-
