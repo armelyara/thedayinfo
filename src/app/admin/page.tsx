@@ -225,15 +225,17 @@ export default function AdminDashboard() {
         </Card>
 
         <Card className="cursor-pointer hover:shadow-md transition-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              Statistiques Avancées
-            </CardTitle>
-            <CardDescription>
-              Analysez les performances de votre site
-            </CardDescription>
-          </CardHeader>
+          <Link href="/admin/stats">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                Statistiques Avancées
+              </CardTitle>
+              <CardDescription>
+                Analysez les performances de votre site
+              </CardDescription>
+            </CardHeader>
+          </Link>
         </Card>
       </div>
 
