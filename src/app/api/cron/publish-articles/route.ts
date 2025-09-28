@@ -13,7 +13,10 @@ async function handler(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   const requestSecret = request.nextUrl.searchParams.get('secret');
 
-  if (!cronSecret || requestSecret !== cronSecret) {
+  // Une alternative est de vérifier un header, plus sécurisé
+  const requestHeaderSecret = request.headers.get('x-cron-secret');
+  
+  if (!cronSecret || (requestSecret !== cronSecret && requestHeaderSecret !== cronSecret)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
 
