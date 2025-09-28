@@ -15,30 +15,31 @@ export default function EditArticlePage() {
   const { toast } = useToast();
   const slugOrId = params.slug as string;
 
-  const [articleData, setArticleData] = useState<Article | Draft | null>(null);
+  const [item, setItem] = useState<Article | Draft | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDraft, setIsDraft] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
-      // Hypothèse : si le slug contient 'draft_', c'est un brouillon.
-      // Une meilleure approche serait d'avoir une URL dédiée comme /edit-draft/:id
-      const editingDraft = router.pathname?.includes('/edit-draft/');
-      setIsDraft(editingDraft);
-
       let data: Article | Draft | null = null;
       try {
-        if (editingDraft) {
-          data = await getDraftAction(slugOrId);
+        // Un brouillon aura un ID qui ne correspond pas à un slug d'article classique
+        // On essaie d'abord de le récupérer comme un brouillon
+        data = await getDraftAction(slugOrId);
+        
+        if (data) {
+          setIsDraft(true);
         } else {
+          // Sinon, on essaie de le récupérer comme un article publié
           data = await getArticleAction(slugOrId);
+          setIsDraft(false);
         }
 
         if (!data) {
           toast({ variant: 'destructive', title: 'Erreur', description: 'Élément non trouvé.' });
           router.push('/admin');
         } else {
-          setArticleData(data);
+          setItem(data);
         }
       } catch (error) {
         console.error("Failed to fetch data for editing", error);
@@ -54,8 +55,7 @@ export default function EditArticlePage() {
     return <div className="container mx-auto px-4 py-8">Chargement...</div>;
   }
 
-  if (!articleData) {
-    // Redirection gérée dans le useEffect, ceci est un fallback.
+  if (!item) {
     notFound();
   }
 
@@ -75,7 +75,7 @@ export default function EditArticlePage() {
         </p>
       </header>
       <main>
-        <EditArticleForm article={articleData as Article & Draft} isDraft={isDraft} />
+        <EditArticleForm item={item} isDraft={isDraft} />
       </main>
     </div>
   );

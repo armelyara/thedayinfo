@@ -73,17 +73,3 @@ export type Draft = {
     createdAt: string;
     status: 'draft' | 'scheduled'; // Statut au sein des brouillons
 };
-
-export type ArticleVersion = {
-    versionId: string;
-    articleSlug: string;
-    version: number;
-    title: string;
-    content: string;
-    author: string;
-    category: string;
-    image: ArticleImage;
-    createdAt: string;
-    publishedAt: string;
-    reason: 'creation' | 'update' | 'schedule';
-};

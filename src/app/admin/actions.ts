@@ -1,6 +1,6 @@
 'use server';
 
-import { deleteArticle, updateArticle, updateArticleComments } from '@/lib/data-admin';
+import { deleteArticle, updateArticleComments } from '@/lib/data-admin';
 import type { Comment } from '@/lib/data-types';
 import { revalidatePath } from 'next/cache';
 

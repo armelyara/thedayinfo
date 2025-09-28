@@ -17,40 +17,6 @@ const formSchema = z.object({
   scheduledFor: z.string().optional(),
 });
 
-// Cette fonction n'est plus utilisée directement, saveArticleAction la remplace
-export async function createArticle(values: z.infer<typeof formSchema>): Promise<Article | Draft> {
-  const validatedFields = formSchema.safeParse(values);
-
-  if (!validatedFields.success) {
-    console.error('Validation failed:', validatedFields.error);
-    throw new Error('Champs de formulaire invalides');
-  }
-
-  const { scheduledFor, ...rest } = validatedFields.data;
-
-  const actionType = scheduledFor ? 'schedule' : 'publish';
-
-  const newArticle = await saveArticle({
-    ...rest,
-    scheduledFor: scheduledFor,
-    actionType
-  });
-
-  revalidatePath('/');
-  revalidatePath('/admin');
-  revalidatePath('/admin/drafts');
-  
-  if (actionType === 'publish' && 'slug' in newArticle) {
-    revalidatePath(`/article/${newArticle.slug}`);
-  }
-  
-  if (rest.category) {
-      revalidatePath(`/category/${rest.category.toLowerCase().replace(' & ', '-').replace(/\s+/g, '-')}`);
-  }
-
-  return newArticle;
-}
-
 export async function saveDraftActionServer(draftData: Partial<Draft>) {
   try {
     const savedDraft = await saveDraft(draftData);

@@ -1,8 +1,7 @@
-// src/app/admin/edit/[slug]/actions.ts
 'use server';
 
 import { z } from 'zod';
-import { updateArticle, saveArticle, getDraft, getArticleBySlug } from '@/lib/data-admin';
+import { saveArticle as saveArticleAdmin, getDraft as getDraftAdmin, getArticleBySlug as getArticleAdmin } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
 import type { Article, Draft } from '@/lib/data-types';
 
@@ -23,7 +22,8 @@ type FormValues = z.infer<typeof formSchema>;
 export async function updateItemAction(
     idOrSlug: string, 
     values: FormValues,
-    actionType: 'draft' | 'publish' | 'schedule'
+    actionType: 'draft' | 'publish' | 'schedule',
+    isDraft: boolean
 ): Promise<Article | Draft> {
   const validatedFields = formSchema.safeParse(values);
 
@@ -36,19 +36,18 @@ export async function updateItemAction(
   
   const articleData = {
       ...rest,
-      id: idOrSlug, // Pour les brouillons
-      originalSlug: idOrSlug, // Pour les articles publiés
+      id: isDraft ? idOrSlug : undefined,
       scheduledFor: scheduledFor ? new Date(scheduledFor).toISOString() : undefined,
       actionType,
   };
 
-  const result = await saveArticle(articleData);
+  const result = await saveArticleAdmin(articleData);
 
   // Revalidate paths
   revalidatePath('/');
   revalidatePath('/admin');
   revalidatePath('/admin/drafts');
-  if ('slug' in result) {
+  if ('slug' in result && result.status === 'published') {
       revalidatePath(`/article/${result.slug}`);
   }
   revalidatePath(`/category/${validatedFields.data.category.toLowerCase().replace(' & ', '-').replace(/\s+/g, '-')}`);
@@ -57,9 +56,9 @@ export async function updateItemAction(
 }
 
 export async function getArticleAction(slug: string): Promise<Article | null> {
-    return getArticleBySlug(slug);
+    return getArticleAdmin(slug);
 }
 
 export async function getDraftAction(id: string): Promise<Draft | null> {
-    return getDraft(id);
+    return getDraftAdmin(id);
 }

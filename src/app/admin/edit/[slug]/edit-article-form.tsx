@@ -1,4 +1,3 @@
-// src/app/admin/edit/[slug]/edit-article-form.tsx
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -57,26 +56,26 @@ const formSchema = z.object({
 });
 
 type EditArticleFormProps = {
-  article: Article & Draft; // Combine types for simplicity
+  item: Article | Draft;
   isDraft: boolean;
 };
 
-export default function EditArticleForm({ article, isDraft }: EditArticleFormProps) {
+export default function EditArticleForm({ item, isDraft }: EditArticleFormProps) {
   const { toast } = useToast();
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: article.title,
-      author: article.author,
-      category: article.category,
-      content: article.content,
+      title: item.title,
+      author: item.author,
+      category: item.category,
+      content: item.content,
       image: {
-        src: article.image?.src || '',
-        alt: article.image?.alt || '',
+        src: item.image?.src || '',
+        alt: item.image?.alt || '',
       },
-      scheduledFor: article.scheduledFor,
+      scheduledFor: item.scheduledFor,
     },
   });
 
@@ -94,23 +93,23 @@ export default function EditArticleForm({ article, isDraft }: EditArticleFormPro
     }
 
     const values = form.getValues();
-    const idOrSlug = isDraft ? article.id : article.slug;
+    const idOrSlug = isDraft ? (item as Draft).id : (item as Article).slug;
 
     try {
-      const result = await updateItemAction(idOrSlug, values, actionType);
+      const result = await updateItemAction(idOrSlug, values, actionType, isDraft);
       
       let successMessage = '';
       let redirectUrl = '/admin';
 
-      if (actionType === 'draft') {
+      if (result.status === 'draft') {
         successMessage = 'Brouillon mis à jour !';
         redirectUrl = '/admin/drafts';
-      } else if (actionType === 'schedule') {
+      } else if (result.status === 'scheduled') {
         successMessage = 'Article programmé avec succès !';
         redirectUrl = '/admin/drafts';
-      } else if (actionType === 'publish' && 'slug' in result) {
+      } else if (result.status === 'published') {
         successMessage = 'Article mis à jour et publié !';
-        redirectUrl = `/article/${result.slug}`;
+        redirectUrl = `/article/${(result as Article).slug}`;
       }
 
       toast({
@@ -273,13 +272,13 @@ export default function EditArticleForm({ article, isDraft }: EditArticleFormPro
         <div className="flex gap-4">
           <Button variant="outline" onClick={() => handleAction('draft')}>
               <Save className="h-4 w-4 mr-2" />
-              Sauvegarder les modifications
+              Sauvegarder en brouillon
           </Button>
 
           {scheduledDate ? (
               <Button onClick={() => handleAction('schedule')} className="bg-blue-600 hover:bg-blue-700">
                   <Clock className="h-4 w-4 mr-2" />
-                  Programmer
+                  Mettre à jour la programmation
               </Button>
           ) : (
               <Button onClick={() => handleAction('publish')}>

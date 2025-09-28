@@ -20,9 +20,9 @@ export default async function DraftsPage() {
                 
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-bold">Brouillons</h1>
+                        <h1 className="text-3xl font-bold">Brouillons et Articles Programmés</h1>
                         <p className="text-muted-foreground mt-2">
-                            {drafts.length} brouillon{drafts.length > 1 ? 's' : ''} en attente
+                            {drafts.length} élément{drafts.length > 1 ? 's' : ''} en attente
                         </p>
                     </div>
                     

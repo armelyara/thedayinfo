@@ -1,9 +1,8 @@
-// src/lib/data-admin.ts
 'use server';
 
-import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
 import { initializeFirebaseAdmin } from './auth';
-import type { Article, ArticleImage, ArticleVersion, Draft, Profile, Subscriber } from './data-types';
+import type { Article, ArticleImage, Draft, Profile, Subscriber } from './data-types';
 import { sendNewsletterNotification } from './newsletter-service';
 
 let adminDb: FirebaseFirestore.Firestore;
@@ -15,23 +14,24 @@ const initializeAdminDb = async () => {
   return adminDb;
 };
 
-// ==============================================
-// NOUVEAU SYSTÈME DE GESTION DES ARTICLES
-// ==============================================
-
 /**
  * Publie un article directement.
  * Crée un document dans la collection 'articles'.
  */
-async function publishArticleNow(articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory'>): Promise<Article> {
+async function publishArticleNow(articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory' | 'scheduledFor'>): Promise<Article> {
     const db = await initializeAdminDb();
     const articlesCollection = db.collection('articles');
-    const slug = articleData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+    
+    // Générer un slug unique
+    let slug = articleData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+    const docSnapshot = await articlesCollection.doc(slug).get();
+    if(docSnapshot.exists) {
+        slug = `${slug}-${Date.now()}`;
+    }
 
     const now = new Date();
-    const publishedArticleData = {
+    const publishedArticleData: Omit<Article, 'slug' | 'publishedAt'> & { publishedAt: AdminTimestamp } = {
         ...articleData,
-        slug,
         publishedAt: AdminTimestamp.fromDate(now),
         status: 'published' as const,
         views: 0,
@@ -43,12 +43,17 @@ async function publishArticleNow(articleData: Omit<Article, 'slug' | 'publishedA
     
     const finalArticle: Article = {
         ...publishedArticleData,
+        slug,
         publishedAt: now.toISOString(),
     };
 
     // Envoyer la newsletter
-    const subscribers = await getSubscribers();
-    await sendNewsletterNotification(finalArticle, subscribers, false);
+    try {
+        const subscribers = await getSubscribers();
+        await sendNewsletterNotification(finalArticle, subscribers, false);
+    } catch (error) {
+        console.error("Échec de l'envoi de la newsletter lors de la publication :", error);
+    }
 
     return finalArticle;
 }
@@ -76,7 +81,11 @@ async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft>
     }
 
     const dataToSave = {
-        ...draftData,
+        title: draftData.title || '',
+        author: draftData.author || '',
+        category: draftData.category || '',
+        content: draftData.content || '',
+        image: draftData.image || null,
         id,
         status,
         lastSaved: AdminTimestamp.now(),
@@ -86,16 +95,25 @@ async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft>
 
     await draftsCollection.doc(id).set(dataToSave, { merge: true });
     
+    const savedData = await draftsCollection.doc(id).get();
+    const resultData = savedData.data()!;
+
     return {
-        ...dataToSave,
-        lastSaved: dataToSave.lastSaved.toDate().toISOString(),
-        createdAt: dataToSave.createdAt.toDate().toISOString(),
-        scheduledFor: dataToSave.scheduledFor?.toDate().toISOString(),
+        id: resultData.id,
+        title: resultData.title,
+        author: resultData.author,
+        category: resultData.category,
+        content: resultData.content,
+        image: resultData.image,
+        lastSaved: resultData.lastSaved.toDate().toISOString(),
+        createdAt: resultData.createdAt.toDate().toISOString(),
+        status: resultData.status,
+        scheduledFor: resultData.scheduledFor?.toDate().toISOString() || null,
     } as Draft;
 }
 
 
-// FONCTIONS PRINCIPALES EXPORTÉES (Actions)
+// #region --- Actions Principales Exportées ---
 
 export async function saveDraftAction(draftData: Partial<Draft>): Promise<Draft> {
     return saveAsDraftOrScheduled(draftData);
@@ -112,7 +130,7 @@ export async function saveArticleAction(articleData: {
   id?: string; // id for existing drafts
 }): Promise<Article | Draft> {
   
-  const draftPayload: Partial<Draft> = {
+  const payload = {
     id: articleData.id,
     title: articleData.title,
     author: articleData.author,
@@ -123,18 +141,14 @@ export async function saveArticleAction(articleData: {
   };
 
   if (articleData.actionType === 'publish') {
-    // Publier maintenant -> collection `articles`
-    const articleToPublish = {
-        title: articleData.title,
-        author: articleData.author,
-        category: articleData.category,
-        content: articleData.content,
-        image: articleData.image,
-    };
-    return publishArticleNow(articleToPublish);
+    if(articleData.id) {
+        // C'est un brouillon qui est publié, il faut le supprimer de la collection drafts
+        await deleteDraft(articleData.id);
+    }
+    return publishArticleNow(payload);
   } else {
     // Sauvegarder comme brouillon ou programmer -> collection `drafts`
-    return saveAsDraftOrScheduled(draftPayload);
+    return saveAsDraftOrScheduled(payload);
   }
 }
 
@@ -205,7 +219,7 @@ export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
 
     const snapshot = await q.get();
 
-    return snapshot.docs.map(doc => getDraft(doc.id) as unknown as Draft);
+    return Promise.all(snapshot.docs.map(doc => getDraft(doc.id) as Promise<Draft>));
 }
 
 /**
@@ -214,8 +228,9 @@ export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
 export async function publishScheduledArticle(draftId: string): Promise<Article> {
     const db = await initializeAdminDb();
     const draft = await getDraft(draftId);
-    if (!draft || draft.status !== 'scheduled') {
-        throw new Error('Brouillon programmé non valide pour la publication.');
+
+    if (!draft || (draft.status !== 'scheduled' && draft.status !== 'draft')) {
+        throw new Error('Brouillon invalide pour la publication.');
     }
 
     const article = await publishArticleNow({
@@ -232,100 +247,9 @@ export async function publishScheduledArticle(draftId: string): Promise<Article>
     return article;
 }
 
+// #endregion
 
-// ==============================================
-// ANCIENNES FONCTIONS (à garder pour compatibilité ou à nettoyer)
-// ==============================================
-
-export async function updateArticle(
-    slug: string, 
-    data: Partial<Omit<Article, 'slug' | 'scheduledFor' | 'image'>> & { 
-        scheduledFor?: Date | string | null;
-        image?: Partial<ArticleImage>;
-    }
-): Promise<Article> {
-    const db = await initializeAdminDb();
-    const docRef = db.collection('articles').doc(slug);
-
-    const currentDoc = await docRef.get();
-    if (!currentDoc.exists) {
-        throw new Error("Article not found");
-    }
-
-    const currentData = currentDoc.data()!;
-    const dataForFirestore: { [key: string]: any } = { ...data };
-
-    if (data.publishedAt && typeof data.publishedAt === 'string') {
-        dataForFirestore.publishedAt = AdminTimestamp.fromDate(new Date(data.publishedAt));
-    }
-
-    if (data.hasOwnProperty('scheduledFor')) {
-        const scheduledValue = data.scheduledFor;
-        if (scheduledValue) {
-             // Si on ajoute une date de programmation à un article PUBLIÉ,
-             // cela le dé-publie et le transforme en brouillon programmé.
-            const draftData: Draft = {
-                id: `draft-from-${slug}`,
-                title: data.title || currentData.title,
-                author: data.author || currentData.author,
-                category: data.category || currentData.category,
-                content: data.content || currentData.content,
-                image: (data.image || currentData.image) as ArticleImage,
-                scheduledFor: new Date(scheduledValue as any).toISOString(),
-                status: 'scheduled',
-                lastSaved: new Date().toISOString(),
-                createdAt: currentData.publishedAt.toDate().toISOString(),
-            };
-            await saveAsDraftOrScheduled(draftData);
-            await deleteArticle(slug); // Supprimer de la collection `articles`
-            
-            // Cette fonction est censée retourner un Article, mais on a créé un Draft.
-            // C'est un point faible du refactoring. Pour l'instant, on retourne l'ancien état.
-             return getArticleBySlug(slug).then(a => a!);
-        }
-    }
-
-    if (data.image) {
-        const currentImage = currentData.image || {};
-        dataForFirestore.image = {
-            id: currentImage.id || String(Date.now()),
-            src: data.image.src || currentImage.src || '',
-            alt: data.image.alt || currentImage.alt || '',
-            aiHint: currentImage.aiHint || 'user uploaded'
-        };
-    }
-    
-    await docRef.update(dataForFirestore);
-    
-    const updatedDoc = await docRef.get();
-    const updatedData = updatedDoc.data()!;
-    
-    const updatedArticle: Article = {
-        slug,
-        title: updatedData.title,
-        author: updatedData.author,
-        category: updatedData.category,
-        content: updatedData.content,
-        publishedAt: updatedData.publishedAt.toDate().toISOString(),
-        status: updatedData.status,
-        scheduledFor: updatedData.scheduledFor ? updatedData.scheduledFor.toDate().toISOString() : undefined,
-        image: updatedData.image,
-        views: updatedData.views || 0,
-        comments: updatedData.comments || [],
-        viewHistory: updatedData.viewHistory || [],
-    };
-
-    if (updatedArticle.status === 'published') {
-        try {
-            const subscribers = await getSubscribers();
-            await sendNewsletterNotification(updatedArticle, subscribers, true);
-        } catch (error) {
-            console.error('Erreur envoi newsletter pour mise à jour:', error);
-        }
-    }
-    
-    return updatedArticle;
-}
+// #region --- Fonctions de gestion existantes ---
 
 export async function deleteArticle(slug: string): Promise<boolean> {
     const db = await initializeAdminDb();
@@ -345,137 +269,22 @@ export async function getAdminArticles(): Promise<Article[]> {
     const q = articlesCollection.orderBy('publishedAt', 'desc');
     const snapshot = await q.get();
     
-    const convertAdminDocToArticle = (doc: FirebaseFirestore.DocumentSnapshot): Article => {
-        const data = doc.data() as any;
+    return snapshot.docs.map((doc): Article => {
+        const data = doc.data();
         return {
             slug: doc.id,
             title: data.title,
             author: data.author,
             category: data.category,
             publishedAt: data.publishedAt.toDate().toISOString(),
-            status: data.status,
-            scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
+            status: 'published',
             image: data.image,
             content: data.content,
             views: data.views || 0,
             comments: data.comments || [],
             viewHistory: data.viewHistory ? data.viewHistory.map((vh: any) => ({...vh, date: vh.date.toDate().toISOString()})) : [],
         } as Article;
-    };
-    return snapshot.docs.map(convertAdminDocToArticle);
-}
-
-export async function updateProfile(data: Partial<Profile>): Promise<Profile> {
-    const db = await initializeAdminDb();
-    const docRef = db.collection('site-config').doc('profile');
-    
-    await docRef.set(data, { merge: true });
-    
-    const updatedDoc = await docRef.get();
-    return updatedDoc.data() as Profile;
-}
-
-export async function addSubscriber(email: string, name?: string, preferences?: any): Promise<Subscriber> {
-    const db = await initializeAdminDb();
-    const subscribersCollection = db.collection('subscribers');
-    
-    const querySnapshot = await subscribersCollection.where('email', '==', email.toLowerCase()).limit(1).get();
-    if (!querySnapshot.empty) {
-        throw new Error("Cette adresse email est déjà abonnée.");
-    }
-    
-    const docRef = subscribersCollection.doc(); // Let Firestore generate ID
-    
-    const subscriberData = {
-        email: email.toLowerCase(),
-        name: name || '',
-        subscribedAt: AdminTimestamp.now(),
-        status: 'active' as const,
-        preferences: preferences || {}
-    };
-    
-    await docRef.set(subscriberData);
-    
-    return {
-        ...subscriberData,
-        subscribedAt: subscriberData.subscribedAt.toDate().toISOString(),
-    };
-}
-
-
-export async function getSubscribers(): Promise<Subscriber[]> {
-    const db = await initializeAdminDb();
-    const subscribersCollection = db.collection('subscribers');
-    const snapshot = await subscribersCollection.get();
-    
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            email: data.email,
-            name: data.name || '',
-            subscribedAt: data.subscribedAt.toDate().toISOString(),
-            status: (data.status as 'active' | 'inactive' | 'unsubscribed') || 'active',
-            preferences: data.preferences
-        };
     });
-}
-
-
-export async function getSubscribersCount(): Promise<number> {
-    const db = await initializeAdminDb();
-    const subscribersCollection = db.collection('subscribers');
-    const snapshot = await subscribersCollection.where('status', '==', 'active').get();
-    return snapshot.size;
-}
-
-export async function deleteSubscriber(email: string): Promise<boolean> {
-    const db = await initializeAdminDb();
-    const q = db.collection('subscribers').where('email', '==', email.toLowerCase());
-    const snapshot = await q.get();
-
-    if (snapshot.empty) {
-        console.warn(`Subscriber with email ${email} not found for deletion.`);
-        return false;
-    }
-    
-    try {
-        const docRef = snapshot.docs[0].ref;
-        await docRef.delete();
-        return true;
-    } catch (error) {
-        console.error("Error deleting subscriber:", error);
-        return false;
-    }
-}
-
-export async function updateSubscriberStatus(email: string, status: 'active' | 'inactive' | 'unsubscribed'): Promise<boolean> {
-    const db = await initializeAdminDb();
-    const q = db.collection('subscribers').where('email', '==', email.toLowerCase());
-    const snapshot = await q.get();
-
-    if (snapshot.empty) {
-        console.warn(`Subscriber with email ${email} not found for status update.`);
-        return false;
-    }
-    
-    try {
-        const docRef = snapshot.docs[0].ref;
-        await docRef.update({ status });
-        return true;
-    } catch (error) {
-        console.error("Error updating subscriber status:", error);
-        return false;
-    }
-}
-
-export async function searchArticles(query: string): Promise<Article[]> {
-    const articles = await getPublishedArticles();
-    const lowerQuery = query.toLowerCase();
-    return articles.filter(article => 
-        article.title.toLowerCase().includes(lowerQuery) ||
-        article.content.toLowerCase().includes(lowerQuery) ||
-        article.category.toLowerCase().includes(lowerQuery)
-    );
 }
 
 export async function updateArticleComments(slug: string, comments: any[]): Promise<boolean> {
@@ -489,10 +298,6 @@ export async function updateArticleComments(slug: string, comments: any[]): Prom
         console.error("Error updating article comments:", error);
         return false;
     }
-}
-
-export async function getAllArticles(): Promise<Article[]> {
-    return await getAdminArticles();
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
@@ -512,7 +317,6 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
         category: data.category,
         publishedAt: data.publishedAt.toDate().toISOString(),
         status: data.status,
-        scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
         image: data.image,
         content: data.content,
         views: data.views || 0,
@@ -561,3 +365,102 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
         };
     }
 }
+
+// #endregion
+
+// #region --- Gestion des Abonnés et Profil ---
+
+export async function updateProfile(data: Partial<Profile>): Promise<Profile> {
+    const db = await initializeAdminDb();
+    const docRef = db.collection('site-config').doc('profile');
+    
+    await docRef.set(data, { merge: true });
+    
+    const updatedDoc = await docRef.get();
+    return updatedDoc.data() as Profile;
+}
+
+export async function addSubscriber(email: string, name?: string, preferences?: any): Promise<Subscriber> {
+    const db = await initializeAdminDb();
+    const subscribersCollection = db.collection('subscribers');
+    
+    const querySnapshot = await subscribersCollection.where('email', '==', email.toLowerCase()).limit(1).get();
+    if (!querySnapshot.empty) {
+        throw new Error("Cette adresse email est déjà abonnée.");
+    }
+    
+    const docRef = subscribersCollection.doc(); // Let Firestore generate ID
+    
+    const subscriberData = {
+        email: email.toLowerCase(),
+        name: name || '',
+        subscribedAt: AdminTimestamp.now(),
+        status: 'active' as const,
+        preferences: preferences || {}
+    };
+    
+    await docRef.set(subscriberData);
+    
+    return {
+        ...subscriberData,
+        subscribedAt: subscriberData.subscribedAt.toDate().toISOString(),
+    };
+}
+
+export async function getSubscribers(): Promise<Subscriber[]> {
+    const db = await initializeAdminDb();
+    const subscribersCollection = db.collection('subscribers');
+    const snapshot = await subscribersCollection.orderBy('subscribedAt', 'desc').get();
+    
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            email: data.email,
+            name: data.name || '',
+            subscribedAt: data.subscribedAt.toDate().toISOString(),
+            status: data.status || 'active',
+            preferences: data.preferences
+        };
+    });
+}
+
+export async function deleteSubscriber(email: string): Promise<boolean> {
+    const db = await initializeAdminDb();
+    const q = db.collection('subscribers').where('email', '==', email.toLowerCase());
+    const snapshot = await q.get();
+
+    if (snapshot.empty) {
+        console.warn(`Subscriber with email ${email} not found for deletion.`);
+        return false;
+    }
+    
+    try {
+        const docRef = snapshot.docs[0].ref;
+        await docRef.delete();
+        return true;
+    } catch (error) {
+        console.error("Error deleting subscriber:", error);
+        return false;
+    }
+}
+
+export async function updateSubscriberStatus(email: string, status: 'active' | 'inactive' | 'unsubscribed'): Promise<boolean> {
+    const db = await initializeAdminDb();
+    const q = db.collection('subscribers').where('email', '==', email.toLowerCase());
+    const snapshot = await q.get();
+
+    if (snapshot.empty) {
+        console.warn(`Subscriber with email ${email} not found for status update.`);
+        return false;
+    }
+    
+    try {
+        const docRef = snapshot.docs[0].ref;
+        await docRef.update({ status });
+        return true;
+    } catch (error) {
+        console.error("Error updating subscriber status:", error);
+        return false;
+    }
+}
+// #endregion

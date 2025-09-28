@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { FileEdit, Trash2, Clock } from 'lucide-react';
+import { FileEdit, Trash2, Clock, Pencil } from 'lucide-react';
 import { deleteDraftAction } from '@/app/admin/drafts/action';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -47,8 +47,7 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
     };
 
     const handleEdit = (id: string) => {
-        // Rediriger vers une nouvelle page d'édition de brouillon
-        router.push(`/admin/edit-draft/${id}`);
+        router.push(`/admin/edit/${id}`);
     };
 
     if (drafts.length === 0) {
@@ -119,7 +118,7 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                                         size="sm"
                                         onClick={() => handleEdit(draft.id)}
                                     >
-                                        <FileEdit className="h-4 w-4 mr-2" />
+                                        <Pencil className="h-4 w-4 mr-2" />
                                         Modifier
                                     </Button>
                                     
