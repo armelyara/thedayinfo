@@ -22,7 +22,7 @@ export async function postCommentAdminAction(slug: string, comments: Comment[]) 
     if (result) {
         // Revalider les pages pour afficher les nouveaux commentaires
         revalidatePath(`/article/${slug}`);
-        revalidatePath('/');
+        revalidatePath('/admin');
     }
     
     return result;
