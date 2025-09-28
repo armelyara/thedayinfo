@@ -77,3 +77,4 @@ async function handler(request: NextRequest) {
 // Autoriser à la fois GET et POST pour plus de flexibilité avec les services de cron
 export const GET = handler;
 export const POST = handler;
+

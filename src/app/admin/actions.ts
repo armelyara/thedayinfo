@@ -26,3 +26,4 @@ export async function postCommentAdminAction(slug: string, comments: Comment[]) 
     
     return result;
 }
+
