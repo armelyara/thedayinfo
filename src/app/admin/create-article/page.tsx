@@ -11,7 +11,7 @@ import { RichTextEditor } from '@/components/rich-text-editor';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Save, Send, Clock, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, Save, Send, Clock, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -23,6 +23,7 @@ import { SaveStatus } from '@/components/admin/save-status';
 import { saveDraftAction, saveArticleAction } from './actions';
 import { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import Link from 'next/link';
 
 const formSchema = z.object({
   title: z.string().min(10, { message: 'Le titre doit comporter au moins 10 caractères.' }),
@@ -214,6 +215,13 @@ export default function CreateArticlePage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8">
+        <Link 
+            href="/admin" 
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4 transition-colors"
+        >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour au Tableau de Bord
+        </Link>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-headline font-bold">Écrire un Nouvel Article</h1>

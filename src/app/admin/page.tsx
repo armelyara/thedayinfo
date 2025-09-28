@@ -182,20 +182,6 @@ export default function AdminDashboard() {
       {/* Actions rapides */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="cursor-pointer hover:shadow-md transition-shadow">
-          <Link href="/admin/create-article">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PlusCircle className="w-5 h-5" />
-                Créer un Article
-              </CardTitle>
-              <CardDescription>
-                Rédigez et publiez un nouvel article
-              </CardDescription>
-            </CardHeader>
-          </Link>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md transition-shadow">
           <Link href="/admin/subscribers">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -204,6 +190,20 @@ export default function AdminDashboard() {
               </CardTitle>
               <CardDescription>
                 Consultez et gérez votre liste d'abonnés
+              </CardDescription>
+            </CardHeader>
+          </Link>
+        </Card>
+
+        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+          <Link href="/admin/drafts">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Gérer les Brouillons
+              </CardTitle>
+              <CardDescription>
+                Accédez à vos articles en cours
               </CardDescription>
             </CardHeader>
           </Link>
