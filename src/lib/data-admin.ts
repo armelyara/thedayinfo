@@ -1,3 +1,4 @@
+
 // src/lib/data-admin.ts
 'use server';
 
@@ -75,7 +76,8 @@ export async function addArticle(article: {
     
     if (!isScheduled) {
         try {
-            await sendNewsletterNotification(createdArticle, false);
+            const subscribers = await getSubscribers();
+            await sendNewsletterNotification(createdArticle, subscribers, false);
             console.log('Newsletter envoyée pour nouvel article:', createdArticle.slug);
         } catch (error) {
             console.error('Erreur envoi newsletter pour création:', error);
@@ -154,7 +156,8 @@ export async function updateArticle(
 
     if (updatedArticle.status === 'published') {
         try {
-            await sendNewsletterNotification(updatedArticle, true);
+            const subscribers = await getSubscribers();
+            await sendNewsletterNotification(updatedArticle, subscribers, true);
             console.log('Newsletter envoyée pour mise à jour article:', updatedArticle.slug);
         } catch (error) {
             console.error('Erreur envoi newsletter pour mise à jour:', error);
@@ -581,7 +584,8 @@ export async function saveArticle(articleData: {
     
     // Déclencher newsletter si nécessaire
     if (publicationInfo.shouldSendNewsletter) {
-        await sendNewsletterNotification(savedArticle, isEditing);
+        const subscribers = await getSubscribers();
+        await sendNewsletterNotification(savedArticle, subscribers, isEditing);
     }
     
     return savedArticle;
@@ -802,7 +806,10 @@ export async function publishScheduledArticle(slug: string): Promise<Article> {
     } as Article;
     
     // Déclencher newsletter
-    await sendNewsletterNotification(publishedArticle, false);
+    const subscribers = await getSubscribers();
+    await sendNewsletterNotification(publishedArticle, subscribers, false);
     
     return publishedArticle;
 }
+
+    

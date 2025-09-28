@@ -1,9 +1,9 @@
+
 // src/lib/newsletter-service.ts
 'use server';
 
 import { Resend } from 'resend';
-import { getSubscribers } from '@/lib/data-admin';
-import type { Article } from './data-types';
+import type { Article, Subscriber } from './data-types';
 
 // Initialiser Resend avec votre clé API
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -11,10 +11,12 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 /**
  * Envoie une notification par email aux abonnés actifs concernant un nouvel article ou une mise à jour.
  * @param article L'objet article concerné.
+ * @param allSubscribers La liste de tous les abonnés.
  * @param isUpdate Indique s'il s'agit d'une mise à jour d'un article existant.
  */
 export async function sendNewsletterNotification(
   article: Article,
+  allSubscribers: Subscriber[],
   isUpdate: boolean = false
 ) {
   if (!process.env.RESEND_API_KEY) {
@@ -28,7 +30,6 @@ export async function sendNewsletterNotification(
   }
   
   try {
-    const allSubscribers = await getSubscribers();
     const activeSubscribers = allSubscribers.filter(sub => sub.status === 'active');
 
     if (activeSubscribers.length === 0) {
@@ -141,3 +142,5 @@ export async function sendNewsletterNotification(
     throw error;
   }
 }
+
+    
