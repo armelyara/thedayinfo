@@ -26,16 +26,15 @@ async function publishArticle(articleData: Omit<Article, 'slug' | 'publishedAt' 
     const articlesCollection = db.collection('articles');
     
     let slug = existingSlug;
-    let isUpdate = !!existingSlug;
+    const isUpdate = !!existingSlug;
 
-    // Si pas de slug, c'est une création. On génère un slug unique.
+    // Si pas de slug (création), on le génère. Si un slug est fourni (mise à jour), on l'utilise.
     if (!slug) {
         slug = articleData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
         const docSnapshot = await articlesCollection.doc(slug).get();
         if(docSnapshot.exists) {
             slug = `${slug}-${Date.now()}`;
         }
-        isUpdate = false;
     }
 
     const now = new Date();
@@ -162,7 +161,8 @@ export async function saveArticleAction(articleData: {
     if(articleData.id) {
         await deleteDraft(articleData.id);
     }
-    // `articleData.slug` sera défini s'il s'agit d'une mise à jour d'un article déjà publié.
+    // `articleData.slug` est défini s'il s'agit d'une mise à jour d'un article déjà publié,
+    // ou si un brouillon était lié à un article existant.
     // S'il est undefined, `publishArticle` générera un nouveau slug.
     return publishArticle(payload, articleData.slug);
 
@@ -499,3 +499,5 @@ export async function updateSubscriberStatus(email: string, status: 'active' | '
         return false;
     }
 }
+
+    

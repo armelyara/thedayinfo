@@ -95,6 +95,8 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
 
     const values = form.getValues();
     const idOrSlug = isDraft ? (item as Draft).id : (item as Article).slug;
+    const originalArticleSlug = isDraft ? (item as Draft).originalArticleSlug : undefined;
+
 
     try {
       // Cast 'scheduledFor' to a format suitable for the action
@@ -103,7 +105,7 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
         scheduledFor: values.scheduledFor ? values.scheduledFor.toISOString() : undefined,
       };
 
-      const result = await updateItemAction(idOrSlug, submissionValues, actionType, isDraft);
+      const result = await updateItemAction(idOrSlug, submissionValues, actionType, isDraft, originalArticleSlug);
       
       let successMessage = '';
       let redirectUrl = '/admin';

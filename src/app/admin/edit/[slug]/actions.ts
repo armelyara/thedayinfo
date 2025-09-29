@@ -24,7 +24,8 @@ export async function updateItemAction(
     idOrSlug: string, 
     values: FormValues,
     actionType: 'draft' | 'publish' | 'schedule',
-    isDraft: boolean
+    isDraft: boolean,
+    originalArticleSlug?: string | null
 ): Promise<Article | Draft> {
   const validatedFields = formSchema.safeParse(values);
 
@@ -35,13 +36,10 @@ export async function updateItemAction(
 
   const { scheduledFor, ...rest } = validatedFields.data;
   
-  // Correction de la logique pour la sauvegarde
-  // On passe `id` si c'est un brouillon, et `slug` si c'est un article déjà publié
-  // Cela clarifie l'intention pour la fonction de sauvegarde.
   const articleData = {
       ...rest,
       id: isDraft ? idOrSlug : undefined,
-      slug: isDraft ? undefined : idOrSlug,
+      slug: !isDraft ? idOrSlug : originalArticleSlug || undefined,
       scheduledFor: scheduledFor ? scheduledFor : undefined,
       actionType,
   };
@@ -67,3 +65,5 @@ export async function getArticleAction(slug: string): Promise<Article | null> {
 export async function getDraftAction(id: string): Promise<Draft | null> {
     return getDraftAdmin(id);
 }
+
+    
