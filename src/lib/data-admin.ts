@@ -284,7 +284,7 @@ export async function publishScheduledArticle(draftId: string): Promise<Article>
         category: draft.category,
         content: draft.content,
         image: draft.image as ArticleImage,
-    });
+    }, draft.originalArticleSlug);
 
     // Supprimer le brouillon après la publication
     await deleteDraft(draftId);
