@@ -1,13 +1,11 @@
+
+'use client';
+
 import { searchArticles } from '@/lib/data-client';
 import { ArticleCard } from '@/components/article/article-card';
 import { Suspense } from 'react';
 import type { Article } from '@/lib/data-types';
-
-type SearchPageProps = {
-  searchParams: {
-    q?: string;
-  };
-};
+import { useSearchParams } from 'next/navigation';
 
 async function SearchResults({ query }: { query: string }) {
   const results = await searchArticles(query);
@@ -45,11 +43,21 @@ async function SearchResults({ query }: { query: string }) {
   );
 }
 
-export default function SearchPage({ searchParams }: SearchPageProps) {
-    const query = searchParams.q || '';
-    return (
-        <Suspense fallback={<div className="container mx-auto px-4 py-8">Recherche en cours...</div>}>
-            <SearchResults query={query} />
-        </Suspense>
-    )
+function SearchPageClient() {
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q') || '';
+  
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">Recherche en cours...</div>}>
+      <SearchResults query={query} />
+    </Suspense>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense>
+      <SearchPageClient />
+    </Suspense>
+  );
 }
