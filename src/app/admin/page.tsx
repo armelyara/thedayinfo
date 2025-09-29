@@ -15,12 +15,26 @@ import {
   UserCheck,
   TrendingUp,
   UserCircle,
-  BarChart3
+  BarChart3,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { AdminCommentsModal } from '@/components/admin/admin-comments-modal';
 import type { Article, Subscriber } from '@/lib/data-types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useToast } from '@/hooks/use-toast';
+import { deleteArticleAction } from './actions';
+
 
 type DashboardStats = {
   totalArticles: number;
@@ -44,6 +58,9 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [articleToDelete, setArticleToDelete] = useState<Article | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchDashboardData();
@@ -102,6 +119,35 @@ export default function AdminDashboard() {
       setIsLoading(false);
     }
   };
+  
+  const handleDeleteClick = (article: Article) => {
+    setArticleToDelete(article);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const handleConfirmDelete = async () => {
+    if (!articleToDelete) return;
+
+    const result = await deleteArticleAction(articleToDelete.slug);
+
+    if (result.success) {
+      toast({
+        title: 'Article supprimé',
+        description: `L'article "${articleToDelete.title}" a été supprimé.`,
+      });
+      fetchDashboardData(); // Re-fetch data
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: result.error || 'Impossible de supprimer l\'article.',
+      });
+    }
+
+    setIsDeleteDialogOpen(false);
+    setArticleToDelete(null);
+  };
+
 
   if (isLoading) {
     return (
@@ -314,6 +360,13 @@ export default function AdminDashboard() {
                         Modifier
                       </Button>
                     </Link>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteClick(article)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -352,6 +405,25 @@ export default function AdminDashboard() {
           }}
         />
       )}
+
+      {/* Dialog de confirmation de suppression */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. L'article "{articleToDelete?.title}" sera définitivement supprimé.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
