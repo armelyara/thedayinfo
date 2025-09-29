@@ -18,55 +18,96 @@ const initializeAdminDb = async () => {
 
 /**
  * Publie un article, soit en créant un nouveau, soit en mettant à jour un existant.
- * @param articleData Données de l'article.
- * @param existingSlug Slug de l'article existant à mettre à jour (optionnel).
+ * Garantit AUCUN doublon.
  */
-async function publishArticle(articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory'> & { scheduledFor?: string | null }, existingSlug?: string): Promise<Article> {
+async function publishArticle(
+    articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory'> & { scheduledFor?: string | null }, 
+    existingSlug?: string
+): Promise<Article> {
     const db = await initializeAdminDb();
     const articlesCollection = db.collection('articles');
     
-    let slug = existingSlug;
     const isUpdate = !!existingSlug;
-
-    // Si pas de slug (création), on le génère. Si un slug est fourni (mise à jour), on l'utilise.
-    if (!slug) {
+    
+    // LOGIQUE CRITIQUE : Toujours utiliser existingSlug si fourni
+    let slug: string;
+    
+    if (isUpdate) {
+        // MODE MISE À JOUR : utiliser exactement le slug existant
+        slug = existingSlug;
+        
+        // Vérifier que l'article existe
+        const existingDoc = await articlesCollection.doc(slug).get();
+        if (!existingDoc.exists) {
+            throw new Error(`Article avec slug "${slug}" non trouvé pour mise à jour`);
+        }
+    } else {
+        // MODE CRÉATION : générer un nouveau slug
         slug = articleData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
-        const docSnapshot = await articlesCollection.doc(slug).get();
-        if(docSnapshot.exists) {
-            slug = `${slug}-${Date.now()}`;
+        
+        // Vérifier les doublons et ajuster si nécessaire
+        let counter = 1;
+        let originalSlug = slug;
+        
+        while (true) {
+            const docSnapshot = await articlesCollection.doc(slug).get();
+            if (!docSnapshot.exists) {
+                break; // Slug disponible
+            }
+            slug = `${originalSlug}-${counter}`;
+            counter++;
         }
     }
 
     const now = new Date();
     
+    // Récupérer les données existantes seulement en mode mise à jour
     const existingArticleData = isUpdate ? (await articlesCollection.doc(slug).get()).data() : {};
 
-    const articleToSave = {
+    // Préparer les données pour Firestore
+    const firestoreData: any = {
+        // En mise à jour : garder les données existantes et appliquer les nouvelles
         ...existingArticleData,
+        // En création : utiliser les nouvelles données
         ...articleData,
-        publishedAt: isUpdate ? (existingArticleData?.publishedAt || AdminTimestamp.fromDate(now)) : AdminTimestamp.fromDate(now),
-        status: 'published' as const,
+        // Métadonnées systématiques
+        publishedAt: isUpdate ? existingArticleData?.publishedAt : AdminTimestamp.fromDate(now),
+        status: 'published',
+        // Garder les données historiques en mise à jour
         views: existingArticleData?.views || 0,
         comments: existingArticleData?.comments || [],
         viewHistory: existingArticleData?.viewHistory || [],
     };
-    delete articleToSave.scheduledFor;
 
+    // IMPORTANT : Supprimer scheduledFor car on publie maintenant
+    delete firestoreData.scheduledFor;
 
-    await articlesCollection.doc(slug).set(articleToSave, { merge: true });
+    // Sauvegarder - SET avec merge pour créer ou mettre à jour
+    await articlesCollection.doc(slug).set(firestoreData, { merge: true });
     
+    // Construire la réponse
     const finalArticle: Article = {
-        ...articleToSave,
         slug: slug,
-        publishedAt: articleToSave.publishedAt.toDate().toISOString(),
-    } as Article;
+        title: firestoreData.title,
+        author: firestoreData.author,
+        category: firestoreData.category,
+        content: firestoreData.content,
+        image: firestoreData.image,
+        publishedAt: firestoreData.publishedAt.toDate().toISOString(),
+        status: 'published',
+        views: firestoreData.views || 0,
+        comments: firestoreData.comments || [],
+        viewHistory: firestoreData.viewHistory || [],
+    };
 
-    // Envoyer la newsletter
-    try {
-        const subscribers = await getSubscribers();
-        await sendNewsletterNotification(finalArticle, subscribers, isUpdate);
-    } catch (error) {
-        console.error(`Échec de l'envoi de la newsletter pour ${isUpdate ? 'mise à jour' : 'publication'} :`, error);
+    // Newsletter
+    if (!isUpdate) { // Only for new articles, not updates
+        try {
+            const subscribers = await getSubscribers();
+            await sendNewsletterNotification(finalArticle, subscribers, isUpdate);
+        } catch (error) {
+            console.error(`Échec newsletter:`, error);
+        }
     }
 
     return finalArticle;
@@ -135,43 +176,62 @@ export async function saveDraftAction(draftData: Partial<Draft>): Promise<Draft>
 }
 
 export async function saveArticleAction(articleData: {
-  title: string;
-  author: string;
-  category: string;
-  content: string;
-  image: { src: string; alt: string };
-  scheduledFor?: string;
-  actionType: 'draft' | 'publish' | 'schedule';
-  id?: string; // id for existing drafts
-  slug?: string; // slug for existing published articles
-}): Promise<Article | Draft> {
-  await initializeAdminDb();
+    title: string;
+    author: string;
+    category: string;
+    content: string;
+    image: { src: string; alt: string };
+    scheduledFor?: string;
+    actionType: 'draft' | 'publish' | 'schedule';
+    id?: string;
+    slug?: string;
+  }): Promise<Article | Draft> {
+    await initializeAdminDb();
+    
+    const payload = {
+      title: articleData.title,
+      author: articleData.author,
+      category: articleData.category,
+      content: articleData.content,
+      image: articleData.image,
+      scheduledFor: articleData.scheduledFor,
+    };
   
-  const payload = {
-    title: articleData.title,
-    author: articleData.author,
-    category: articleData.category,
-    content: articleData.content,
-    image: articleData.image,
-    scheduledFor: articleData.scheduledFor,
-  };
-
-  if (articleData.actionType === 'publish') {
-    // Si on publie un brouillon, il faut le supprimer après publication.
-    if(articleData.id) {
+    if (articleData.actionType === 'publish') {
+      // 🔥 LOGIQUE ANTI-DOUBLONS :
+      let existingSlug: string | undefined;
+      
+      // RÈGLE : Si on a un slug → MISE À JOUR de l'article existant
+      if (articleData.slug) {
+        existingSlug = articleData.slug;
+      }
+      // RÈGLE : Si brouillon lié à un article → MISE À JOUR de l'article existant  
+      else if (articleData.id) {
+        const draft = await getDraft(articleData.id);
+        if (draft?.originalArticleSlug) {
+          existingSlug = draft.originalArticleSlug;
+        }
+      }
+      // RÈGLE : Aucun slug → CRÉATION nouvel article
+      
+      const result = await publishArticle(payload, existingSlug);
+      
+      if (articleData.id) {
         await deleteDraft(articleData.id);
+      }
+      
+      return result;
+  
+    } else {
+      // Pour brouillons/programmation
+      const draftPayload = { 
+        ...payload, 
+        id: articleData.id,
+        originalArticleSlug: articleData.slug
+      };
+      return saveAsDraftOrScheduled(draftPayload);
     }
-    // `articleData.slug` est défini s'il s'agit d'une mise à jour d'un article déjà publié,
-    // ou si un brouillon était lié à un article existant.
-    // S'il est undefined, `publishArticle` générera un nouveau slug.
-    return publishArticle(payload, articleData.slug);
-
-  } else { // 'draft' ou 'schedule'
-    // Si on crée un brouillon depuis un article existant, on stocke le slug original.
-    const draftPayload = { ...payload, id: articleData.id, originalArticleSlug: articleData.slug };
-    return saveAsDraftOrScheduled(draftPayload);
   }
-}
 
 export async function getDrafts(): Promise<Draft[]> {
     const db = await initializeAdminDb();

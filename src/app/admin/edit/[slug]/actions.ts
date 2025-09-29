@@ -21,41 +21,43 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export async function updateItemAction(
-    idOrSlug: string, 
-    values: FormValues,
-    actionType: 'draft' | 'publish' | 'schedule',
-    isDraft: boolean,
-    originalArticleSlug?: string | null
-): Promise<Article | Draft> {
-  const validatedFields = formSchema.safeParse(values);
+  idOrSlug: string,
+  values: any,
+  actionType: 'draft' | 'publish' | 'schedule',
+  isDraft: boolean,
+  originalArticleSlug?: string
+) {
+  try {
+    // SI C'EST UN ARTICLE DÉJÀ PUBLIÉ, ON GARDE SON SLUG EXISTANT
+    let slugPourModification: string | undefined;
+    
+    if (!isDraft) {
+      // Article publié : on utilise son slug existant
+      slugPourModification = idOrSlug;
+    } else if (originalArticleSlug) {
+      // Brouillon lié à un article : on utilise le slug original
+      slugPourModification = originalArticleSlug;
+    }
 
-  if (!validatedFields.success) {
-    console.error('Validation failed:', validatedFields.error);
-    throw new Error('Champs de formulaire invalides');
-  }
-
-  const { scheduledFor, ...rest } = validatedFields.data;
-  
-  const articleData = {
-      ...rest,
+    const result = await saveArticleAdmin({
+      ...values,
+      actionType: actionType,
       id: isDraft ? idOrSlug : undefined,
-      slug: !isDraft ? idOrSlug : originalArticleSlug || undefined,
-      scheduledFor: scheduledFor ? scheduledFor : undefined,
-      actionType,
-  };
+      slug: slugPourModification, // ← C'EST ÇA QUI RÉSOUT LE PROBLÈME
+    });
 
-  const result = await saveArticleAdmin(articleData);
-
-  // Revalidate paths
-  revalidatePath('/');
-  revalidatePath('/admin');
-  revalidatePath('/admin/drafts');
-  if (result.status === 'published' && 'slug' in result) {
+    revalidatePath('/admin/articles');
+    revalidatePath('/admin/drafts');
+    
+    if (actionType === 'publish' && 'slug' in result) {
       revalidatePath(`/article/${result.slug}`);
-  }
-  revalidatePath(`/category/${validatedFields.data.category.toLowerCase().replace(' & ', '-').replace(/\s+/g, '-')}`);
+    }
 
-  return result;
+    return result;
+  } catch (error) {
+    console.error('Erreur mise à jour:', error);
+    throw new Error('Erreur lors de la mise à jour');
+  }
 }
 
 export async function getArticleAction(slug: string): Promise<Article | null> {

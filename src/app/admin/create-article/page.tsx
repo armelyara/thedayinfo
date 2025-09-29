@@ -22,10 +22,10 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { SaveStatus } from '@/components/admin/save-status';
 import { saveDraftActionServer, saveArticleAction } from './actions';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
-import type { Draft } from '@/lib/data-types';
+import type { Draft, Article } from '@/lib/data-types';
 
 const formSchema = z.object({
   title: z.string().min(10, { message: 'Le titre doit comporter au moins 10 caractères.' }),
@@ -39,6 +39,8 @@ const formSchema = z.object({
   scheduledFor: z.date().optional(),
 });
 
+type FormData = z.infer<typeof formSchema>;
+
 export default function CreateArticlePage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -47,10 +49,8 @@ export default function CreateArticlePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string>();
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
-  const [showScheduleConfirm, setShowScheduleConfirm] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'publish' | 'schedule' | 'draft'>('publish');
-
-  const form = useForm<z.infer<typeof formSchema>>({
+  
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
@@ -62,106 +62,106 @@ export default function CreateArticlePage() {
 
   const watchedValues = form.watch();
   const scheduledDate = form.watch('scheduledFor');
-  
-  useEffect(() => {
+
+  const onFormChange = useCallback(() => {
     setHasUnsavedChanges(true);
-  }, [Object.values(watchedValues)]);
+  }, []);
 
-  // Auto-sauvegarde en brouillon externe
-  const { saveNow } = useAutoSave(
-    watchedValues,
-    async (data) => {
-      setIsSaving(true);
-      try {
-        const draftData: Partial<Draft> = {
-          id: currentDraftId,
-          title: data.title || '',
-          author: data.author || '',
-          category: data.category || '',
-          content: data.content || '',
-          image: data.image?.src ? { src: data.image.src, alt: data.image.alt } : undefined,
-          scheduledFor: data.scheduledFor?.toISOString(),
-          createdAt: currentDraftId ? undefined : new Date().toISOString(),
-        };
+  useEffect(() => {
+    const subscription = form.watch(onFormChange);
+    return () => subscription.unsubscribe();
+  }, [form, onFormChange]);
 
-        const savedDraft = await saveDraftActionServer(draftData);
-        
-        if (!currentDraftId) {
-          setCurrentDraftId(savedDraft.id);
-        }
-        
-        setLastSaved(savedDraft.lastSaved);
-        setHasUnsavedChanges(false);
-      } catch (error) {
-        console.error('Auto-save failed:', error);
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    { delay: 30000, enabled: true }
-  );
-
-  const executeSaveAction = async (actionType: 'draft' | 'publish' | 'schedule') => {
-    const values = form.getValues();
-    
-    // Validation manuelle pour brouillon
-    if (actionType === 'draft' && (!values.title || !values.content)) {
-        toast({
-            variant: 'destructive',
-            title: 'Contenu insuffisant',
-            description: 'Un titre et du contenu sont requis pour sauvegarder un brouillon.',
-        });
-        return;
-    }
-
-    // Validation complète pour publier/programmer
-    if (actionType === 'publish' || actionType === 'schedule') {
-        const isValid = await form.trigger();
-        if (!isValid) {
-            toast({
-                variant: 'destructive',
-                title: 'Champs invalides',
-                description: 'Veuillez corriger les erreurs avant de continuer.',
-            });
-            return;
-        }
-    }
+  const handleAutoSave = useCallback(async (data: FormData) => {
+    // Only auto-save if there's a title
+    if (!data.title) return;
 
     setIsSaving(true);
     try {
+      const draftData: Partial<Draft> = {
+        id: currentDraftId,
+        title: data.title,
+        author: data.author,
+        category: data.category,
+        content: data.content,
+        image: data.image?.src ? { src: data.image.src, alt: data.image.alt } : undefined,
+        scheduledFor: data.scheduledFor ? data.scheduledFor.toISOString() : null,
+        createdAt: currentDraftId ? undefined : new Date().toISOString(),
+      };
+
+      const savedDraft = await saveDraftActionServer(draftData);
+      
+      if (!currentDraftId) {
+        setCurrentDraftId(savedDraft.id);
+      }
+      
+      setLastSaved(savedDraft.lastSaved);
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [currentDraftId]);
+  
+  useAutoSave(watchedValues, handleAutoSave, { delay: 30000, enabled: true });
+
+  const executeSaveAction = async (actionType: 'draft' | 'publish' | 'schedule') => {
+    setIsSaving(true);
+    setShowPublishConfirm(false);
+
+    let isValid = true;
+    // For publish or schedule, run full validation
+    if (actionType === 'publish' || actionType === 'schedule') {
+        isValid = await form.trigger();
+    }
+    
+    if (!isValid) {
+        toast({
+            variant: 'destructive',
+            title: 'Champs invalides',
+            description: 'Veuillez corriger les erreurs avant de continuer.',
+        });
+        setIsSaving(false);
+        return;
+    }
+    
+    // For draft, only minimal validation is needed
+    const values = form.getValues();
+    if (actionType === 'draft' && !values.title) {
+        toast({
+            variant: 'destructive',
+            title: 'Titre manquant',
+            description: 'Un titre est requis pour sauvegarder un brouillon.',
+        });
+        setIsSaving(false);
+        return;
+    }
+
+    try {
         const articleData = {
             id: currentDraftId,
-            title: values.title,
-            author: values.author,
-            category: values.category,
-            content: values.content,
-            image: values.image,
+            ...values,
             scheduledFor: values.scheduledFor?.toISOString(),
             actionType,
         };
 
         const result = await saveArticleAction(articleData);
 
-        let successMessageTitle = '';
-        let successMessageDesc = '';
-        let redirectUrl = '/admin/drafts';
+        setHasUnsavedChanges(false);
 
-        if (actionType === 'draft' || (actionType === 'schedule' && 'status' in result && result.status === 'scheduled')) {
-            successMessageTitle = 'Brouillon sauvegardé';
-            successMessageDesc = `Votre article a été sauvegardé en tant que ${actionType === 'schedule' ? 'brouillon programmé' : 'brouillon'}.`;
+        if (result.status === 'draft') {
+            toast({ title: 'Brouillon sauvegardé', description: 'Votre article a été sauvegardé en tant que brouillon.' });
             setCurrentDraftId(result.id);
-        } else if (actionType === 'publish' && 'slug' in result) {
-            successMessageTitle = 'Article publié !';
-            successMessageDesc = 'Votre article est maintenant en ligne.';
-            redirectUrl = `/article/${result.slug}`;
+            router.push('/admin/drafts');
+        } else if (result.status === 'scheduled') {
+            toast({ title: 'Article programmé', description: 'Votre article a été programmé avec succès.' });
+            setCurrentDraftId(result.id);
+            router.push('/admin/drafts');
+        } else if (result.status === 'published') {
+            toast({ title: 'Article publié !', description: 'Votre article est maintenant en ligne.' });
+            router.push(`/article/${(result as Article).slug}`);
         }
-        
-        toast({
-            title: successMessageTitle,
-            description: successMessageDesc,
-        });
-
-        router.push(redirectUrl);
 
     } catch (error) {
         toast({
@@ -171,22 +171,8 @@ export default function CreateArticlePage() {
         });
     } finally {
         setIsSaving(false);
-        setShowPublishConfirm(false);
-        setShowScheduleConfirm(false);
     }
   };
-
-  const handleSaveAsDraft = () => executeSaveAction('draft');
-  const handlePublish = () => { setPendingAction('publish'); setShowPublishConfirm(true); };
-  const handleSchedule = () => {
-    if (!scheduledDate) {
-        toast({ variant: 'destructive', title: 'Date manquante', description: 'Veuillez choisir une date de publication.' });
-        return;
-    }
-    setPendingAction('schedule');
-    executeSaveAction('schedule'); // La nouvelle logique sauvegarde directement dans les brouillons
-  };
-  const confirmPublish = () => executeSaveAction('publish');
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -225,7 +211,7 @@ export default function CreateArticlePage() {
               <Button size="sm" variant="outline" onClick={() => setShowPublishConfirm(false)}>
                 Annuler
               </Button>
-              <Button size="sm" onClick={confirmPublish} disabled={isSaving}>
+              <Button size="sm" onClick={() => executeSaveAction('publish')} disabled={isSaving}>
                 {isSaving ? 'Publication...' : 'Confirmer Publication'}
               </Button>
             </div>
@@ -391,18 +377,32 @@ export default function CreateArticlePage() {
             />
 
             <div className="flex gap-4">
-                <Button variant="outline" onClick={handleSaveAsDraft} disabled={isSaving}>
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  onClick={() => executeSaveAction('draft')} 
+                  disabled={isSaving}
+                >
                     <Save className="h-4 w-4 mr-2" />
                     {isSaving ? 'Sauvegarde...' : 'Sauvegarder en brouillon'}
                 </Button>
 
                 {scheduledDate ? (
-                    <Button onClick={handleSchedule} className="bg-blue-600 hover:bg-blue-700" disabled={isSaving}>
+                    <Button 
+                      type="button"
+                      onClick={() => executeSaveAction('schedule')} 
+                      className="bg-blue-600 hover:bg-blue-700" 
+                      disabled={isSaving}
+                    >
                         <Clock className="h-4 w-4 mr-2" />
                         {isSaving ? 'Programmation...' : 'Programmer'}
                     </Button>
                 ) : (
-                    <Button onClick={handlePublish} disabled={isSaving}>
+                    <Button 
+                      type="button"
+                      onClick={() => setShowPublishConfirm(true)} 
+                      disabled={isSaving}
+                    >
                         <Send className="h-4 w-4 mr-2" />
                         Publier Maintenant
                     </Button>
