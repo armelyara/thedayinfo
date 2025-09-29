@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
@@ -136,7 +137,6 @@ async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft>
 // #region --- Actions Principales Exportées ---
 
 export async function saveDraftAction(draftData: Partial<Draft>): Promise<Draft> {
-    await initializeAdminDb();
     return saveAsDraftOrScheduled(draftData);
 }
 
@@ -251,7 +251,6 @@ export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
  * Publie un article programmé : le déplace de 'drafts' à 'articles'.
  */
 export async function publishScheduledArticle(draftId: string): Promise<Article> {
-    await initializeAdminDb();
     const draft = await getDraft(draftId);
 
     if (!draft || (draft.status !== 'scheduled' && draft.status !== 'draft')) {
