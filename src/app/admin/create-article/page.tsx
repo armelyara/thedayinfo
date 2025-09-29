@@ -46,7 +46,7 @@ export default function CreateArticlePage() {
   const router = useRouter();
   const [lastSaved, setLastSaved] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true); // Start with true
   const [currentDraftId, setCurrentDraftId] = useState<string>();
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   
@@ -63,20 +63,12 @@ export default function CreateArticlePage() {
   const watchedValues = form.watch();
   const scheduledDate = form.watch('scheduledFor');
 
-  const onFormChange = useCallback(() => {
-    setHasUnsavedChanges(true);
-  }, []);
-
-  useEffect(() => {
-    const subscription = form.watch(onFormChange);
-    return () => subscription.unsubscribe();
-  }, [form, onFormChange]);
-
-  const handleAutoSave = useCallback(async (data: FormData) => {
+  const onSave = useCallback(async (data: FormData) => {
     // Only auto-save if there's a title
     if (!data.title) return;
 
     setIsSaving(true);
+    setHasUnsavedChanges(true);
     try {
       const draftData: Partial<Draft> = {
         id: currentDraftId,
@@ -99,12 +91,13 @@ export default function CreateArticlePage() {
       setHasUnsavedChanges(false);
     } catch (error) {
       console.error('Auto-save failed:', error);
+      // Optionally show a toast on error
     } finally {
       setIsSaving(false);
     }
   }, [currentDraftId]);
   
-  useAutoSave(watchedValues, handleAutoSave, { delay: 30000, enabled: true });
+  useAutoSave(watchedValues, onSave, { delay: 30000 });
 
   const executeSaveAction = async (actionType: 'draft' | 'publish' | 'schedule') => {
     setIsSaving(true);
@@ -158,9 +151,9 @@ export default function CreateArticlePage() {
             toast({ title: 'Article programmé', description: 'Votre article a été programmé avec succès.' });
             setCurrentDraftId(result.id);
             router.push('/admin/drafts');
-        } else if (result.status === 'published') {
+        } else if (result.status === 'published' && 'slug' in result) {
             toast({ title: 'Article publié !', description: 'Votre article est maintenant en ligne.' });
-            router.push(`/article/${(result as Article).slug}`);
+            router.push(`/article/${result.slug}`);
         }
 
     } catch (error) {
@@ -415,3 +408,5 @@ export default function CreateArticlePage() {
     </div>
   );
 }
+
+    
