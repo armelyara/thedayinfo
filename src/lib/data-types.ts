@@ -71,4 +71,5 @@ export type Draft = {
     lastSaved: string;
     createdAt: string;
     status: 'draft' | 'scheduled'; // Statut au sein des brouillons
+    originalArticleSlug?: string; 
 };
