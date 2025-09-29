@@ -415,5 +415,3 @@ export default function CreateArticlePage() {
     </div>
   );
 }
-
-    
