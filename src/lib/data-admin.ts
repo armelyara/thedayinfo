@@ -137,6 +137,7 @@ async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft>
 // #region --- Actions Principales Exportées ---
 
 export async function saveDraftAction(draftData: Partial<Draft>): Promise<Draft> {
+    await initializeAdminDb();
     return saveAsDraftOrScheduled(draftData);
 }
 
@@ -148,13 +149,13 @@ export async function saveArticleAction(articleData: {
   image: { src: string; alt: string };
   scheduledFor?: string;
   actionType: 'draft' | 'publish' | 'schedule';
-  id?: string; // id for existing drafts/articles
+  id?: string; // id for existing drafts
   slug?: string; // slug for existing published articles
 }): Promise<Article | Draft> {
   await initializeAdminDb();
   
   const payload = {
-    id: articleData.id || articleData.slug, // Utiliser l'ID ou le slug comme identifiant de brouillon
+    id: articleData.id,
     title: articleData.title,
     author: articleData.author,
     category: articleData.category,
@@ -173,7 +174,8 @@ export async function saveArticleAction(articleData: {
 
   } else { // 'draft' ou 'schedule'
     // Sauvegarder comme brouillon ou article programmé -> collection `drafts`
-    return saveAsDraftOrScheduled(payload);
+    const draftPayload = { ...payload, id: articleData.id || articleData.slug };
+    return saveAsDraftOrScheduled(draftPayload);
   }
 }
 
@@ -244,7 +246,26 @@ export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
 
     const snapshot = await q.get();
 
-    return Promise.all(snapshot.docs.map(doc => getDraft(doc.id) as Promise<Draft>));
+    if (snapshot.empty) {
+        return [];
+    }
+    
+    // It's better to reconstruct the draft from data to avoid circular calls
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            title: data.title,
+            author: data.author,
+            category: data.category,
+            content: data.content,
+            image: data.image,
+            scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
+            lastSaved: data.lastSaved.toDate().toISOString(),
+            createdAt: data.createdAt.toDate().toISOString(),
+            status: data.status || 'draft',
+        } as Draft;
+    });
 }
 
 /**
@@ -488,5 +509,3 @@ export async function updateSubscriberStatus(email: string, status: 'active' | '
     }
 }
 // #endregion
-
-    

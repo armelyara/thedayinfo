@@ -37,8 +37,8 @@ export async function updateItemAction(
   
   const articleData = {
       ...rest,
-      id: isDraft ? idOrSlug : undefined, // L'ID n'est pertinent que pour les brouillons/articles
-      slug: isDraft ? undefined : idOrSlug, // Le slug n'est pertinent que pour les articles publiés
+      id: isDraft ? idOrSlug : undefined,
+      slug: isDraft ? undefined : idOrSlug, // Correction ici
       scheduledFor: scheduledFor ? scheduledFor : undefined,
       actionType,
   };
