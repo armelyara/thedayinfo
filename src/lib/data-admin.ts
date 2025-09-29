@@ -6,8 +6,6 @@ import { initializeFirebaseAdmin } from './auth';
 import type { Article, ArticleImage, Draft, Profile, Subscriber } from './data-types';
 import { sendNewsletterNotification } from './newsletter-service';
 
-// Modifié: La base de données est initialisée via une fonction asynchrone
-// pour s'assurer que Firebase Admin est prêt.
 let adminDb: FirebaseFirestore.Firestore;
 const initializeAdminDb = async () => {
   if (!adminDb) {
@@ -30,7 +28,7 @@ async function publishArticle(articleData: Omit<Article, 'slug' | 'publishedAt' 
     let slug = existingSlug;
     let isUpdate = !!existingSlug;
 
-    // Si c'est un nouvel article (pas de slug existant), générer un slug unique
+    // Si pas de slug, c'est une création. On génère un slug unique.
     if (!slug) {
         slug = articleData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
         const docSnapshot = await articlesCollection.doc(slug).get();
@@ -42,7 +40,6 @@ async function publishArticle(articleData: Omit<Article, 'slug' | 'publishedAt' 
 
     const now = new Date();
     
-    // Récupérer les données existantes si c'est une mise à jour pour conserver les stats
     const existingArticleData = isUpdate ? (await articlesCollection.doc(slug).get()).data() : {};
 
     const articleToSave = {
@@ -79,7 +76,6 @@ async function publishArticle(articleData: Omit<Article, 'slug' | 'publishedAt' 
 
 /**
  * Crée ou met à jour un brouillon/article programmé.
- * Sauvegarde dans la collection 'drafts'.
  */
 async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft> {
     const db = await initializeAdminDb();
@@ -109,7 +105,8 @@ async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft>
         status,
         lastSaved: AdminTimestamp.now(),
         createdAt: draftData.createdAt ? AdminTimestamp.fromMillis(new Date(draftData.createdAt).getTime()) : AdminTimestamp.now(),
-        scheduledFor: scheduledForTimestamp
+        scheduledFor: scheduledForTimestamp,
+        originalArticleSlug: draftData.originalArticleSlug || null,
     };
 
     await draftsCollection.doc(id).set(dataToSave, { merge: true });
@@ -128,11 +125,10 @@ async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft>
         createdAt: resultData.createdAt.toDate().toISOString(),
         status: resultData.status,
         scheduledFor: resultData.scheduledFor?.toDate().toISOString() || null,
+        originalArticleSlug: resultData.originalArticleSlug,
     } as Draft;
 }
 
-
-// #region --- Actions Principales Exportées ---
 
 export async function saveDraftAction(draftData: Partial<Draft>): Promise<Draft> {
     await initializeAdminDb();
@@ -153,7 +149,6 @@ export async function saveArticleAction(articleData: {
   await initializeAdminDb();
   
   const payload = {
-    // id and slug are passed separately for clarity
     title: articleData.title,
     author: articleData.author,
     category: articleData.category,
@@ -167,14 +162,13 @@ export async function saveArticleAction(articleData: {
     if(articleData.id) {
         await deleteDraft(articleData.id);
     }
-    // Publier l'article, en passant le slug s'il existe (pour une mise à jour).
     // `articleData.slug` sera défini s'il s'agit d'une mise à jour d'un article déjà publié.
+    // S'il est undefined, `publishArticle` générera un nouveau slug.
     return publishArticle(payload, articleData.slug);
 
   } else { // 'draft' ou 'schedule'
-    // Utilise l'ID du brouillon s'il existe, ou le slug (pour créer un brouillon depuis un article publié), ou rien.
-    const draftId = articleData.id || articleData.slug;
-    const draftPayload = { ...payload, id: draftId };
+    // Si on crée un brouillon depuis un article existant, on stocke le slug original.
+    const draftPayload = { ...payload, id: articleData.id, originalArticleSlug: articleData.slug };
     return saveAsDraftOrScheduled(draftPayload);
   }
 }
@@ -196,6 +190,7 @@ export async function getDrafts(): Promise<Draft[]> {
             lastSaved: data.lastSaved.toDate().toISOString(),
             createdAt: data.createdAt.toDate().toISOString(),
             status: data.status || 'draft',
+            originalArticleSlug: data.originalArticleSlug
         } as Draft;
     });
 }
@@ -218,6 +213,7 @@ export async function getDraft(id: string): Promise<Draft | null> {
         lastSaved: data.lastSaved.toDate().toISOString(),
         createdAt: data.createdAt.toDate().toISOString(),
         status: data.status || 'draft',
+        originalArticleSlug: data.originalArticleSlug,
     } as Draft;
 }
 
@@ -232,9 +228,7 @@ export async function deleteDraft(id: string): Promise<boolean> {
     }
 }
 
-/**
- * Trouve les brouillons programmés dont la date est passée.
- */
+
 export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
     const db = await initializeAdminDb();
     const draftsCollection = db.collection('drafts');
@@ -244,33 +238,38 @@ export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
         .where('status', '==', 'scheduled')
         .where('scheduledFor', '<=', now);
 
-    const snapshot = await q.get();
+    try {
+      const snapshot = await q.get();
 
-    if (snapshot.empty) {
-        return [];
+      if (snapshot.empty) {
+          return [];
+      }
+      
+      return snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+              id: doc.id,
+              title: data.title,
+              author: data.author,
+              category: data.category,
+              content: data.content,
+              image: data.image,
+              scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
+              lastSaved: data.lastSaved.toDate().toISOString(),
+              createdAt: data.createdAt.toDate().toISOString(),
+              status: data.status || 'draft',
+              originalArticleSlug: data.originalArticleSlug
+          } as Draft;
+      });
+    } catch(e) {
+      console.error(e);
+      throw e;
     }
-    
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            title: data.title,
-            author: data.author,
-            category: data.category,
-            content: data.content,
-            image: data.image,
-            scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
-            lastSaved: data.lastSaved.toDate().toISOString(),
-            createdAt: data.createdAt.toDate().toISOString(),
-            status: data.status || 'draft',
-        } as Draft;
-    });
 }
 
-/**
- * Publie un article programmé : le déplace de 'drafts' à 'articles'.
- */
+
 export async function publishScheduledArticle(draftId: string): Promise<Article> {
+    const db = await initializeAdminDb();
     const draft = await getDraft(draftId);
 
     if (!draft || (draft.status !== 'scheduled' && draft.status !== 'draft')) {
@@ -291,9 +290,6 @@ export async function publishScheduledArticle(draftId: string): Promise<Article>
     return article;
 }
 
-// #endregion
-
-// #region --- Fonctions de gestion existantes ---
 
 export async function deleteArticle(slug: string): Promise<boolean> {
     const db = await initializeAdminDb();
@@ -410,10 +406,6 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
     }
 }
 
-// #endregion
-
-// #region --- Gestion des Abonnés et Profil ---
-
 export async function updateProfile(data: Partial<Profile>): Promise<Profile> {
     const db = await initializeAdminDb();
     const docRef = db.collection('site-config').doc('profile');
@@ -507,4 +499,3 @@ export async function updateSubscriberStatus(email: string, status: 'active' | '
         return false;
     }
 }
-// #endregion

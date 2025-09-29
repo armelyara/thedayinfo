@@ -36,10 +36,12 @@ export async function updateItemAction(
   const { scheduledFor, ...rest } = validatedFields.data;
   
   // Correction de la logique pour la sauvegarde
+  // On passe `id` si c'est un brouillon, et `slug` si c'est un article déjà publié
+  // Cela clarifie l'intention pour la fonction de sauvegarde.
   const articleData = {
       ...rest,
       id: isDraft ? idOrSlug : undefined,
-      slug: isDraft ? undefined : idOrSlug, // On passe le slug pour identifier l'article à mettre à jour
+      slug: isDraft ? undefined : idOrSlug,
       scheduledFor: scheduledFor ? scheduledFor : undefined,
       actionType,
   };
@@ -50,7 +52,7 @@ export async function updateItemAction(
   revalidatePath('/');
   revalidatePath('/admin');
   revalidatePath('/admin/drafts');
-  if ('slug' in result && result.status === 'published') {
+  if (result.status === 'published' && 'slug' in result) {
       revalidatePath(`/article/${result.slug}`);
   }
   revalidatePath(`/category/${validatedFields.data.category.toLowerCase().replace(' & ', '-').replace(/\s+/g, '-')}`);
