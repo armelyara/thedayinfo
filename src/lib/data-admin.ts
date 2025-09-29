@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
@@ -31,7 +30,7 @@ async function publishArticle(articleData: Omit<Article, 'slug' | 'publishedAt' 
     let slug = existingSlug;
     let isUpdate = !!existingSlug;
 
-    // Si c'est un nouvel article, générer un slug unique
+    // Si c'est un nouvel article (pas de slug existant), générer un slug unique
     if (!slug) {
         slug = articleData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
         const docSnapshot = await articlesCollection.doc(slug).get();
@@ -43,11 +42,11 @@ async function publishArticle(articleData: Omit<Article, 'slug' | 'publishedAt' 
 
     const now = new Date();
     
-    // Récupérer les données existantes si c'est une mise à jour
+    // Récupérer les données existantes si c'est une mise à jour pour conserver les stats
     const existingArticleData = isUpdate ? (await articlesCollection.doc(slug).get()).data() : {};
 
     const articleToSave = {
-        ...existingArticleData, // Conserver les vues, commentaires, etc.
+        ...existingArticleData,
         ...articleData,
         publishedAt: isUpdate ? (existingArticleData?.publishedAt || AdminTimestamp.fromDate(now)) : AdminTimestamp.fromDate(now),
         status: 'published' as const,
@@ -55,7 +54,6 @@ async function publishArticle(articleData: Omit<Article, 'slug' | 'publishedAt' 
         comments: existingArticleData?.comments || [],
         viewHistory: existingArticleData?.viewHistory || [],
     };
-    // Le 'scheduledFor' ne doit pas être dans l'article final publié
     delete articleToSave.scheduledFor;
 
 
@@ -155,7 +153,7 @@ export async function saveArticleAction(articleData: {
   await initializeAdminDb();
   
   const payload = {
-    id: articleData.id,
+    // id and slug are passed separately for clarity
     title: articleData.title,
     author: articleData.author,
     category: articleData.category,
@@ -165,16 +163,18 @@ export async function saveArticleAction(articleData: {
   };
 
   if (articleData.actionType === 'publish') {
-    // Si on publie un brouillon, il faut le supprimer après publication
+    // Si on publie un brouillon, il faut le supprimer après publication.
     if(articleData.id) {
         await deleteDraft(articleData.id);
     }
-    // Publier l'article, en passant le slug s'il existe (pour une mise à jour)
+    // Publier l'article, en passant le slug s'il existe (pour une mise à jour).
+    // `articleData.slug` sera défini s'il s'agit d'une mise à jour d'un article déjà publié.
     return publishArticle(payload, articleData.slug);
 
   } else { // 'draft' ou 'schedule'
-    // Sauvegarder comme brouillon ou article programmé -> collection `drafts`
-    const draftPayload = { ...payload, id: articleData.id || articleData.slug };
+    // Utilise l'ID du brouillon s'il existe, ou le slug (pour créer un brouillon depuis un article publié), ou rien.
+    const draftId = articleData.id || articleData.slug;
+    const draftPayload = { ...payload, id: draftId };
     return saveAsDraftOrScheduled(draftPayload);
   }
 }
@@ -250,7 +250,6 @@ export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
         return [];
     }
     
-    // It's better to reconstruct the draft from data to avoid circular calls
     return snapshot.docs.map(doc => {
         const data = doc.data();
         return {

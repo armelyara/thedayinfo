@@ -35,10 +35,11 @@ export async function updateItemAction(
 
   const { scheduledFor, ...rest } = validatedFields.data;
   
+  // Correction de la logique pour la sauvegarde
   const articleData = {
       ...rest,
       id: isDraft ? idOrSlug : undefined,
-      slug: isDraft ? undefined : idOrSlug, // Correction ici
+      slug: isDraft ? undefined : idOrSlug, // On passe le slug pour identifier l'article à mettre à jour
       scheduledFor: scheduledFor ? scheduledFor : undefined,
       actionType,
   };
@@ -64,5 +65,3 @@ export async function getArticleAction(slug: string): Promise<Article | null> {
 export async function getDraftAction(id: string): Promise<Draft | null> {
     return getDraftAdmin(id);
 }
-
-    
