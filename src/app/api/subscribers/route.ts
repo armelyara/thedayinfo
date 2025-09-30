@@ -2,9 +2,36 @@ import { NextResponse } from 'next/server';
 import { addSubscriber, getSubscribers } from '@/lib/data-admin';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth';
+import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting : 3 abonnements par heure
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
+               request.headers.get('x-real-ip') || 
+               'unknown';
+    
+    const rateLimitResult = await checkRateLimitFirestore(
+      `subscribe:${ip}`,
+      3,
+      60 * 60 * 1000
+    );
+    
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Trop d\'abonnements. Réessayez plus tard.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter.toString()
+          }
+        }
+      );
+    }
+    
     const body = await request.json();
     const { email, name, preferences } = body;
 

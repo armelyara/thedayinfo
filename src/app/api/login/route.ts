@@ -1,53 +1,87 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createSessionCookie, initializeFirebaseAdmin } from '@/lib/auth';
+import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
 
 export async function POST(request: Request) {
-  console.log('=== API LOGIN START ===');
-  
   try {
+    // 1. Extraire l'IP du client
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
+               request.headers.get('x-real-ip') || 
+               'unknown';
+    
+    // 2. Vérifier le rate limit : 5 tentatives par 15 minutes
+    const rateLimitResult = await checkRateLimitFirestore(
+      `login:${ip}`,
+      5,
+      15 * 60 * 1000
+    );
+    
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Trop de tentatives de connexion. Réessayez plus tard.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter.toString()
+          }
+        }
+      );
+    }
+    
     const body = await request.json();
-    console.log('Request body received');
     
     const { idToken } = body;
     if (!idToken) {
-      console.log('No idToken provided');
       return NextResponse.json({ error: 'Token manquant' }, { status: 400 });
     }
     
-    console.log('Token présent, longueur:', idToken.length);
-    console.log('Initialisation Firebase Admin...');
+    if (typeof idToken !== 'string' || idToken.length < 100) {
+      return NextResponse.json({ error: 'Token invalide' }, { status: 400 });
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('=== API LOGIN START ===');
+      console.log('IP:', ip);
+    }
     
     await initializeFirebaseAdmin();
-    console.log('Firebase Admin initialisé');
     
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 jours
     
-    console.log('Création session cookie...');
     const sessionCookie = await createSessionCookie(idToken, { expiresIn });
-    console.log('Session cookie créé');
     
     (await cookies()).set('session', sessionCookie, {
       maxAge: expiresIn,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
       path: '/',
     });
     
-    console.log('Cookie défini, succès');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Session créée avec succès');
+    }
+    
     return NextResponse.json({ success: true });
     
   } catch (error: any) {
-    console.error('=== ERREUR COMPLÈTE ===');
-    console.error('Type:', typeof error);
-    console.error('Message:', error.message);
-    console.error('Code:', error.code);
-    console.error('Name:', error.name);
-    console.error('Stack:', error.stack);
+    console.error('Erreur authentification:', {
+      code: error.code,
+      message: error.message,
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    });
+    
+    const errorMessage = process.env.NODE_ENV === 'production'
+      ? 'Échec de l\'authentification'
+      : `Session failed: ${error.message}`;
     
     return NextResponse.json({ 
-      error: `Session failed: ${error.message}`,
-      code: error.code 
+      error: errorMessage,
+      ...(process.env.NODE_ENV === 'development' && { code: error.code })
     }, { status: 401 });
   }
 }

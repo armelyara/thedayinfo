@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { updateArticleComments } from '@/lib/data-admin';
 import type { Comment } from '@/lib/data-types';
 import { z } from 'zod';
+import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
 
 type RouteParams = {
   params: { slug: string }
@@ -17,33 +18,6 @@ const commentSchema = z.object({
   parentId: z.number().nullable().optional(),
   likes: z.number().optional()
 });
-
-// Map pour le rate limiting simple (en mémoire)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-
-// Fonction de rate limiting
-function checkRateLimit(identifier: string): boolean {
-  const now = Date.now();
-  const limit = rateLimitMap.get(identifier);
-
-  // Si pas d'entrée ou si la fenêtre est expirée, on réinitialise
-  if (!limit || now > limit.resetTime) {
-    rateLimitMap.set(identifier, {
-      count: 1,
-      resetTime: now + 15 * 60 * 1000 // 15 minutes
-    });
-    return true;
-  }
-
-  // Si la limite est atteinte (max 5 commentaires par 15 minutes)
-  if (limit.count >= 5) {
-    return false;
-  }
-
-  // Incrémenter le compteur
-  limit.count++;
-  return true;
-}
 
 // Fonction simple de sanitization (supprime les balises HTML dangereuses)
 function sanitizeText(text: string): string {
@@ -60,15 +34,30 @@ function sanitizeText(text: string): string {
 
 export async function POST(request: Request, { params }: RouteParams) {
   try {
-    // 1. Rate limiting basé sur l'IP
-    const ip = request.headers.get('x-forwarded-for') || 
+    // 1. Rate limiting basé sur l'IP avec Firestore
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
                request.headers.get('x-real-ip') || 
                'unknown';
     
-    if (!checkRateLimit(ip)) {
+    // Vérifier le rate limit : 5 commentaires par 15 minutes
+    const rateLimitResult = await checkRateLimitFirestore(
+      `comment:${ip}`,
+      5,
+      15 * 60 * 1000
+    );
+    
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
-        { error: 'Trop de commentaires. Veuillez réessayer dans 15 minutes.' },
-        { status: 429 }
+        { 
+          error: 'Trop de commentaires. Veuillez réessayer dans 15 minutes.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter.toString()
+          }
+        }
       );
     }
 
