@@ -1,20 +1,25 @@
-
-'use server';
+// src/app/api/cron/publish-articles/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  getScheduledArticlesToPublish,
-  publishScheduledArticle,
-} from '@/lib/data-admin';
+import { getScheduledArticlesToPublish, publishScheduledArticle } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
 
-// export const dynamic = 'force-dynamic';
-
-// La sécurité est maintenant gérée par l'authentification OIDC de Cloud Scheduler.
-// Le code est simplifié et n'a plus besoin d'initialiser Firebase Admin ici.
-
 async function handler(request: NextRequest) {
+  // VÉRIFICATION 1 : Token OIDC (vérifié automatiquement par Firebase Hosting)
+  // Firebase Hosting valide le token JWT automatiquement
+  
+  // VÉRIFICATION 2 : Header personnalisé (défense en profondeur)
+  const schedulerToken = request.headers.get('X-CloudScheduler-Token');
+  const expectedToken = process.env.CRON_SECRET_TOKEN;
+  
+  if (schedulerToken !== expectedToken) {
+    console.error('Invalid scheduler token');
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
   try {
-    // 1. Récupérer les articles à publier
     const draftsToPublish = await getScheduledArticlesToPublish();
 
     if (draftsToPublish.length === 0) {
@@ -24,12 +29,9 @@ async function handler(request: NextRequest) {
       });
     }
 
-    
-    // 2. Publier chaque article
     const publicationResults = [];
     for (const draft of draftsToPublish) {
       try {
-        // CORRECTION : Passer l'objet draft complet, et non plus juste draft.id
         const publishedArticle = await publishScheduledArticle(draft);
         
         publicationResults.push({
@@ -39,15 +41,12 @@ async function handler(request: NextRequest) {
           title: publishedArticle.title,
         });
 
-
-        // 3. Invalider les caches pour mettre le site à jour
         revalidatePath('/');
         revalidatePath('/admin/drafts');
         revalidatePath(`/article/${publishedArticle.slug}`);
         revalidatePath(`/category/${publishedArticle.category.toLowerCase().replace(/ & /g, '-').replace(/\s+/g, '-')}`);
-
       } catch (error) {
-        console.error(`Échec de la publication du brouillon ${draft.id}:`, error);
+        console.error(`Échec publication brouillon ${draft.id}:`, error);
         publicationResults.push({
           draftId: draft.id,
           status: 'failed',
@@ -56,7 +55,6 @@ async function handler(request: NextRequest) {
       }
     }
 
-    // 4. Renvoyer une réponse de succès
     const successCount = publicationResults.filter(r => r.status === 'success').length;
     
     return NextResponse.json({
@@ -64,13 +62,10 @@ async function handler(request: NextRequest) {
       results: publicationResults,
       publishedCount: successCount,
     });
-
   } catch (error) {
-    // Cette erreur se déclenchera si, par exemple, getScheduledArticlesToPublish échoue
-    // à cause d'un problème d'initialisation ou de base de données.
-    console.error('Erreur dans le cron de publication:', error);
+    console.error('Erreur cron publication:', error);
     return NextResponse.json(
-      { error: 'Erreur serveur interne lors du traitement du cron.' },
+      { error: 'Erreur serveur interne' },
       { status: 500 }
     );
   }
@@ -78,5 +73,3 @@ async function handler(request: NextRequest) {
 
 export const GET = handler;
 export const POST = handler;
-
-    

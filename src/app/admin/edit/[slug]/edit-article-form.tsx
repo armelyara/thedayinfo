@@ -95,7 +95,7 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
 
     const values = form.getValues();
     const idOrSlug = isDraft ? (item as Draft).id : (item as Article).slug;
-    const originalArticleSlug = isDraft ? (item as Draft).originalArticleSlug : undefined;
+    const originalArticleSlug = isDraft ? (item as Draft).originalArticleSlug : (item as Article).slug;
 
 
     try {
