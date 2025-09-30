@@ -120,6 +120,26 @@ async function publishArticle(
     return resultArticle;
 }
 
+export async function getSubscriberByEmail(email: string): Promise<Subscriber | null> {
+    const db = await initializeAdminDb();
+    const q = db.collection('subscribers').where('email', '==', email.toLowerCase());
+    const snapshot = await q.get();
+
+    if (snapshot.empty) {
+        return null;
+    }
+    
+    const data = snapshot.docs[0].data();
+    return {
+        email: data.email,
+        name: data.name || '',
+        subscribedAt: data.subscribedAt.toDate().toISOString(),
+        status: data.status || 'active',
+        unsubscribeToken: data.unsubscribeToken,
+        preferences: data.preferences
+    };
+}
+
 
 /**
  * Crée ou met à jour un brouillon/article programmé.
@@ -511,11 +531,16 @@ export async function addSubscriber(email: string, name?: string, preferences?: 
     
     const docRef = subscribersCollection.doc(); // Let Firestore generate ID
     
+    // Générer un token unique pour le désabonnement
+    const crypto = require('crypto');
+    const unsubscribeToken = crypto.randomBytes(32).toString('hex');
+    
     const subscriberData = {
         email: email.toLowerCase(),
         name: name || '',
         subscribedAt: AdminTimestamp.now(),
         status: 'active' as const,
+        unsubscribeToken: unsubscribeToken, // ← Ajouter le token
         preferences: preferences || {}
     };
     

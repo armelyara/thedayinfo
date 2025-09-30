@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateSubscriberStatus, deleteSubscriber } from '@/lib/data-admin';
+import { updateSubscriberStatus, deleteSubscriber, getSubscriberByEmail } from '@/lib/data-admin';
 import { verifySession } from '@/lib/auth';
 
 async function checkAuth(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
-    const { status } = body;
+    const { status, token } = body; // ← Récupérer le token depuis le body
 
     if (!status || !['active', 'unsubscribed'].includes(status)) {
       return NextResponse.json(
@@ -23,13 +23,43 @@ export async function PATCH(
       );
     }
     
-    // Pour la route de désabonnement publique, on n'exige pas d'être admin
+    // ✅ Pour le désabonnement public, vérifier le token
     if (status === 'unsubscribed') {
+        // Vérifier que le token est fourni
+        if (!token) {
+          return NextResponse.json(
+            { error: 'Token de désabonnement requis' },
+            { status: 403 }
+          );
+        }
+
+        // Récupérer le subscriber pour vérifier le token
+        const subscriber = await getSubscriberByEmail(params.id);
+        
+        if (!subscriber) {
+          return NextResponse.json(
+            { error: 'Abonné non trouvé' },
+            { status: 404 }
+          );
+        }
+
+        // Vérifier que le token correspond
+        if (subscriber.unsubscribeToken !== token) {
+          return NextResponse.json(
+            { error: 'Token de désabonnement invalide' },
+            { status: 403 }
+          );
+        }
+
+        // Token valide, procéder au désabonnement
         await updateSubscriberStatus(params.id, 'unsubscribed');
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ 
+          success: true,
+          message: 'Vous avez été désabonné avec succès' 
+        });
     }
 
-    // Pour toute autre action (comme réactiver), on vérifie si l'utilisateur est admin
+    // ✅ Pour toute autre action (réactivation), exiger l'authentification admin
     const decodedClaims = await checkAuth(request);
     if (!decodedClaims) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });

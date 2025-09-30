@@ -54,6 +54,7 @@ export type Subscriber = {
     name?: string;
     subscribedAt: string;
     status: 'active' | 'inactive' | 'unsubscribed';
+    unsubscribeToken?: string; // ← Ajouter ce champ
     preferences?: {
       frequency: 'daily' | 'weekly' | 'monthly' | 'immediate';
       categories: string[];
