@@ -5,6 +5,7 @@ import { saveDraftAction as saveDraft, saveArticleAction as saveArticle } from '
 import { revalidatePath } from 'next/cache';
 import type { Article, Draft } from '@/lib/data-types';
 
+// Le schéma Zod reste inchangé car il n'est utilisé que pour la validation interne ici
 const formSchema = z.object({
   title: z.string(),
   author: z.string(),
@@ -17,9 +18,19 @@ const formSchema = z.object({
   scheduledFor: z.string().optional(),
 });
 
+/**
+ * Sauvegarde un brouillon et s'assure que 'scheduledFor' est une chaîne de caractères.
+ */
 export async function saveDraftActionServer(draftData: Partial<Draft>) {
   try {
-    const savedDraft = await saveDraft(draftData);
+    const dataToSave = { ...draftData };
+
+    // Si scheduledFor est un objet Date, on le convertit en string.
+    if (dataToSave.scheduledFor && dataToSave.scheduledFor instanceof Date) {
+      dataToSave.scheduledFor = dataToSave.scheduledFor.toISOString();
+    }
+
+    const savedDraft = await saveDraft(dataToSave as Partial<Draft>);
     revalidatePath('/admin/drafts');
     return savedDraft;
   } catch (error) {
@@ -28,6 +39,10 @@ export async function saveDraftActionServer(draftData: Partial<Draft>) {
   }
 }
 
+/**
+ * Sauvegarde, programme ou publie un article.
+ * S'assure également que 'scheduledFor' est une chaîne de caractères.
+ */
 export async function saveArticleAction(articleData: {
   id?: string;
   title: string;
@@ -35,13 +50,21 @@ export async function saveArticleAction(articleData: {
   category: string;
   content: string;
   image: { src: string; alt: string };
-  scheduledFor?: string;
+  scheduledFor?: string | Date | null; // Accepte Date, string ou null
   actionType: 'draft' | 'publish' | 'schedule';
 }): Promise<Article | Draft> {
   try {
-    const result = await saveArticle(articleData);
+    const dataToSave = { ...articleData };
+
+    // Si scheduledFor est un objet Date, on le convertit en string.
+    if (dataToSave.scheduledFor && dataToSave.scheduledFor instanceof Date) {
+      dataToSave.scheduledFor = dataToSave.scheduledFor.toISOString();
+    }
     
-    // Revalidate paths
+    // Le type `any` est utilisé car la fonction `saveArticle` sous-jacente attend une chaîne.
+    const result = await saveArticle(dataToSave as any);
+    
+    // Revalidation des chemins
     revalidatePath('/');
     revalidatePath('/admin');
     revalidatePath('/admin/drafts');

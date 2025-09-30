@@ -20,97 +20,104 @@ const initializeAdminDb = async () => {
  * Publie un article, soit en créant un nouveau, soit en mettant à jour un existant.
  * Garantit AUCUN doublon.
  */
+// Remplacez votre fonction publishArticle par celle-ci dans src/lib/data-admin.ts
+
 async function publishArticle(
-    articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory'> & { scheduledFor?: string | null }, 
+    articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory'> & { scheduledFor?: string | null },
     existingSlug?: string
 ): Promise<Article> {
     const db = await initializeAdminDb();
     const articlesCollection = db.collection('articles');
-    
+
     const isUpdate = !!existingSlug;
-    
-    // LOGIQUE CRITIQUE : Toujours utiliser existingSlug si fourni
+    const now = new Date();
     let slug: string;
-    
+    let finalData: any;
+
     if (isUpdate) {
-        // MODE MISE À JOUR : utiliser exactement le slug existant
-        slug = existingSlug;
-        
-        // Vérifier que l'article existe
+        // =============================================================
+        // MODE MISE À JOUR (LA LOGIQUE CORRIGÉE EST ICI)
+        // =============================================================
+        slug = existingSlug!;
+
         const existingDoc = await articlesCollection.doc(slug).get();
         if (!existingDoc.exists) {
-            throw new Error(`Article avec slug "${slug}" non trouvé pour mise à jour`);
+            throw new Error(`Article avec slug "${slug}" non trouvé pour mise à jour.`);
         }
+        const existingData = existingDoc.data()!;
+
+        // Construction explicite des données pour éviter les erreurs de fusion
+        finalData = {
+            // 1. On prend les NOUVELLES données de contenu
+            title: articleData.title,
+            author: articleData.author,
+            category: articleData.category,
+            content: articleData.content,
+            image: articleData.image,
+
+            // 2. On met à jour la date de publication, car c'est une RE-PUBLICATION
+            publishedAt: AdminTimestamp.fromDate(now),
+            status: 'published',
+
+            // 3. On préserve les données historiques de l'ancien article
+            views: existingData.views || 0,
+            comments: existingData.comments || [],
+            viewHistory: existingData.viewHistory || [],
+            
+            // 4. On garde le slug original
+            slug: slug,
+        };
+
     } else {
-        // MODE CRÉATION : générer un nouveau slug
+        // =============================================================
+        // MODE CRÉATION (INCHANGÉ, MAIS CLARIFIÉ)
+        // =============================================================
         slug = articleData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
         
-        // Vérifier les doublons et ajuster si nécessaire
+        // Logique anti-doublon pour la création
         let counter = 1;
         let originalSlug = slug;
-        
         while (true) {
             const docSnapshot = await articlesCollection.doc(slug).get();
-            if (!docSnapshot.exists) {
-                break; // Slug disponible
-            }
+            if (!docSnapshot.exists) break;
             slug = `${originalSlug}-${counter}`;
             counter++;
         }
+
+        finalData = {
+            ...articleData,
+            publishedAt: AdminTimestamp.fromDate(now),
+            status: 'published',
+            views: 0,
+            comments: [],
+            viewHistory: [],
+            slug: slug,
+        };
     }
 
-    const now = new Date();
-    
-    // Récupérer les données existantes seulement en mode mise à jour
-    const existingArticleData = isUpdate ? (await articlesCollection.doc(slug).get()).data() : {};
+    // Supprimer le champ 'scheduledFor' qui n'a plus lieu d'être dans un article publié
+    delete finalData.scheduledFor;
 
-    // Préparer les données pour Firestore
-    const firestoreData: any = {
-        // En mise à jour : garder les données existantes et appliquer les nouvelles
-        ...existingArticleData,
-        // En création : utiliser les nouvelles données
-        ...articleData,
-        // Métadonnées systématiques
-        publishedAt: isUpdate ? existingArticleData?.publishedAt : AdminTimestamp.fromDate(now),
-        status: 'published',
-        // Garder les données historiques en mise à jour
-        views: existingArticleData?.views || 0,
-        comments: existingArticleData?.comments || [],
-        viewHistory: existingArticleData?.viewHistory || [],
+    // Sauvegarder les données finales dans le document
+    await articlesCollection.doc(slug).set(finalData);
+
+    // Pas besoin de re-lire le document, on a déjà les données finales
+    const resultArticle: Article = {
+        ...finalData,
+        publishedAt: finalData.publishedAt.toDate().toISOString(),
     };
 
-    // IMPORTANT : Supprimer scheduledFor car on publie maintenant
-    delete firestoreData.scheduledFor;
-
-    // Sauvegarder - SET avec merge pour créer ou mettre à jour
-    await articlesCollection.doc(slug).set(firestoreData, { merge: true });
-    
-    // Construire la réponse
-    const finalArticle: Article = {
-        slug: slug,
-        title: firestoreData.title,
-        author: firestoreData.author,
-        category: firestoreData.category,
-        content: firestoreData.content,
-        image: firestoreData.image,
-        publishedAt: firestoreData.publishedAt.toDate().toISOString(),
-        status: 'published',
-        views: firestoreData.views || 0,
-        comments: firestoreData.comments || [],
-        viewHistory: firestoreData.viewHistory || [],
-    };
-
-    // Newsletter
-    if (!isUpdate) { // Only for new articles, not updates
+    // Gérer la newsletter (seulement pour les vrais nouveaux articles)
+    if (!isUpdate) {
         try {
             const subscribers = await getSubscribers();
-            await sendNewsletterNotification(finalArticle, subscribers, isUpdate);
+            await sendNewsletterNotification(resultArticle, subscribers, false);
         } catch (error) {
             console.error(`Échec newsletter:`, error);
         }
     }
 
-    return finalArticle;
+    return resultArticle;
 }
 
 
@@ -183,8 +190,8 @@ export async function saveArticleAction(articleData: {
     image: { src: string; alt: string };
     scheduledFor?: string;
     actionType: 'draft' | 'publish' | 'schedule';
-    id?: string;
-    slug?: string;
+    id?: string; // L'ID du brouillon
+    slug?: string; // Le slug de l'article original (si on modifie un article publié)
   }): Promise<Article | Draft> {
     await initializeAdminDb();
     
@@ -198,21 +205,18 @@ export async function saveArticleAction(articleData: {
     };
   
     if (articleData.actionType === 'publish') {
-      // 🔥 LOGIQUE ANTI-DOUBLONS :
+      // La logique de publication directe semble correcte, on la garde.
       let existingSlug: string | undefined;
       
-      // RÈGLE : Si on a un slug → MISE À JOUR de l'article existant
       if (articleData.slug) {
         existingSlug = articleData.slug;
       }
-      // RÈGLE : Si brouillon lié à un article → MISE À JOUR de l'article existant  
       else if (articleData.id) {
         const draft = await getDraft(articleData.id);
         if (draft?.originalArticleSlug) {
           existingSlug = draft.originalArticleSlug;
         }
       }
-      // RÈGLE : Aucun slug → CRÉATION nouvel article
       
       const result = await publishArticle(payload, existingSlug);
       
@@ -223,12 +227,31 @@ export async function saveArticleAction(articleData: {
       return result;
   
     } else {
-      // Pour brouillons/programmation
-      const draftPayload = { 
+      // CORRECTION APPLIQUÉE ICI pour 'draft' et 'schedule'
+      // Le but est de créer/mettre à jour un brouillon.
+      // Il est vital de préserver le lien vers l'article original si on est en mode "modification".
+      
+      // On récupère le slug de l'article original qui doit être passé par le frontend.
+      let originalArticleSlugToSave: string | undefined | null = articleData.slug;
+
+      // GARDE-FOU : Si on met à jour un brouillon existant (on a un ID)
+      // mais que le frontend n'envoie pas de slug, on vérifie si le brouillon
+      // en base de données ne possédait pas déjà ce slug.
+      // Cela évite d'effacer le lien accidentellement.
+      if (articleData.id && !originalArticleSlugToSave) {
+        const existingDraft = await getDraft(articleData.id);
+        if (existingDraft?.originalArticleSlug) {
+          originalArticleSlugToSave = existingDraft.originalArticleSlug;
+        }
+      }
+      
+      const draftPayload: Partial<Draft> = { 
         ...payload, 
         id: articleData.id,
-        originalArticleSlug: articleData.slug
+        // On s'assure que le slug de l'article original est bien inclus.
+        originalArticleSlug: originalArticleSlugToSave,
       };
+
       return saveAsDraftOrScheduled(draftPayload);
     }
   }
@@ -328,9 +351,9 @@ export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
 }
 
 
-export async function publishScheduledArticle(draftId: string): Promise<Article> {
-    const db = await initializeAdminDb();
-    const draft = await getDraft(draftId);
+// Note : La fonction accepte maintenant l'objet Draft complet pour éviter une lecture redondante.
+export async function publishScheduledArticle(draft: Draft): Promise<Article> {
+    // La lecture getDraft(draftId) a été supprimée car inutile.
 
     if (!draft || (draft.status !== 'scheduled' && draft.status !== 'draft')) {
         throw new Error('Brouillon invalide pour la publication.');
@@ -342,13 +365,14 @@ export async function publishScheduledArticle(draftId: string): Promise<Article>
         category: draft.category,
         content: draft.content,
         image: draft.image as ArticleImage,
-    }, draft.originalArticleSlug);
+    }, draft.originalArticleSlug); // On utilise directement le slug de l'objet draft passé en argument
 
-    // Supprimer le brouillon après la publication
-    await deleteDraft(draftId);
+    // Supprimer le brouillon après la publication en utilisant son ID
+    await deleteDraft(draft.id);
 
     return article;
 }
+
 
 
 export async function deleteArticle(slug: string): Promise<boolean> {

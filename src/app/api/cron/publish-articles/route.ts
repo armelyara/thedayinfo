@@ -7,6 +7,8 @@ import {
 } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
 
+// export const dynamic = 'force-dynamic';
+
 // La sécurité est maintenant gérée par l'authentification OIDC de Cloud Scheduler.
 // Le code est simplifié et n'a plus besoin d'initialiser Firebase Admin ici.
 
@@ -22,11 +24,13 @@ async function handler(request: NextRequest) {
       });
     }
 
+    
     // 2. Publier chaque article
     const publicationResults = [];
     for (const draft of draftsToPublish) {
       try {
-        const publishedArticle = await publishScheduledArticle(draft.id);
+        // CORRECTION : Passer l'objet draft complet, et non plus juste draft.id
+        const publishedArticle = await publishScheduledArticle(draft);
         
         publicationResults.push({
           draftId: draft.id,
@@ -34,6 +38,7 @@ async function handler(request: NextRequest) {
           slug: publishedArticle.slug,
           title: publishedArticle.title,
         });
+
 
         // 3. Invalider les caches pour mettre le site à jour
         revalidatePath('/');

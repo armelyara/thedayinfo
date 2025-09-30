@@ -67,7 +67,7 @@ export type Draft = {
     category: string;
     content: string;
     image?: Partial<ArticleImage>;
-    scheduledFor?: string | null; // Date de programmation
+    scheduledFor?: string | Date | null; // Date de programmation
     lastSaved: string;
     createdAt: string;
     status: 'draft' | 'scheduled'; // Statut au sein des brouillons
