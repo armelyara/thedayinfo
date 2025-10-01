@@ -7,9 +7,15 @@ async function handler(request: NextRequest) {
   // VÉRIFICATION 1 : Token OIDC (vérifié automatiquement par Firebase Hosting)
   // Firebase Hosting valide le token JWT automatiquement
   
-  // VÉRIFICATION 2 : Header personnalisé (défense en profondeur)
+  // VÉRIFICATION 2 : Header p(request.headers.get('X-CloudScheduler-Token'))éfense en profondeur)
   const schedulerToken = request.headers.get('X-CloudScheduler-Token');
   const expectedToken = process.env.CRON_SECRET_TOKEN;
+
+  console.log('=== DEBUG CRON AUTH ===');
+  console.log('Header reçu:', schedulerToken?.substring(0, 10) + '...');
+  console.log('Token attendu:', expectedToken?.substring(0, 10) + '...');
+  console.log('Variable définie?', !!expectedToken);
+  console.log('========================');
   
   if (schedulerToken !== expectedToken) {
     console.error('Invalid scheduler token');
@@ -17,7 +23,7 @@ async function handler(request: NextRequest) {
       { error: 'Unauthorized' },
       { status: 401 }
     );
-  }
+  }request.headers.get('X-CloudScheduler-Token')
 
   try {
     const draftsToPublish = await getScheduledArticlesToPublish();
