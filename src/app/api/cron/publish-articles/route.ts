@@ -1,29 +1,16 @@
-// src/app/api/cron/publish-articles/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getScheduledArticlesToPublish, publishScheduledArticle } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
 
 async function handler(request: NextRequest) {
-  // VÉRIFICATION 1 : Token OIDC (vérifié automatiquement par Firebase Hosting)
-  // Firebase Hosting valide le token JWT automatiquement
+  // Vérification de sécurité
+  const cronSecret = request.headers.get('x-cron-secret');
+  const expectedSecret = process.env.CRON_SECRET_TOKEN;
   
-  // VÉRIFICATION 2 : Header p(request.headers.get('X-CloudScheduler-Token'))éfense en profondeur)
-  const schedulerToken = request.headers.get('X-CloudScheduler-Token');
-  const expectedToken = process.env.CRON_SECRET_TOKEN;
-
-  console.log('=== DEBUG CRON AUTH ===');
-  console.log('Header reçu:', schedulerToken?.substring(0, 10) + '...');
-  console.log('Token attendu:', expectedToken?.substring(0, 10) + '...');
-  console.log('Variable définie?', !!expectedToken);
-  console.log('========================');
-  
-  if (schedulerToken !== expectedToken) {
-    console.error('Invalid scheduler token');
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }request.headers.get('X-CloudScheduler-Token')
+  if (cronSecret !== expectedSecret) {
+    console.error('Invalid cron secret');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const draftsToPublish = await getScheduledArticlesToPublish();
