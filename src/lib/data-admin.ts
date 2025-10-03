@@ -19,9 +19,8 @@ const initializeAdminDb = async () => {
 /**
  * Publie un article, soit en créant un nouveau, soit en mettant à jour un existant.
  * Garantit AUCUN doublon.
+ * ENVOIE DES EMAILS pour les nouveaux articles ET les modifications.
  */
-// Remplacez votre fonction publishArticle par celle-ci dans src/lib/data-admin.ts
-
 async function publishArticle(
     articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory'> & { scheduledFor?: string | null },
     existingSlug?: string
@@ -36,7 +35,7 @@ async function publishArticle(
 
     if (isUpdate) {
         // =============================================================
-        // MODE MISE À JOUR (LA LOGIQUE CORRIGÉE EST ICI)
+        // MODE MISE À JOUR
         // =============================================================
         slug = existingSlug!;
 
@@ -70,7 +69,7 @@ async function publishArticle(
 
     } else {
         // =============================================================
-        // MODE CRÉATION (INCHANGÉ, MAIS CLARIFIÉ)
+        // MODE CRÉATION
         // =============================================================
         slug = articleData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
         
@@ -107,14 +106,14 @@ async function publishArticle(
         publishedAt: finalData.publishedAt.toDate().toISOString(),
     };
 
-    // Gérer la newsletter (seulement pour les vrais nouveaux articles)
-    if (!isUpdate) {
-        try {
-            const subscribers = await getSubscribers();
-            await sendNewsletterNotification(resultArticle, subscribers, false);
-        } catch (error) {
-            console.error(`Échec newsletter:`, error);
-        }
+    // ✅ CORRECTION : Envoyer des emails pour TOUS les articles (nouveaux ET modifiés)
+    try {
+        const subscribers = await getSubscribers();
+        await sendNewsletterNotification(resultArticle, subscribers, isUpdate);
+        console.log(`Newsletter envoyée pour ${isUpdate ? 'modification' : 'création'} de l'article "${resultArticle.title}"`);
+    } catch (error) {
+        console.error(`Échec envoi newsletter:`, error);
+        // Ne pas bloquer la publication si l'envoi d'email échoue
     }
 
     return resultArticle;
