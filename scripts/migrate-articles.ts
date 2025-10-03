@@ -1,14 +1,14 @@
 import { config } from 'dotenv';
 import { resolve } from 'path';
 
-// ✅ Charger les variables d'environnement depuis .env.local
+// Charger les variables d'environnement depuis .env.local
 config({ path: resolve(process.cwd(), '.env.local') });
 
 import { initializeFirebaseAdmin } from '@/lib/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
 async function migrateArticles() {
-  console.log('🚀 Démarrage de la migration...');
+  console.log('Démarrage de la migration...');
   
   await initializeFirebaseAdmin();
   const db = getFirestore();
@@ -49,15 +49,15 @@ async function migrateArticles() {
   
   if (count > 0) {
     await batch.commit();
-    console.log(`\n✅ ${count} articles migrés avec succès`);
+    console.log(`\n${count} articles migrés avec succès`);
   } else {
-    console.log('\n✅ Tous les articles sont déjà à jour');
+    console.log('\nTous les articles sont déjà à jour');
   }
   
   process.exit(0);
 }
 
 migrateArticles().catch((error) => {
-  console.error('❌ Erreur lors de la migration:', error);
+  console.error('Erreur lors de la migration:', error);
   process.exit(1);
 });
