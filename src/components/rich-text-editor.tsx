@@ -220,7 +220,7 @@ export function RichTextEditor({
     <TooltipProvider>
       <div className={cn('border rounded-lg overflow-hidden', className)}>
         {/* Barre d'outils */}
-        <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
+        <div className="sticky top-0 z-10 border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
           {/* Styles de police */}
           <div className="flex items-center gap-1">
             <Select onValueChange={(value) => execCommand('fontName', value)}>

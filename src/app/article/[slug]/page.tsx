@@ -12,6 +12,7 @@ import { parseISO } from 'date-fns';
 import { PublicCommentsSection } from '@/components/article/public-comments-section';
 import { ArticleClientWrapper } from '@/components/article/article-client-wrapper';
 import { SubscriptionModal } from '@/components/newsletter/subscription-modal';
+import { getAuthorAvatar } from '@/lib/avatar-utils';
 
 type ArticlePageProps = {
   params: Promise<{
@@ -39,12 +40,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </h1>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={`https://i.pravatar.cc/40?u=${article.author}`} />
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={getAuthorAvatar(article.author)} />
               <AvatarFallback>
                 <User />
-              </AvatarFallback>
-            </Avatar>
+                </AvatarFallback>
+              </Avatar>
             <span>{article.author}</span>
           </div>
           <div className="flex items-center gap-2">

@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { MessageCircle, Send, User, Reply, ThumbsUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Comment } from '@/lib/data-types';
+import { getAuthorAvatar } from '@/lib/avatar-utils';
 
 interface AdminCommentsModalProps {
   isOpen: boolean;
@@ -54,7 +55,7 @@ function CommentItem({
         id: Date.now(),
         author: 'Armel Yara',
         text: replyText.trim(),
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=armel',
+        avatar: getAuthorAvatar('Armel Yara'),
         parentId: comment.id,
         likes: 0,
       };

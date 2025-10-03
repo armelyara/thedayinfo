@@ -9,19 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Send, User, Reply, ThumbsUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Comment } from '@/lib/data-types';
-
-// Fonction pour générer et récupérer le nom d'auteur anonyme
-const getAnonymousAuthorName = (): string => {
-  if (typeof window === 'undefined') return 'Visiteur Anonyme';
-
-  let authorName = localStorage.getItem('anonymous-commenter-name');
-  if (!authorName) {
-    const randomNumber = Math.floor(Math.random() * 10000);
-    authorName = `Visiteur Anonyme #${randomNumber}`;
-    localStorage.setItem('anonymous-commenter-name', authorName);
-  }
-  return authorName;
-};
+import { getAuthorAvatar, getAnonymousAuthorName } from '@/lib/avatar-utils';
 
 
 interface PublicCommentsSectionProps {
@@ -63,7 +51,7 @@ function CommentThread({
         id: Date.now(),
         author: authorName,
         text: replyText.trim(),
-        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${authorName.replace('#', '')}`,
+        avatar: getAuthorAvatar(authorName),
         parentId: comment.id,
         likes: 0
       };
@@ -215,7 +203,7 @@ export function PublicCommentsSection({
         id: Date.now(),
         author: authorName,
         text: newComment.trim(),
-        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${authorName.replace('#', '')}`,
+       avatar: getAuthorAvatar(authorName),
         likes: 0,
         parentId: null
       };
