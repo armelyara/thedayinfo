@@ -21,6 +21,7 @@ export type Comment = {
 export type ViewHistory = {
     date: string;
     views: number;
+    
 };
   
 export type ArticleImage = {
@@ -42,6 +43,8 @@ export type Article = {
     comments: Comment[];
     viewHistory: ViewHistory[];
     scheduledFor?: string | null; // Pour référence, mais n'affecte pas le statut
+    likes: number;      
+    dislikes: number; 
 };
 
 export type Category = {
@@ -74,3 +77,4 @@ export type Draft = {
     status: 'draft' | 'scheduled'; // Statut au sein des brouillons
     originalArticleSlug?: string; 
 };
+

@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
@@ -22,7 +21,7 @@ const initializeAdminDb = async () => {
  * ENVOIE DES EMAILS pour les nouveaux articles ET les modifications.
  */
 async function publishArticle(
-    articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory'> & { scheduledFor?: string | null },
+    articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory' | 'likes' | 'dislikes'> & { scheduledFor?: string | null },
     existingSlug?: string
 ): Promise<Article> {
     const db = await initializeAdminDb();
@@ -62,6 +61,8 @@ async function publishArticle(
             views: existingData.views || 0,
             comments: existingData.comments || [],
             viewHistory: existingData.viewHistory || [],
+            likes: existingData.likes || 0,        // ✅ AJOUTÉ
+            dislikes: existingData.dislikes || 0,  // ✅ AJOUTÉ
             
             // 4. On garde le slug original
             slug: slug,
@@ -90,6 +91,8 @@ async function publishArticle(
             views: 0,
             comments: [],
             viewHistory: [],
+            likes: 0,      // ✅ AJOUTÉ
+            dislikes: 0,   // ✅ AJOUTÉ
             slug: slug,
         };
     }
@@ -106,7 +109,7 @@ async function publishArticle(
         publishedAt: finalData.publishedAt.toDate().toISOString(),
     };
 
-    // ✅ CORRECTION : Envoyer des emails pour TOUS les articles (nouveaux ET modifiés)
+    // CORRECTION : Envoyer des emails pour TOUS les articles (nouveaux ET modifiés)
     try {
         const subscribers = await getSubscribers();
         await sendNewsletterNotification(resultArticle, subscribers, isUpdate);
@@ -425,7 +428,9 @@ export async function getAdminArticles(): Promise<Article[]> {
             content: data.content,
             views: data.views || 0,
             comments: data.comments || [],
-            viewHistory: data.viewHistory ? data.viewHistory.map((vh: any) => ({...vh, date: vh.date.toDate().toISOString()})) : [],
+            viewHistory: data.viewHistory ? data.viewHistory.map((vh: any) => ({...vh, date: vh.date.toDate ? vh.date.toDate().toISOString() : vh.date})) : [],
+            likes: data.likes || 0,        // ✅ AJOUTÉ
+            dislikes: data.dislikes || 0,  // ✅ AJOUTÉ
         } as Article;
     });
 }
@@ -465,6 +470,8 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
         views: data.views || 0,
         comments: data.comments || [],
         viewHistory: data.viewHistory || [],
+        likes: data.likes || 0,        // ✅ AJOUTÉ
+        dislikes: data.dislikes || 0,  // ✅ AJOUTÉ
     } as Article;
 }
 
@@ -492,6 +499,8 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
                 views: data.views || 0,
                 comments: data.comments || [],
                 viewHistory: data.viewHistory || [],
+                likes: data.likes || 0,        // ✅ AJOUTÉ
+                dislikes: data.dislikes || 0,  // ✅ AJOUTÉ
             } as Article;
         });
     } catch (e: any) {
@@ -607,5 +616,3 @@ export async function updateSubscriberStatus(email: string, status: 'active' | '
         return false;
     }
 }
-
-    

@@ -164,6 +164,97 @@ export async function searchArticles(queryText: string): Promise<Article[]> {
     }
 }
 
+export async function incrementViews(slug: string): Promise<Article | null> {
+    try {
+        const docRef = doc(db, 'articles', slug);
+        
+        await runTransaction(db, async (transaction) => {
+            const docSnap = await transaction.get(docRef);
+            if (!docSnap.exists()) {
+                throw new Error("Document does not exist!");
+            }
+            
+            const currentData = docSnap.data();
+            const newViews = (currentData.views || 0) + 1;
+            const currentHistory = currentData.viewHistory || [];
+            
+            // AJOUT : Créer l'entrée d'historique pour aujourd'hui
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Réinitialiser à minuit
+            const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+            
+            // Vérifier si on a déjà une entrée pour aujourd'hui
+            const todayEntryIndex = currentHistory.findIndex((entry: any) => {
+                const entryDate = typeof entry.date === 'string' 
+                    ? entry.date.split('T')[0] 
+                    : new Date(entry.date).toISOString().split('T')[0];
+                return entryDate === todayString;
+            });
+            
+            let updatedHistory;
+            if (todayEntryIndex >= 0) {
+                // Mettre à jour l'entrée existante
+                updatedHistory = [...currentHistory];
+                updatedHistory[todayEntryIndex] = {
+                    date: todayString,
+                    views: (updatedHistory[todayEntryIndex].views || 0) + 1
+                };
+            } else {
+                // Ajouter une nouvelle entrée
+                updatedHistory = [
+                    ...currentHistory,
+                    {
+                        date: todayString,
+                        views: 1
+                    }
+                ];
+            }
+            
+            // Mettre à jour à la fois views ET viewHistory
+            transaction.update(docRef, { 
+                views: newViews,
+                viewHistory: updatedHistory
+            });
+        });
+
+        // Relire le document pour retourner les données à jour
+        const updatedDoc = await getDoc(docRef);
+        if (!updatedDoc.exists()) {
+            return null;
+        }
+
+        const data = updatedDoc.data();
+        
+        // Vérifier que l'article est publié
+        if (data.status !== 'published') {
+            const now = new Date();
+            const scheduledFor = data.scheduledFor ? data.scheduledFor.toDate() : null;
+            if (!scheduledFor || scheduledFor > now) {
+                return null;
+            }
+        }
+        
+        return {
+            slug: updatedDoc.id,
+            title: data.title,
+            author: data.author,
+            category: data.category,
+            publishedAt: data.publishedAt.toDate().toISOString(),
+            status: data.status,
+            image: data.image,
+            content: data.content,
+            views: data.views || 0,
+            comments: data.comments || [],
+            viewHistory: data.viewHistory || [],
+            likes: data.likes || 0,
+            dislikes: data.dislikes || 0,
+        } as Article;
+    } catch (error) {
+        console.error('Error incrementing views:', error);
+        return null;
+    }
+}
+
 export async function getProfile(): Promise<Profile | null> {
     try {
         const docRef = doc(db, 'site-config', 'profile');
