@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { getArticleBySlug } from '@/lib/data-client';
+import { getArticleBySlug, getProfile } from '@/lib/data-client';
 import type { Comment } from '@/lib/data-types';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,7 +12,7 @@ import { parseISO } from 'date-fns';
 import { PublicCommentsSection } from '@/components/article/public-comments-section';
 import { ArticleClientWrapper } from '@/components/article/article-client-wrapper';
 import { SubscriptionModal } from '@/components/newsletter/subscription-modal';
-import { getAuthorAvatar } from '@/lib/avatar-utils';
+import { getAuthorAvatar, getAuthorAvatarFromProfile } from '@/lib/avatar-utils';
 
 type ArticlePageProps = {
   params: Promise<{
@@ -30,6 +30,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   if (!article || article.status !== 'published') {
     notFound();
   }
+
+  // Récupérer le profil pour avoir la photo
+  const profile = await getProfile();
+  const authorAvatar = getAuthorAvatarFromProfile(
+    article.author === profile?.name ? profile?.imageUrl : undefined,
+    article.author
+  );
 
   return (
     <article className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
@@ -86,8 +93,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           articleSlug={article.slug}
           initialViews={article.views}
           initialComments={article.comments || []}
-          initialLikes={article.likes}      // AJOUTER
-          initialDislikes={article.dislikes}
+          initialLikes={article.likes || 0}      // Valeur par défaut
+          initialDislikes={article.dislikes || 0}
         />
         
         {/* Section d'abonnement newsletter */}

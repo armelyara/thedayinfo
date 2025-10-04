@@ -25,8 +25,8 @@ export default function Feedback({
     initialDislikes 
 }: FeedbackProps) {
   const [reaction, setReaction] = useState<Reaction>(null);
-  const [likes, setLikes] = useState(initialLikes); // ✅ Initialisé depuis la DB
-  const [dislikes, setDislikes] = useState(initialDislikes); // ✅ Initialisé depuis la DB
+  const [likes, setLikes] = useState(initialLikes || 0); // Valeur par défaut
+  const [dislikes, setDislikes] = useState(initialDislikes || 0); // Valeur par défaut // ✅ Initialisé depuis la DB
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Charger la réaction depuis localStorage au montage
@@ -52,9 +52,9 @@ export default function Feedback({
         localStorage.removeItem(`reaction-${articleSlug}`);
         
         if (newReaction === 'like') {
-          setLikes(l => Math.max(0, l - 1));
+          setLikes(l => Math.max(0, (l || 0) - 1));
         } else {
-          setDislikes(d => Math.max(0, d - 1));
+          setDislikes(d => Math.max(0, (d || 0) - 1));;
         }
       } else if (reaction) {
         // Changer de réaction
