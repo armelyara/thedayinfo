@@ -218,9 +218,9 @@ export function RichTextEditor({
 
   return (
     <TooltipProvider>
-      <div className={cn('border rounded-lg overflow-hidden', className)}>
-        {/* Barre d'outils */}
-        <div className="sticky top-0 z-10 border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
+      <div className={cn('border rounded-lg flex flex-col', className)}>
+        {/* Barre d'outils - STICKY */}
+        <div className="sticky top-0 z-10 border-b bg-background p-2 flex flex-wrap gap-1 items-center shadow-sm">
           {/* Styles de police */}
           <div className="flex items-center gap-1">
             <Select onValueChange={(value) => execCommand('fontName', value)}>
@@ -237,7 +237,7 @@ export function RichTextEditor({
                 <SelectItem value="'Trebuchet MS', sans-serif">Trebuchet MS</SelectItem>
               </SelectContent>
             </Select>
-
+  
             <Select onValueChange={(value) => execCommand('fontSize', value)}>
               <SelectTrigger className="h-8 w-16">
                 <SelectValue placeholder="Taille" />
@@ -253,7 +253,7 @@ export function RichTextEditor({
               </SelectContent>
             </Select>
           </div>
-
+  
           <div className="w-px h-6 bg-border mx-1" />
           
           {/* Couleurs */}
@@ -272,59 +272,61 @@ export function RichTextEditor({
               </div>
             </PopoverContent>
           </Popover>
-
+  
           <div className="w-px h-6 bg-border mx-1" />
-
+  
           {/* Formatage de base */}
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('bold')} className="h-8 w-8 p-0"><Bold className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Gras (Ctrl+B)</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('italic')} className="h-8 w-8 p-0"><Italic className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Italique (Ctrl+I)</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('underline')} className="h-8 w-8 p-0"><Underline className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Souligné (Ctrl+U)</p></TooltipContent></Tooltip>
           
           <div className="w-px h-6 bg-border mx-1" />
-
+  
           {/* Changement de casse */}
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => changeCase('upper')} className="h-8 w-8 p-0"><CaseUpper className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Majuscules</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => changeCase('lower')} className="h-8 w-8 p-0"><CaseLower className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Minuscules</p></TooltipContent></Tooltip>
-
+  
           <div className="w-px h-6 bg-border mx-1" />
-
+  
           {/* Alignement */}
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('justifyLeft')} className="h-8 w-8 p-0"><AlignLeft className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Aligner à gauche</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('justifyCenter')} className="h-8 w-8 p-0"><AlignCenter className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Centrer</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('justifyRight')} className="h-8 w-8 p-0"><AlignRight className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Aligner à droite</p></TooltipContent></Tooltip>
-
+  
           <div className="w-px h-6 bg-border mx-1" />
-
+  
           {/* Listes */}
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('insertUnorderedList')} className="h-8 w-8 p-0"><List className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Liste à puces</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('insertOrderedList')} className="h-8 w-8 p-0"><ListOrdered className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Liste numérotée</p></TooltipContent></Tooltip>
-
+  
           <div className="w-px h-6 bg-border mx-1" />
-
+  
           {/* Liens et images */}
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={insertLink} className="h-8 w-8 p-0"><Link className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Ajouter un lien</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="h-8 w-8 p-0"><Upload className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Télécharger une image</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => setIsImageDialogOpen(true)} className="h-8 w-8 p-0"><ImageIcon className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Insérer image par URL</p></TooltipContent></Tooltip>
-
+  
           <div className="w-px h-6 bg-border mx-1" />
-
+  
           {/* Annuler/Refaire */}
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('undo')} className="h-8 w-8 p-0"><Undo className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Annuler (Ctrl+Z)</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('redo')} className="h-8 w-8 p-0"><Redo className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Refaire (Ctrl+Y)</p></TooltipContent></Tooltip>
         </div>
-
-        {/* Zone d'édition */}
-        <div
-          ref={editorRef}
-          contentEditable
-          className="p-4 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 overflow-y-auto prose prose-sm max-w-none"
-          style={{ minHeight: height }}
-          onInput={handleContentChange}
-          onKeyDown={handleKeyDown}
-          suppressContentEditableWarning={true}
-          data-placeholder={placeholder}
-        />
-
+  
+        {/* Zone d'édition avec overflow */}
+        <div className="overflow-y-auto" style={{ maxHeight: height }}>
+          <div
+            ref={editorRef}
+            contentEditable
+            className="p-4 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 prose prose-sm max-w-none"
+            style={{ minHeight: height }}
+            onInput={handleContentChange}
+            onKeyDown={handleKeyDown}
+            suppressContentEditableWarning={true}
+            data-placeholder={placeholder}
+          />
+        </div>
+  
         {/* Input file caché */}
         <input
           ref={fileInputRef}
@@ -334,7 +336,6 @@ export function RichTextEditor({
           className="hidden"
         />
       </div>
-
       {/* Dialog pour les liens */}
       <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
         <DialogContent>
