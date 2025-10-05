@@ -19,7 +19,7 @@ export default function MentionsLegalesPage() {
   
           <h2>Propriété intellectuelle</h2>
           <p>
-            L'ensemble du contenu de ce site (textes, images, vidéos) est protégé par le droit d'auteur.
+            L' ensemble du contenu de ce site (textes, images, vidéos) est protégé par le droit d'auteur.
             Toute reproduction, même partielle, est interdite sans autorisation préalable.
           </p>
         </div>
