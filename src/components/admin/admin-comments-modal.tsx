@@ -1,24 +1,18 @@
 // src/components/admin/admin-comments-modal.tsx
 'use client';
 
-import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, User, Reply, ThumbsUp } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { MessageCircle, User, Reply, ThumbsUp, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Comment } from '@/lib/data-types';
-import { getAuthorAvatar } from '@/lib/avatar-utils';
-
+import { getAuthorAvatarUrl } from '@/app/actions/author-avatar';
 
 interface AdminCommentsModalProps {
   isOpen: boolean;
@@ -26,21 +20,23 @@ interface AdminCommentsModalProps {
   articleSlug: string;
   articleTitle: string;
   comments: Comment[];
-  onCommentsUpdate: (newComments: Comment[]) => void;
+  onCommentsUpdate: (comments: Comment[]) => void;
 }
 
 function CommentItem({ 
   comment, 
   articleSlug, 
   allComments, 
-  onCommentsUpdate,
-  level = 0
-}: {
-  comment: Comment;
-  articleSlug: string;
-  allComments: Comment[];
-  onCommentsUpdate: (comments: Comment[]) => void;
+  onCommentsUpdate, 
+  level = 0,
+  authorAvatarUrl
+}: { 
+  comment: Comment; 
+  articleSlug: string; 
+  allComments: Comment[]; 
+  onCommentsUpdate: (comments: Comment[]) => void; 
   level?: number;
+  authorAvatarUrl: string;
 }) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -56,7 +52,7 @@ function CommentItem({
         id: Date.now(),
         author: 'Armel Yara',
         text: replyText.trim(),
-        avatar: getAuthorAvatar('Armel Yara'),
+        avatar: authorAvatarUrl, // ✅ Utiliser la vraie photo
         parentId: comment.id,
         likes: 0,
       };
@@ -106,34 +102,25 @@ function CommentItem({
                 <ThumbsUp className="w-3 h-3" /> {comment.likes || 0}
               </span>
               {!showReplyForm ? (
-                <Button variant="ghost" size="sm" onClick={() => setShowReplyForm(true)} className="text-xs">
-                  <Reply className="w-3 h-3 mr-1" /> Répondre
+                <Button variant="ghost" size="sm" onClick={() => setShowReplyForm(true)} className="flex items-center gap-1 h-auto p-0 hover:bg-transparent">
+                  <Reply className="w-3 h-3" /> Répondre
                 </Button>
-              ) : null}
+              ) : (
+                <Button variant="ghost" size="sm" onClick={() => setShowReplyForm(false)} className="h-auto p-0 hover:bg-transparent">
+                  Annuler
+                </Button>
+              )}
             </div>
           </div>
         </div>
 
         {showReplyForm && (
-          <div className="ml-11 space-y-3">
-            <div className="flex items-start gap-2">
-              <Badge variant="default" className="text-xs bg-blue-500 mt-1">Auteur</Badge>
-              <div className="flex-1">
-                <Textarea
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Répondre à ce commentaire..."
-                  rows={2}
-                  disabled={isSubmitting}
-                  className="text-sm"
-                />
-                <div className="flex justify-end gap-2 mt-2">
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setShowReplyForm(false)}>Annuler</Button>
-                  <Button onClick={handleReply} size="sm" disabled={isSubmitting || !replyText.trim()}>
-                    {isSubmitting ? 'Publication...' : <><Send className="w-3 h-3 mr-1" /> Publier</>}
-                  </Button>
-                </div>
-              </div>
+          <div className="pl-11 space-y-2">
+            <Textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Votre réponse..." rows={3} disabled={isSubmitting} className="text-sm" />
+            <div className="flex justify-end">
+              <Button onClick={handleReply} size="sm" disabled={isSubmitting || !replyText.trim()}>
+                {isSubmitting ? 'Envoi...' : <><Send className="w-3 h-3 mr-1" /> Répondre</>}
+              </Button>
             </div>
           </div>
         )}
@@ -149,6 +136,7 @@ function CommentItem({
               allComments={allComments}
               onCommentsUpdate={onCommentsUpdate}
               level={level + 1}
+              authorAvatarUrl={authorAvatarUrl}
             />
           ))}
         </div>
@@ -167,7 +155,17 @@ export function AdminCommentsModal({
 }: AdminCommentsModalProps) {
   const [globalComment, setGlobalComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authorAvatarUrl, setAuthorAvatarUrl] = useState<string>('/default-avatar.png');
   const { toast } = useToast();
+  
+  // Récupérer l'avatar de l'auteur au chargement
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      const avatarUrl = await getAuthorAvatarUrl();
+      if (avatarUrl) setAuthorAvatarUrl(avatarUrl);
+    };
+    fetchAvatar();
+  }, []);
   
   const rootComments = comments.filter(c => !c.parentId);
 
@@ -180,7 +178,7 @@ export function AdminCommentsModal({
         id: Date.now(),
         author: 'Armel Yara',
         text: globalComment.trim(),
-        avatar: getAuthorAvatar('Armel Yara'),
+        avatar: authorAvatarUrl, // ✅ Utiliser la vraie photo
         likes: 0,
       };
 
@@ -221,40 +219,37 @@ export function AdminCommentsModal({
         <div className="flex flex-col space-y-4">
           <ScrollArea className="h-96 pr-4">
             {rootComments.length > 0 ? (
-              <div className="space-y-4">
-                {rootComments.map((comment) => (
+              <div className="space-y-3">
+                {rootComments.map(comment => (
                   <CommentItem
                     key={comment.id}
                     comment={comment}
                     articleSlug={articleSlug}
                     allComments={comments}
                     onCommentsUpdate={onCommentsUpdate}
+                    authorAvatarUrl={authorAvatarUrl}
                   />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Aucun commentaire pour cet article</p>
-              </div>
+              <p className="text-center text-muted-foreground py-8">Aucun commentaire pour le moment</p>
             )}
           </ScrollArea>
 
           <div className="border-t pt-4">
-            <h4 className="font-semibold mb-3 flex items-center gap-2">
-              Ajouter un commentaire
-              <Badge variant="default" className="text-xs bg-blue-500">Auteur</Badge>
-            </h4>
+            <Label htmlFor="globalComment" className="text-sm font-semibold mb-2 block">
+              Poster un commentaire public
+            </Label>
             <div className="space-y-3">
-              <Textarea
-                value={globalComment}
-                onChange={(e) => setGlobalComment(e.target.value)}
-                placeholder="Ajouter votre commentaire à cet article..."
+              <Textarea 
+                id="globalComment"
+                value={globalComment} 
+                onChange={(e) => setGlobalComment(e.target.value)} 
+                placeholder="Écrivez un commentaire pour tous les lecteurs..." 
                 rows={3}
                 disabled={isSubmitting}
               />
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={onClose}>Fermer</Button>
+              <div className="flex justify-end">
                 <Button onClick={handleGlobalComment} disabled={isSubmitting || !globalComment.trim()}>
                   {isSubmitting ? 'Publication...' : <><Send className="w-4 h-4 mr-2" /> Publier</>}
                 </Button>

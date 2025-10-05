@@ -218,9 +218,9 @@ export function RichTextEditor({
 
   return (
     <TooltipProvider>
-      <div className={cn('border rounded-lg flex flex-col', className)}>
+      <div className={cn('border rounded-lg', className)}>
         {/* Barre d'outils - STICKY */}
-        <div className="sticky top-0 z-10 border-b bg-background p-2 flex flex-wrap gap-1 items-center shadow-sm">
+        <div className="sticky top-0 z-10 border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
           {/* Styles de police */}
           <div className="flex items-center gap-1">
             <Select onValueChange={(value) => execCommand('fontName', value)}>
@@ -318,7 +318,7 @@ export function RichTextEditor({
           <div
             ref={editorRef}
             contentEditable
-            className="p-4 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 prose prose-sm max-w-none"
+            className="p-4 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 overflow-y-auto prose prose-sm max-w-none"
             style={{ minHeight: height }}
             onInput={handleContentChange}
             onKeyDown={handleKeyDown}

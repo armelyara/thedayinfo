@@ -1,3 +1,4 @@
+// src/components/layout/main-layout.tsx
 import {
   SidebarProvider,
   Sidebar,
@@ -8,6 +9,8 @@ import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Button } from '@/components/ui/button';
 import { Home } from 'lucide-react';
 import Link from 'next/link';
+import { Footer } from './footer';  // ✅ Ajouter cet import
+
 type Category = {
   name: string;
   slug: string;
@@ -39,7 +42,17 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             {/* The Sign In button will be added back later with appropriate logic */}
           </div>
         </header>
-        <div className="flex-1 p-4 sm:p-6">{children}</div>
+        
+        {/* Wrapper pour contenu + footer avec flex-col */}
+        <div className="flex flex-col min-h-[calc(100vh-60px)]">
+          {/* Contenu principal qui prend tout l'espace disponible */}
+          <main className="flex-1 p-4 sm:p-6">
+            {children}
+          </main>
+          
+          {/* Footer ajouté ici */}
+          <Footer />
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

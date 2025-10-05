@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   SidebarContent,
+  SidebarFooter, // ✅ Import ajouté
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
@@ -19,7 +20,7 @@ import { Button } from '../ui/button';
 import { ArrowRight } from 'lucide-react';
 import { getProfile } from '@/lib/data-client';
 import type { Profile, Article, Category } from '@/lib/data-types';
-
+                 
 // Fonction client pour récupérer les compteurs via API publique
 async function getCategoryCounts() {
   try {
@@ -110,7 +111,6 @@ function AuthorProfile() {
     .replace(/<[^>]*>?/gm, '')
     .substring(0, 100);
 
-
   return (
     <div className="flex flex-col items-center text-center p-2">
       <Avatar className="h-20 w-20 mx-auto mb-3 border-4 border-primary/20">
@@ -137,15 +137,44 @@ function AuthorProfile() {
   );
 }
 
+// ✅ Composant pour le copyright dans le footer de la sidebar
+function SidebarCopyright() {
+  const currentYear = new Date().getFullYear();
+  const foundedYear = 2018;
+  
+  return (
+    <div className="border-t border-sidebar-border pt-2">
+      <p className="text-xs text-center text-sidebar-foreground/60 leading-relaxed px-2">
+        © {foundedYear}-{currentYear} <span className="font-semibold">The Day Info</span>
+        <br />
+        Tous droits réservés
+        <br />
+        <span className="text-sidebar-foreground/50">
+          Développé par{' '}
+          <a
+            href="https://github.com/armelyara" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-sidebar-foreground/80 transition-colors"
+          >
+            Armel Yara
+          </a>
+        </span>
+      </p>
+    </div>
+  );
+}
+
 export function AppSidebar({ categories }: { categories: Category[] }) {
   return (
-    <>
+    <> {/* ✅ Fragment corrigé */}
       <SidebarHeader>
         <div className="flex items-center gap-2">
           <LogoIcon className="h-8 w-8 text-primary" />
           <span className="text-xl font-headline font-semibold">The Day Info</span>
         </div>
       </SidebarHeader>
+      
       <SidebarContent>
         <SidebarGroup>
           <SearchInput />
@@ -158,6 +187,11 @@ export function AppSidebar({ categories }: { categories: Category[] }) {
           <CategoryList categories={categories} />
         </SidebarGroup>
       </SidebarContent>
+      
+      {/*SidebarFooter bien placé à l'intérieur du fragment */}
+      <SidebarFooter>
+        <SidebarCopyright />
+      </SidebarFooter>
     </>
   );
 }
