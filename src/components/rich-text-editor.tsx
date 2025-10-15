@@ -173,7 +173,7 @@ export function RichTextEditor({
   const saveSelection = () => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
-      setSavedSelection(selection.getRangeAt(0));
+      setSavedSelection(selection.getRangeAt(0).cloneRange());
     }
   };
 
@@ -336,6 +336,7 @@ export function RichTextEditor({
             style={{ minHeight: height }}
             onInput={handleContentChange}
             onKeyDown={handleKeyDown}
+            onBlur={saveSelection}
             suppressContentEditableWarning={true}
             data-placeholder={placeholder}
           />
