@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRef, useCallback, useEffect, useState } from 'react';
@@ -97,7 +98,7 @@ export function RichTextEditor({
   const [linkText, setLinkText] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('');
-  const [selectedText, setSelectedText] = useState('');
+  const [savedSelection, setSavedSelection] = useState<Range | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Synchroniser le contenu sans causer de re-render intempestifs
@@ -169,27 +170,40 @@ export function RichTextEditor({
     }
   }, [execCommand]);
 
-  const getSelectedText = () => {
+  const saveSelection = () => {
     const selection = window.getSelection();
-    return selection?.toString() || '';
+    if (selection && selection.rangeCount > 0) {
+      setSavedSelection(selection.getRangeAt(0));
+    }
+  };
+
+  const restoreSelection = () => {
+    if (savedSelection) {
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(savedSelection);
+    }
   };
 
   const insertLink = () => {
-    const selected = getSelectedText();
-    setSelectedText(selected);
-    setLinkText(selected || '');
+    saveSelection();
+    const selectedText = savedSelection?.toString() || '';
+    setLinkText(selectedText);
     setLinkUrl('');
     setIsLinkDialogOpen(true);
   };
 
   const handleInsertLink = () => {
-    if (linkUrl && linkText) {
-      const html = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+    setIsLinkDialogOpen(false);
+    editorRef.current?.focus();
+    restoreSelection();
+    if (linkUrl) {
+      const html = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${linkText || linkUrl}</a>`;
       execCommand('insertHTML', html);
     }
-    setIsLinkDialogOpen(false);
     setLinkUrl('');
     setLinkText('');
+    setSavedSelection(null);
   };
 
   const handleInsertImage = () => {
@@ -349,7 +363,7 @@ export function RichTextEditor({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsLinkDialogOpen(false)}>Annuler</Button>
-            <Button onClick={handleInsertLink} disabled={!linkUrl || !linkText}>Ajouter le lien</Button>
+            <Button onClick={handleInsertLink} disabled={!linkUrl}>Ajouter le lien</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
