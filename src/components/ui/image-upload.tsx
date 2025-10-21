@@ -7,8 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { app } from '@/lib/firebase-client'; // Importer l'app Firebase
 
 interface ImageUploadProps {
   onImageSelect: (imageData: { src: string; alt: string }) => void;
@@ -17,12 +15,11 @@ interface ImageUploadProps {
 
 export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
   const [preview, setPreview] = useState<string>(currentImage || '');
-  const [isUploading, setIsUploading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const storage = getStorage(app);
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -31,48 +28,36 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ variant: 'destructive', title: 'Fichier trop volumineux', description: 'La taille de l\'image ne doit pas dépasser 5MB' });
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      toast({ variant: 'destructive', title: 'Fichier trop volumineux', description: 'La taille de l\'image ne doit pas dépasser 10MB' });
       return;
     }
 
-    setIsUploading(true);
+    setIsProcessing(true);
 
-    try {
-      // Afficher une preview locale immédiate
-      const localPreviewUrl = URL.createObjectURL(file);
-      setPreview(localPreviewUrl);
-
-      // Téléverser vers Firebase Storage
-      const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
-      const snapshot = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(snapshot.ref);
-
-      // Mettre à jour le formulaire parent avec l'URL finale de Firebase
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setPreview(base64String);
       onImageSelect({
-        src: downloadURL,
+        src: base64String,
         alt: file.name
       });
-      
-      // Remplacer la preview locale par l'URL finale pour la cohérence
-      setPreview(downloadURL);
-
+      setIsProcessing(false);
       toast({
-        title: 'Image téléversée',
-        description: 'L\'image a été sauvegardée dans le cloud.'
+        title: 'Image sélectionnée',
+        description: 'L\'image est prête à être sauvegardée.',
       });
-
-    } catch (error) {
-      console.error("Upload error:", error);
+    };
+    reader.onerror = () => {
+      setIsProcessing(false);
       toast({
         variant: 'destructive',
-        title: 'Erreur de téléversement',
-        description: 'Impossible de sauvegarder l\'image. Veuillez réessayer.'
+        title: 'Erreur de lecture',
+        description: 'Impossible de lire le fichier image.'
       });
-      setPreview(''); // Nettoyer la preview en cas d'erreur
-    } finally {
-      setIsUploading(false);
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
   const clearImage = () => {
@@ -100,7 +85,7 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
             size="sm"
             className="absolute top-2 right-2"
             onClick={clearImage}
-            disabled={isUploading}
+            disabled={isProcessing}
           >
             <X className="w-4 h-4" />
           </Button>
@@ -115,7 +100,7 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
             Cliquez pour sélectionner une image
           </p>
           <p className="text-xs text-muted-foreground">
-            PNG, JPG, GIF jusqu'à 5MB
+            PNG, JPG, GIF jusqu'à 10MB
           </p>
         </div>
       )}
@@ -126,7 +111,7 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
         accept="image/*"
         onChange={handleFileSelect}
         className="hidden"
-        disabled={isUploading}
+        disabled={isProcessing}
       />
 
       <div className="flex gap-2">
@@ -134,12 +119,12 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
           type="button"
           variant="outline"
           onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
+          disabled={isProcessing}
         >
           <ImageIcon className="w-4 h-4 mr-2" />
-          {isUploading ? 'Téléversement...' : 'Choisir une image'}
+          {isProcessing ? 'Traitement...' : 'Choisir une image'}
         </Button>
-        {preview && !isUploading && (
+        {preview && !isProcessing && (
           <Button
             type="button"
             variant="ghost"
