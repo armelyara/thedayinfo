@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db } from '@/lib/firebase-client'; // Assurez-vous que db est exporté
+import { Progress } from '@/components/ui/progress';
 
 interface ImageUploadProps {
   onImageSelect: (imageData: { src: string; alt: string }) => void;
@@ -16,6 +19,7 @@ interface ImageUploadProps {
 export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
   const [preview, setPreview] = useState<string>(currentImage || '');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -34,30 +38,42 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
     }
 
     setIsProcessing(true);
+    setUploadProgress(0);
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setPreview(base64String);
-      onImageSelect({
-        src: base64String,
-        alt: file.name
-      });
-      setIsProcessing(false);
-      toast({
-        title: 'Image sélectionnée',
-        description: 'L\'image est prête à être sauvegardée.',
-      });
-    };
-    reader.onerror = () => {
-      setIsProcessing(false);
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de lecture',
-        description: 'Impossible de lire le fichier image.'
-      });
-    };
-    reader.readAsDataURL(file);
+    const storage = getStorage();
+    const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadProgress(progress);
+      },
+      (error) => {
+        setIsProcessing(false);
+        setUploadProgress(0);
+        console.error("Upload failed:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de téléversement',
+          description: "Un problème de réseau ou de permission est survenu. Vérifiez la console pour les détails.",
+        });
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          setPreview(downloadURL);
+          onImageSelect({
+            src: downloadURL,
+            alt: file.name,
+          });
+          setIsProcessing(false);
+          toast({
+            title: 'Image téléversée',
+            description: 'L\'image est prête à être sauvegardée.',
+          });
+        });
+      }
+    );
   };
 
   const clearImage = () => {
@@ -105,6 +121,8 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
         </div>
       )}
 
+      {isProcessing && <Progress value={uploadProgress} className="w-full" />}
+
       <Input
         ref={fileInputRef}
         type="file"
@@ -122,7 +140,7 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
           disabled={isProcessing}
         >
           <ImageIcon className="w-4 h-4 mr-2" />
-          {isProcessing ? 'Traitement...' : 'Choisir une image'}
+          {isProcessing ? `Téléversement... ${Math.round(uploadProgress)}%` : 'Choisir une image'}
         </Button>
         {preview && !isProcessing && (
           <Button
