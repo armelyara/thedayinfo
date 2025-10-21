@@ -5,7 +5,7 @@
     "method": ["GET", "PUT", "POST", "DELETE", "HEAD"],
     "responseHeader": [
       "Content-Type",
-      "Access-Control-Allow-Origin",
+      "Access-control-allow-origin",
       "x-goog-resumable"
     ],
     "maxAgeSeconds": 3600
