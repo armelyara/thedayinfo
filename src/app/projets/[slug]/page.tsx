@@ -5,54 +5,15 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getProjectBySlug, getProjects } from '@/lib/data-client';
 import type { Project } from '@/lib/data-types';
 import { Github, ExternalLink, Calendar, CheckCircle, Wrench, BookOpen } from 'lucide-react';
-
-// Données factices en attendant la connexion à la base de données
-const allProjects: Project[] = [
-  {
-    slug: 'projet-exemple-1',
-    title: 'Plateforme e-commerce IA',
-    description: 'Une plateforme de vente en ligne avec des recommandations de produits personnalisées par IA.',
-    fullDescription: '<p>Ce projet vise à créer une expérience d\'achat en ligne hautement personnalisée en utilisant l\'intelligence artificielle pour recommander des produits. Le backend est construit sur Firebase pour une scalabilité et une gestion des données en temps réel, tandis que le frontend utilise Next.js pour un rendu rapide et un SEO optimisé.</p><p>La partie la plus innovante est l\'intégration de Genkit pour analyser le comportement des utilisateurs et générer des recommandations de produits pertinentes, améliorant ainsi l\'engagement et les conversions.</p>',
-    image: { src: 'https://picsum.photos/seed/p1/1200/600', alt: 'Projet 1', aiHint: 'ecommerce platform' },
-    technologies: ['Next.js', 'Firebase', 'Genkit', 'Tailwind CSS'],
-    status: 'en-cours',
-    startDate: 'Janvier 2024',
-    githubUrl: 'https://github.com/armelyara',
-    demoUrl: '#',
-    blogArticleSlug: 'premier-article-slug',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    slug: 'projet-exemple-2',
-    title: 'Analyseur de sentiments',
-    description: 'Un outil pour analyser le sentiment des avis clients en temps réel grâce au traitement du langage naturel.',
-    fullDescription: '<p>Cet outil puissant permet aux entreprises de comprendre rapidement l\'opinion générale de leurs clients en analysant des milliers d\'avis en quelques secondes. Construit avec Python et TensorFlow, le modèle de NLP est exposé via une API REST créée avec Flask.</p><p>L\'interface web simple permet de soumettre du texte et de visualiser immédiatement le score de sentiment (positif, négatif, neutre) ainsi que les mots-clés qui ont influencé le résultat.</p>',
-    image: { src: 'https://picsum.photos/seed/p2/1200/600', alt: 'Projet 2', aiHint: 'data analytics' },
-    technologies: ['Python', 'TensorFlow', 'Flask', 'Docker'],
-    status: 'terminé',
-    startDate: 'Juin 2023',
-    endDate: 'Décembre 2023',
-    githubUrl: 'https://github.com/armelyara',
-    blogArticleSlug: 'deuxieme-article-slug',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
-async function getProjectBySlug(slug: string): Promise<Project | undefined> {
-  // Remplacera l'appel à la base de données
-  return allProjects.find((p) => p.slug === slug);
-}
 
 const statusConfig = {
   'terminé': { icon: CheckCircle, label: 'Terminé', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
   'en-cours': { icon: Wrench, label: 'En cours', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
   'maintenance': { icon: Wrench, label: 'Maintenance', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' },
 };
-
 
 export default async function ProjectDetailPage({ params }: { params: { slug: string } }) {
   const project = await getProjectBySlug(params.slug);
@@ -150,8 +111,7 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
 
 // Générer les pages statiques pour chaque projet
 export async function generateStaticParams() {
-    // Remplacera l'appel à la base de données
-    const projects = allProjects;
+    const projects = await getProjects();
    
     return projects.map((project) => ({
       slug: project.slug,

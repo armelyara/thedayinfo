@@ -13,7 +13,7 @@ import {
     increment, 
     runTransaction
 } from 'firebase/firestore';
-import type { Article, Profile, Subscriber } from './data-types';
+import type { Article, Profile, Project } from './data-types';
 
 export async function getPublishedArticles(): Promise<Article[] | { error: string; message: string; }> {
     try {
@@ -39,6 +39,8 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
                 views: data.views || 0,
                 comments: data.comments || [],
                 viewHistory: data.viewHistory || [],
+                likes: data.likes || 0,
+                dislikes: data.dislikes || 0,
             } as Article;
         });
     } catch (error: any) {
@@ -99,6 +101,8 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
             views: data.views || 0, // The updated view count
             comments: data.comments || [],
             viewHistory: data.viewHistory || [],
+            likes: data.likes || 0,
+            dislikes: data.dislikes || 0,
         } as Article;
     } catch (error) {
         console.error('Error getting article by slug:', error);
@@ -267,6 +271,59 @@ export async function getProfile(): Promise<Profile | null> {
         return docSnap.data() as Profile;
     } catch (error) {
         console.error('Error getting profile:', error);
+        return null;
+    }
+}
+
+// ===============================================
+// Fonctions pour les Projets
+// ===============================================
+
+// Récupérer tous les projets, triés par date de création
+export async function getProjects(): Promise<Project[]> {
+    try {
+        const projectsCollection = collection(db, 'projects');
+        const q = query(projectsCollection, orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+            return [];
+        }
+        
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                slug: doc.id,
+                createdAt: data.createdAt.toDate().toISOString(),
+                updatedAt: data.updatedAt.toDate().toISOString(),
+            } as Project;
+        });
+    } catch (error) {
+        console.error('Error getting projects:', error);
+        return [];
+    }
+}
+
+// Récupérer un projet spécifique par son slug
+export async function getProjectBySlug(slug: string): Promise<Project | null> {
+    try {
+        const docRef = doc(db, 'projects', slug);
+        const docSnap = await getDoc(docRef);
+        
+        if (!docSnap.exists()) {
+            return null;
+        }
+        
+        const data = docSnap.data();
+        return {
+            ...data,
+            slug: docSnap.id,
+            createdAt: data.createdAt.toDate().toISOString(),
+            updatedAt: data.updatedAt.toDate().toISOString(),
+        } as Project;
+    } catch (error) {
+        console.error(`Error getting project by slug ${slug}:`, error);
         return null;
     }
 }

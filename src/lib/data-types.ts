@@ -91,6 +91,6 @@ export type Project = {
     githubUrl?: string; // optionnel
     demoUrl?: string; // optionnel
     blogArticleSlug?: string; // lien vers article détaillé dans le blog
-    createdAt: any; // Timestamp ou string
-    updatedAt: any; // Timestamp ou string
+    createdAt: string; // ISODate string
+    updatedAt: string; // ISODate string
 };

@@ -1,8 +1,11 @@
 // src/app/projets/page.tsx
 import { ProjectList } from '@/components/project/project-list';
+import { getProjects } from '@/lib/data-client';
 import { FolderGit2 } from 'lucide-react';
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const projects = await getProjects();
+
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-12 border-b pb-6 text-center">
@@ -17,7 +20,7 @@ export default function ProjectsPage() {
       
       <main>
         {/* Les filtres seront ajoutés ici dans une future étape */}
-        <ProjectList />
+        <ProjectList projects={projects} />
       </main>
     </div>
   );
