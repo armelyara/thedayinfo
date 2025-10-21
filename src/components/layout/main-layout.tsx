@@ -9,7 +9,6 @@ import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Button } from '@/components/ui/button';
 import { Home } from 'lucide-react';
 import Link from 'next/link';
-import { Footer } from './footer';  // ✅ Ajouter cet import
 
 type Category = {
   name: string;
@@ -43,16 +42,11 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         
-        {/* Wrapper pour contenu + footer avec flex-col */}
-        <div className="flex flex-col min-h-[calc(100vh-60px)]">
-          {/* Contenu principal qui prend tout l'espace disponible */}
-          <main className="flex-1 p-4 sm:p-6">
+        {/* MainLayout pour le blog ne gère plus le footer, il est dans RootLayout */}
+        <main className="flex-1 p-4 sm:p-6">
             {children}
-          </main>
+        </main>
           
-          {/* Footer ajouté ici */}
-          <Footer />
-        </div>
       </SidebarInset>
     </SidebarProvider>
   );
