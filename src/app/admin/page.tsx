@@ -16,7 +16,8 @@ import {
   TrendingUp,
   UserCircle,
   BarChart3,
-  Trash2
+  Trash2,
+  FolderGit2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -246,7 +247,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Actions rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="cursor-pointer hover:shadow-md transition-shadow">
           <Link href="/admin/subscribers">
             <CardHeader>
@@ -256,6 +257,20 @@ export default function AdminDashboard() {
               </CardTitle>
               <CardDescription>
                 Consultez et gérez votre liste d'abonnés
+              </CardDescription>
+            </CardHeader>
+          </Link>
+        </Card>
+        
+        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+          <Link href="/admin/projects">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FolderGit2 className="w-5 h-5" />
+                Gérer les Projets
+              </CardTitle>
+              <CardDescription>
+                Ajoutez ou modifiez vos projets
               </CardDescription>
             </CardHeader>
           </Link>

@@ -2,7 +2,7 @@
 
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
 import { initializeFirebaseAdmin } from './auth';
-import type { Article, ArticleImage, Draft, Profile, Subscriber } from './data-types';
+import type { Article, ArticleImage, Draft, Profile, Subscriber, Project } from './data-types';
 import { sendNewsletterNotification } from './newsletter-service';
 
 let adminDb: FirebaseFirestore.Firestore;
@@ -613,6 +613,79 @@ export async function updateSubscriberStatus(email: string, status: 'active' | '
         return true;
     } catch (error) {
         console.error("Error updating subscriber status:", error);
+        return false;
+    }
+}
+
+export async function saveProject(
+    projectData: Omit<Project, 'slug' | 'createdAt' | 'updatedAt'>,
+    existingSlug?: string
+): Promise<Project> {
+    const db = await initializeAdminDb();
+    const projectsCollection = db.collection('projects');
+    const now = new Date();
+    let slug: string;
+
+    if (existingSlug) {
+        // Mise à jour d'un projet existant
+        slug = existingSlug;
+        const projectRef = projectsCollection.doc(slug);
+        await projectRef.update({
+            ...projectData,
+            updatedAt: AdminTimestamp.fromDate(now),
+        });
+    } else {
+        // Création d'un nouveau projet
+        const baseSlug = projectData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+        slug = baseSlug;
+        let counter = 1;
+        while (true) {
+            const docSnapshot = await projectsCollection.doc(slug).get();
+            if (!docSnapshot.exists) break;
+            slug = `${baseSlug}-${counter}`;
+            counter++;
+        }
+
+        await projectsCollection.doc(slug).set({
+            ...projectData,
+            slug: slug,
+            createdAt: AdminTimestamp.fromDate(now),
+            updatedAt: AdminTimestamp.fromDate(now),
+        });
+    }
+
+    const savedDoc = await projectsCollection.doc(slug).get();
+    const savedData = savedDoc.data()!;
+
+    return {
+        ...savedData,
+        slug: savedDoc.id,
+        createdAt: savedData.createdAt.toDate().toISOString(),
+        updatedAt: savedData.updatedAt.toDate().toISOString(),
+    } as Project;
+}
+
+export async function getProjects(): Promise<Project[]> {
+    const db = await initializeAdminDb();
+    const snapshot = await db.collection('projects').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            ...data,
+            slug: doc.id,
+            createdAt: data.createdAt.toDate().toISOString(),
+            updatedAt: data.updatedAt.toDate().toISOString(),
+        } as Project;
+    });
+}
+
+export async function deleteProject(slug: string): Promise<boolean> {
+    const db = await initializeAdminDb();
+    try {
+        await db.collection('projects').doc(slug).delete();
+        return true;
+    } catch (error) {
+        console.error('Error deleting project:', error);
         return false;
     }
 }

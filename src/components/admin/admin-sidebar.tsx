@@ -11,7 +11,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { LogoIcon } from '@/components/icons';
-import { Home, FileEdit, Plus, Users, BarChart3, User } from 'lucide-react';
+import { Home, FileEdit, Plus, Users, BarChart3, User, FolderGit2 } from 'lucide-react';
 
 const adminMenuItems = [
   {
@@ -28,6 +28,11 @@ const adminMenuItems = [
     title: "Créer Article",
     url: "/admin/create-article",
     icon: Plus,
+  },
+  {
+    title: "Projets",
+    url: "/admin/projects",
+    icon: FolderGit2,
   },
   {
     title: "Abonnés",
