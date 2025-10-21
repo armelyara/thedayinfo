@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { LogoIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
+import { ThemeToggle } from './theme-toggle';
 
 const navLinks = [
   { href: '/', label: 'Accueil' },
@@ -53,8 +54,7 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
-          {/* Placeholder for Dark/Light Mode Toggle */}
-          <div className="h-6 w-6 rounded-full bg-muted" title="Theme toggle placeholder"></div>
+          <ThemeToggle />
         </nav>
       </div>
     </header>

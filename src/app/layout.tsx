@@ -7,10 +7,15 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { Footer } from '@/components/layout/footer';
 import { cn } from '@/lib/utils';
 import { headers } from 'next/headers';
+import { ThemeProvider } from '@/components/layout/theme-provider';
 
 export const metadata: Metadata = {
   title: 'The Day Info',
   description: "Résoudre des problèmes par la technologie. Promoteur du dev.",
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: 'white' },
+    { media: '(prefers-color-scheme: dark)', color: 'black' },
+  ],
 };
 
 // Layout pour les pages publiques sans sidebar (accueil, projets, etc.)
@@ -64,8 +69,15 @@ export default function RootLayout({
           'font-body'
         )}
       >
-        {layout}
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {layout}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
