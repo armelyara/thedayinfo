@@ -3,13 +3,25 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { MainLayout } from '@/components/layout/main-layout';
+import { SiteHeader } from '@/components/layout/site-header';
+import { Footer } from '@/components/layout/footer';
 import { cn } from '@/lib/utils';
 import { headers } from 'next/headers';
 
 export const metadata: Metadata = {
   title: 'The Day Info',
-  description: 'Votre dose d\'information.',
+  description: "Résoudre des problèmes par la technologie. Promoteur du dev.",
 };
+
+function SiteLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="flex-1">{children}</main>
+      <Footer />
+    </div>
+  );
+}
 
 export default function RootLayout({
   children,
@@ -19,7 +31,17 @@ export default function RootLayout({
   const headersList = headers();
   const pathname = headersList.get('x-next-pathname') || '';
   
+  const isBlogRoute = pathname.startsWith('/blog') || pathname.startsWith('/article') || pathname.startsWith('/category');
   const isAdminRoute = pathname.startsWith('/admin') || pathname === '/login';
+
+  let layout;
+  if (isAdminRoute) {
+    layout = <div>{children}</div>;
+  } else if (isBlogRoute) {
+    layout = <MainLayout>{children}</MainLayout>;
+  } else {
+    layout = <SiteLayout>{children}</SiteLayout>;
+  }
   
   return (
     <html lang="fr" suppressHydrationWarning>
@@ -37,11 +59,7 @@ export default function RootLayout({
           'font-body'
         )}
       >
-        {isAdminRoute ? (
-          <div>{children}</div>
-        ) : (
-          <MainLayout>{children}</MainLayout>
-        )}
+        {layout}
         <Toaster />
       </body>
     </html>
