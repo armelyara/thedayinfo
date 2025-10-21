@@ -41,10 +41,10 @@ export default function RootLayout({
     // Le layout de l'admin gère sa propre structure (pas de header/footer global)
     layout = <div>{children}</div>;
   } else if (isBlogRoute) {
-    // Le layout du blog inclut la sidebar
+    // Le layout du blog inclut la sidebar et son propre footer (dans MainLayout)
     layout = <MainLayout>{children}</MainLayout>;
   } else {
-    // Le reste du site utilise le layout public simple
+    // Le reste du site utilise le layout public simple avec le header horizontal
     layout = <SiteLayout>{children}</SiteLayout>;
   }
   
