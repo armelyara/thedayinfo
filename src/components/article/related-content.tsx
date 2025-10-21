@@ -73,7 +73,7 @@ export default function RelatedContent({
             suggestion.slug ? (
               <li key={index}>
                 <Link
-                  href={`/article/${suggestion.slug}`}
+                  href={`/blog/${suggestion.slug}`}
                   className="group flex items-center justify-between text-primary hover:underline"
                 >
                   <span>{suggestion.title}</span>

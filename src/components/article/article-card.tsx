@@ -18,7 +18,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
     <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
       <CardHeader className="p-0">
         <div className="relative h-48 w-full overflow-hidden">
-          <Link href={`/article/${article.slug}`} className="group block">
+          <Link href={`/blog/${article.slug}`} className="group block">
             <Image
               src={article.image.src}
               alt={article.image.alt}
@@ -32,7 +32,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
       
       <CardContent className="flex flex-1 flex-col p-6">
         <Badge variant="secondary" className="mb-2 w-fit">{article.category}</Badge>
-        <Link href={`/article/${article.slug}`} className="group">
+        <Link href={`/blog/${article.slug}`} className="group">
           <h3 className="mb-2 text-xl font-headline font-bold leading-tight hover:text-primary transition-colors">
             {article.title}
           </h3>
@@ -43,7 +43,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
       </CardContent>
       
       <CardFooter className="p-6 pt-0">
-  <Link href={`/article/${article.slug}`} className="group w-full">
+  <Link href={`/blog/${article.slug}`} className="group w-full">
     <div className="flex items-center justify-between">
       <div className="flex items-center text-sm font-semibold text-primary">
         Lire la suite

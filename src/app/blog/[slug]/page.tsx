@@ -1,4 +1,4 @@
-// src/app/article/[slug]/page.tsx
+// src/app/blog/[slug]/page.tsx
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { getArticleBySlug, getProfile } from '@/lib/data-client';

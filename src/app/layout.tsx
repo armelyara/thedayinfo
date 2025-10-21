@@ -17,7 +17,7 @@ function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 flex flex-col">{children}</main>
       <Footer />
     </div>
   );
@@ -31,7 +31,7 @@ export default function RootLayout({
   const headersList = headers();
   const pathname = headersList.get('x-next-pathname') || '';
   
-  const isBlogRoute = pathname.startsWith('/blog') || pathname.startsWith('/article') || pathname.startsWith('/category');
+  const isBlogRoute = pathname.startsWith('/blog');
   const isAdminRoute = pathname.startsWith('/admin') || pathname === '/login';
 
   let layout;

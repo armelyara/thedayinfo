@@ -37,6 +37,21 @@ const nextConfig = {
     ],
   },
   
+  async redirects() {
+    return [
+      {
+        source: '/article/:slug',
+        destination: '/blog/:slug',
+        permanent: true,
+      },
+      {
+        source: '/category/:name',
+        destination: '/blog/category/:name',
+        permanent: true,
+      },
+    ]
+  },
+
   // Exclure les modules admin du bundle client
   webpack: (config, { isServer }) => {
     if (!isServer) {
