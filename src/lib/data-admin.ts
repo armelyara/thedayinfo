@@ -617,6 +617,8 @@ export async function updateSubscriberStatus(email: string, status: 'active' | '
     }
 }
 
+// Ajouter cette fonction complète dans src/lib/data-admin.ts
+
 export async function saveProject(
     projectData: Omit<Project, 'slug' | 'createdAt' | 'updatedAt'>,
     existingSlug?: string
@@ -630,15 +632,28 @@ export async function saveProject(
         // Mise à jour d'un projet existant
         slug = existingSlug;
         const projectRef = projectsCollection.doc(slug);
+        
+        // Vérifier que le projet existe
+        const existingDoc = await projectRef.get();
+        if (!existingDoc.exists) {
+            throw new Error(`Projet avec slug "${slug}" non trouvé pour mise à jour.`);
+        }
+        
         await projectRef.update({
             ...projectData,
             updatedAt: AdminTimestamp.fromDate(now),
         });
     } else {
         // Création d'un nouveau projet
-        const baseSlug = projectData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+        const baseSlug = projectData.title
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w-]+/g, '');
+        
         slug = baseSlug;
         let counter = 1;
+        
+        // Vérifier l'unicité du slug
         while (true) {
             const docSnapshot = await projectsCollection.doc(slug).get();
             if (!docSnapshot.exists) break;
@@ -646,6 +661,7 @@ export async function saveProject(
             counter++;
         }
 
+        // Créer le nouveau projet
         await projectsCollection.doc(slug).set({
             ...projectData,
             slug: slug,
@@ -654,7 +670,13 @@ export async function saveProject(
         });
     }
 
+    // Récupérer le projet sauvegardé
     const savedDoc = await projectsCollection.doc(slug).get();
+    
+    if (!savedDoc.exists) {
+        throw new Error('Erreur lors de la sauvegarde du projet.');
+    }
+    
     const savedData = savedDoc.data()!;
 
     return {
