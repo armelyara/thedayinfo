@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   SidebarContent,
-  SidebarFooter, // ✅ Import ajouté
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
@@ -63,7 +63,7 @@ function CategoryList({ categories }: { categories: Category[] }) {
         
         return (
           <SidebarMenuItem key={category.slug}>
-            <Link href={`/category/${category.slug}`} className="w-full">
+            <Link href={`/blog/category/${category.slug}`} className="w-full">
               <SidebarMenuButton tooltip={category.name} className="flex justify-between">
                 <div className="flex items-center">
                   <Icon className="mr-2" />
@@ -137,7 +137,6 @@ function AuthorProfile() {
   );
 }
 
-// ✅ Composant pour le copyright dans le footer de la sidebar
 function SidebarCopyright() {
   const currentYear = new Date().getFullYear();
   const foundedYear = 2018;
@@ -167,7 +166,7 @@ function SidebarCopyright() {
 
 export function AppSidebar({ categories }: { categories: Category[] }) {
   return (
-    <> {/* ✅ Fragment corrigé */}
+    <>
       <SidebarHeader>
         <div className="flex items-center gap-2">
           <LogoIcon className="h-8 w-8 text-primary" />
@@ -188,7 +187,6 @@ export function AppSidebar({ categories }: { categories: Category[] }) {
         </SidebarGroup>
       </SidebarContent>
       
-      {/*SidebarFooter bien placé à l'intérieur du fragment */}
       <SidebarFooter>
         <SidebarCopyright />
       </SidebarFooter>
