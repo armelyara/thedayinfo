@@ -1,3 +1,5 @@
+/* Remplace src/app/globals.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,14 +16,14 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 15% 20%;
     
-    /* Couleurs du logo TheDayInfo */
-    --primary: 220 36% 51%; /* Bleu foncé #5873AE */
+    /* Couleurs du logo TheDayInfo - ORANGE EN PRIMARY */
+    --primary: 28 80% 56%; /* Orange #E78D38 - Boutons principaux */
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 208 46% 63%; /* Bleu clair #74A5CC */
+    --secondary: 208 46% 63%; /* Bleu clair #74A5CC - Boutons secondaires */
     --secondary-foreground: 220 15% 20%;
     
-    --accent: 28 80% 56%; /* Orange #E78D38 */
+    --accent: 28 80% 56%; /* Orange #E78D38 - Hovers */
     --accent-foreground: 0 0% 100%;
     
     /* Muted & Destructive */
@@ -33,20 +35,20 @@
     /* Borders & Inputs */
     --border: 220 20% 88%;
     --input: 220 20% 92%;
-    --ring: 220 36% 51%; /* Même que primary */
+    --ring: 28 80% 56%; /* Orange pour focus */
     --radius: 0.5rem;
     
     /* Charts (utilise les couleurs du logo) */
-    --chart-1: 220 36% 51%; /* Bleu foncé */
-    --chart-2: 28 80% 56%; /* Orange */
+    --chart-1: 28 80% 56%; /* Orange */
+    --chart-2: 220 36% 51%; /* Bleu foncé */
     --chart-3: 208 46% 63%; /* Bleu clair */
-    --chart-4: 220 36% 65%; /* Bleu foncé variant */
-    --chart-5: 28 80% 70%; /* Orange variant */
+    --chart-4: 28 80% 70%; /* Orange variant */
+    --chart-5: 220 36% 65%; /* Bleu foncé variant */
     
     /* Sidebar (pour le blog) */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 15% 20%;
-    --sidebar-primary: 28 80% 56%; /* Orange comme accent */
+    --sidebar-primary: 28 80% 56%; /* Orange */
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 20% 96%;
     --sidebar-accent-foreground: 220 15% 20%;
@@ -66,13 +68,13 @@
     --popover-foreground: 220 20% 96%;
     
     /* Couleurs du logo (adaptées pour dark mode) */
-    --primary: 220 36% 65%; /* Bleu foncé plus clair */
+    --primary: 28 80% 60%; /* Orange légèrement plus vif */
     --primary-foreground: 220 15% 10%;
     
     --secondary: 208 46% 70%; /* Bleu clair plus vif */
     --secondary-foreground: 220 15% 10%;
     
-    --accent: 28 80% 60%; /* Orange légèrement plus vif */
+    --accent: 28 80% 60%; /* Orange */
     --accent-foreground: 220 15% 10%;
     
     /* Muted & Destructive */
@@ -84,14 +86,14 @@
     /* Borders & Inputs */
     --border: 220 15% 25%;
     --input: 220 15% 25%;
-    --ring: 220 36% 65%;
+    --ring: 28 80% 60%; /* Orange */
     
     /* Charts (couleurs adaptées pour dark) */
-    --chart-1: 220 36% 65%; /* Bleu foncé */
-    --chart-2: 28 80% 60%; /* Orange */
+    --chart-1: 28 80% 60%; /* Orange */
+    --chart-2: 220 36% 65%; /* Bleu foncé */
     --chart-3: 208 46% 70%; /* Bleu clair */
-    --chart-4: 220 36% 75%; /* Bleu foncé variant */
-    --chart-5: 28 80% 75%; /* Orange variant */
+    --chart-4: 28 80% 75%; /* Orange variant */
+    --chart-5: 220 36% 75%; /* Bleu foncé variant */
     
     /* Sidebar dark mode */
     --sidebar-background: 220 15% 8%;
@@ -114,7 +116,7 @@
   }
 }
 
-/* Styles pour les liens avec la couleur principale */
+/* Liens utilisent l'orange au hover */
 @layer components {
   a {
     @apply transition-colors;
@@ -122,21 +124,6 @@
   
   /* Liens dans le contenu */
   .prose a {
-    @apply text-primary hover:text-accent no-underline;
-  }
-  
-  /* Boutons primaires utilisent le bleu foncé du logo */
-  .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
-  }
-  
-  /* Boutons secondaires utilisent le bleu clair */
-  .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90;
-  }
-  
-  /* Boutons accent utilisent l'orange */
-  .btn-accent {
-    @apply bg-accent text-accent-foreground hover:bg-accent/90;
+    @apply text-primary hover:text-primary/80 no-underline;
   }
 }
