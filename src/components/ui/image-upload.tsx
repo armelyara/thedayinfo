@@ -1,3 +1,4 @@
+// Remplace le contenu de src/components/ui/image-upload.tsx par ceci :
 
 'use client';
 
@@ -7,73 +8,148 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { db } from '@/lib/firebase-client'; // Assurez-vous que db est exporté
-import { Progress } from '@/components/ui/progress';
 
 interface ImageUploadProps {
   onImageSelect: (imageData: { src: string; alt: string }) => void;
   currentImage?: string;
 }
 
+/**
+ * Compresse une image en utilisant Canvas
+ * @param file - Fichier image à compresser
+ * @param maxWidth - Largeur maximale (par défaut 1200px)
+ * @param maxHeight - Hauteur maximale (par défaut 1200px)
+ * @param quality - Qualité JPEG (0-1, par défaut 0.8)
+ * @returns Promise<string> - Image en base64
+ */
+async function compressImage(
+  file: File,
+  maxWidth: number = 1200,
+  maxHeight: number = 1200,
+  quality: number = 0.8
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculer les nouvelles dimensions en conservant le ratio
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+          }
+        }
+        
+        // Créer un canvas pour redimensionner
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Impossible de créer le contexte canvas'));
+          return;
+        }
+        
+        // Dessiner l'image redimensionnée
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convertir en base64 avec compression
+        const base64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(base64);
+      };
+      
+      img.onerror = () => reject(new Error('Erreur de chargement de l\'image'));
+      img.src = e.target?.result as string;
+    };
+    
+    reader.onerror = () => reject(new Error('Erreur de lecture du fichier'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
   const [preview, setPreview] = useState<string>(currentImage || '');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez sélectionner un fichier image valide' });
+      toast({ 
+        variant: 'destructive', 
+        title: 'Erreur', 
+        description: 'Veuillez sélectionner un fichier image valide' 
+      });
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      toast({ variant: 'destructive', title: 'Fichier trop volumineux', description: 'La taille de l\'image ne doit pas dépasser 10MB' });
+    // Limite avant compression
+    if (file.size > 50 * 1024 * 1024) { // 50MB avant compression
+      toast({ 
+        variant: 'destructive', 
+        title: 'Fichier trop volumineux', 
+        description: 'La taille de l\'image ne doit pas dépasser 50MB' 
+      });
       return;
     }
 
     setIsProcessing(true);
-    setUploadProgress(0);
 
-    const storage = getStorage();
-    const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-      },
-      (error) => {
+    try {
+      // Compresser l'image
+      const compressedBase64 = await compressImage(file, 1200, 1200, 0.8);
+      
+      // Vérifier la taille après compression
+      const compressedSize = (compressedBase64.length * 3) / 4; // Taille approximative en octets
+      const compressedSizeMB = (compressedSize / (1024 * 1024)).toFixed(2);
+      
+      console.log(`Image compressée: ${compressedSizeMB}MB`);
+      
+      if (compressedSize > 8 * 1024 * 1024) { // 8MB après compression
+        toast({ 
+          variant: 'destructive', 
+          title: 'Image trop volumineuse', 
+          description: `Même après compression, l'image fait ${compressedSizeMB}MB. Essayez une image plus petite.` 
+        });
         setIsProcessing(false);
-        setUploadProgress(0);
-        console.error("Upload failed:", error);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur de téléversement',
-          description: "Un problème de réseau ou de permission est survenu. Vérifiez la console pour les détails.",
-        });
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-          setPreview(downloadURL);
-          onImageSelect({
-            src: downloadURL,
-            alt: file.name,
-          });
-          setIsProcessing(false);
-          toast({
-            title: 'Image téléversée',
-            description: 'L\'image est prête à être sauvegardée.',
-          });
-        });
+        return;
       }
-    );
+      
+      setPreview(compressedBase64);
+      onImageSelect({
+        src: compressedBase64,
+        alt: file.name
+      });
+      
+      toast({
+        title: 'Image optimisée',
+        description: `Image compressée à ${compressedSizeMB}MB et prête à être sauvegardée.`,
+      });
+    } catch (error) {
+      console.error('Erreur de compression:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur de traitement',
+        description: 'Impossible de traiter l\'image. Essayez un autre fichier.'
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const clearImage = () => {
@@ -116,12 +192,10 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
             Cliquez pour sélectionner une image
           </p>
           <p className="text-xs text-muted-foreground">
-            PNG, JPG, GIF jusqu'à 10MB
+            PNG, JPG, GIF - L'image sera automatiquement optimisée
           </p>
         </div>
       )}
-
-      {isProcessing && <Progress value={uploadProgress} className="w-full" />}
 
       <Input
         ref={fileInputRef}
@@ -140,7 +214,7 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
           disabled={isProcessing}
         >
           <ImageIcon className="w-4 h-4 mr-2" />
-          {isProcessing ? `Téléversement... ${Math.round(uploadProgress)}%` : 'Choisir une image'}
+          {isProcessing ? 'Optimisation...' : 'Choisir une image'}
         </Button>
         {preview && !isProcessing && (
           <Button
@@ -152,6 +226,12 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
           </Button>
         )}
       </div>
+      
+      {isProcessing && (
+        <p className="text-sm text-muted-foreground">
+          Compression en cours... Cela peut prendre quelques secondes.
+        </p>
+      )}
     </div>
   );
 }
