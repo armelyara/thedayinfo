@@ -3,27 +3,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Github, ExternalLink, Calendar, Wrench, CheckCircle } from 'lucide-react';
-import type { ArticleImage } from '@/lib/data-types';
-
-export type Project = {
-  slug: string;
-  title: string;
-  description: string;
-  image: ArticleImage;
-  technologies: string[];
-  status: 'terminé' | 'en-cours' | 'maintenance';
-  startDate?: string;
-  endDate?: string;
-  githubUrl?: string;
-  demoUrl?: string;
-  blogArticleSlug?: string;
-};
+import { ArrowRight, Wrench, CheckCircle } from 'lucide-react';
+import type { Project } from '@/lib/data-types';
 
 const statusConfig = {
   'terminé': { icon: CheckCircle, label: 'Terminé', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
   'en-cours': { icon: Wrench, label: 'En cours', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
-  'maintenance': { icon: Calendar, label: 'Maintenance', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  'maintenance': { icon: Wrench, label: 'Maintenance', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' },
 };
 
 export function ProjectCard({ project }: { project: Project }) {

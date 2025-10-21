@@ -78,3 +78,19 @@ export type Draft = {
     originalArticleSlug?: string; 
 };
 
+export type Project = {
+    slug: string;
+    title: string;
+    description: string; // Description courte pour la card
+    fullDescription: string; // Description complète pour /projets/[slug]
+    image: ArticleImage;
+    technologies: string[]; // ["Next.js", "Firebase", "TensorFlow"]
+    status: 'terminé' | 'en-cours' | 'maintenance';
+    startDate: string; // "2025-01"
+    endDate?: string; // optionnel
+    githubUrl?: string; // optionnel
+    demoUrl?: string; // optionnel
+    blogArticleSlug?: string; // lien vers article détaillé dans le blog
+    createdAt: any; // Timestamp ou string
+    updatedAt: any; // Timestamp ou string
+};
