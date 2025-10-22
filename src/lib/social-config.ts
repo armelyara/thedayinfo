@@ -9,7 +9,7 @@ export const socialLinks = {
     email: 'armelyara@thedayinfo.com',
     twitter: 'https://x.com/ArmelYara',
     facebook: 'https://www.facebook.com/thedayinfo/',
-    linkedin: 'https://www.linkedin.com/in/armel-yara-3757b4105/',
+    linkedin: 'https://www.linkedin.com/company/thedayinfo',
     github: 'https://github.com/armelyara',
   } as const;
   

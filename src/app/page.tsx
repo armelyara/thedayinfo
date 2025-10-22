@@ -1,4 +1,5 @@
-// src/app/page.tsx
+// Remplace src/app/page.tsx
+
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, FolderGit2 } from 'lucide-react';
@@ -13,13 +14,11 @@ async function getRecentArticles(): Promise<Article[]> {
     console.error(articlesResult.message);
     return [];
   }
-  return articlesResult.slice(0, 3); // Retourne les 3 plus récents
+  return articlesResult.slice(0, 3);
 }
 
 async function getFeaturedProjects(): Promise<Project[]> {
     const allProjects = await getProjects();
-    // Vous pouvez ajouter une logique pour filtrer les projets "phares"
-    // Pour l'instant, on prend les 3 plus récents.
     return allProjects.slice(0, 3);
 }
 
@@ -41,13 +40,14 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="mt-8 flex justify-center gap-4">
+            {/* Tous les boutons en orange (primary) */}
             <Button asChild size="lg">
               <Link href="/projets">
                 Voir les projets
                 <FolderGit2 className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg">
+            <Button asChild size="lg">
               <Link href="/blog">
                 Lire le blog
                 <BookOpen className="ml-2 h-5 w-5" />
@@ -73,7 +73,8 @@ export default async function HomePage() {
               ))}
             </div>
             <div className="mt-12 text-center">
-              <Button asChild variant="secondary">
+              {/* Bouton orange */}
+              <Button asChild size="lg">
                 <Link href="/projets">
                   Tous les projets <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
@@ -99,7 +100,8 @@ export default async function HomePage() {
               ))}
             </div>
             <div className="mt-12 text-center">
-              <Button asChild>
+              {/* Bouton orange */}
+              <Button asChild size="lg">
                 <Link href="/blog">
                   Visiter le blog <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
