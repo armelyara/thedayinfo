@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Les règles s'appliquent à tous les fichiers
+    match /{allPaths=**} {
+
+      // Règle de LECTURE (read)
+      // N'importe qui peut lire les fichiers.
+      // C'est nécessaire pour que les visiteurs de votre site puissent voir les images.
+      allow read;
+
+      // Règle d'ÉCRITURE (write: create, update, delete)
+      // L'écriture est autorisée SI ET SEULEMENT SI toutes les conditions suivantes sont remplies :
+      // 1. L'utilisateur est authentifié (connecté à Firebase).
+      // 2. Le fichier téléversé est une image (commence par 'image/').
+      // 3. La taille de l'image est inférieure à 10 Mo.
+      allow write: if request.auth != null
+                    && request.resource.contentType.matches('image/.*')
+                    && request.resource.size < 10 * 1024 * 1024;
+    }
+  }
+}
