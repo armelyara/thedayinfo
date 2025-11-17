@@ -1,23 +1,22 @@
 rules_version = '2';
 
+// Craft rules based on data in your Firestore database
+// allow write: if firestore.get(
+//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
-    // Les règles s'appliquent à tous les fichiers
+
+    // This rule allows anyone with your Storage bucket reference to view, edit,
+    // and delete all data in your Storage bucket. It is useful for getting
+    // started, but it is configured to expire after 30 days because it
+    // leaves your app open to attackers. At that time, all client
+    // requests to your Storage bucket will be denied.
+    //
+    // Make sure to write security rules for your app before that time, or else
+    // all client requests to your Storage bucket will be denied until you Update
+    // your rules
     match /{allPaths=**} {
-
-      // Règle de LECTURE (read)
-      // N'importe qui peut lire les fichiers.
-      // C'est nécessaire pour que les visiteurs de votre site puissent voir les images.
-      allow read;
-
-      // Règle d'ÉCRITURE (write: create, update, delete)
-      // L'écriture est autorisée SI ET SEULEMENT SI toutes les conditions suivantes sont remplies :
-      // 1. L'utilisateur est authentifié (connecté à Firebase).
-      // 2. Le fichier téléversé est une image (commence par 'image/').
-      // 3. La taille de l'image est inférieure à 10 Mo.
-      allow write: if request.auth != null
-                    && request.resource.contentType.matches('image/.*')
-                    && request.resource.size < 10 * 1024 * 1024;
+      allow read, write: if request.time < timestamp.date(2025, 11, 20);
     }
   }
 }
