@@ -1,0 +1,57 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Règle par défaut : Interdire tout accès non spécifié
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Les articles sont lisibles par tous, mais ne peuvent être modifiés
+    // que par des fonctions serveur. Les clients peuvent mettre à jour
+    // les commentaires et les réactions (likes/dislikes).
+    match /articles/{articleId} {
+      allow read: if true;
+      allow create: if request.auth != null; // Seul un admin authentifié peut créer
+      
+      // Uniquement les champs 'comments', 'likes', et 'dislikes' peuvent être mis à jour par les clients
+      allow update: if request.auth != null || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comments', 'likes', 'dislikes', 'views', 'viewHistory'])
+      );
+      
+      allow delete: if request.auth != null; // Seul un admin authentifié peut supprimer
+    }
+
+    // Les brouillons ne sont accessibles qu'aux administrateurs authentifiés
+    match /drafts/{draftId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // La configuration du site (profil de l'auteur) est lisible par tous,
+    // mais modifiable uniquement par un administrateur authentifié.
+    match /site-config/profile {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Les abonnés sont uniquement gérables par un administrateur authentifié
+    match /subscribers/{subscriberId} {
+      allow read, write: if request.auth != null;
+      // Exception: un non-authentifié peut s'inscrire (create)
+      allow create: if true;
+    }
+    
+    // Les projets sont lisibles par tous, mais gérables uniquement par un admin
+    match /projects/{projectId} {
+        allow read: if true;
+        allow write: if request.auth != null;
+    }
+    
+    // La collection pour le rate-limiting est gérée côté serveur,
+    // donc aucun accès client n'est nécessaire ou autorisé.
+    match /rateLimits/{identifier} {
+      allow read, write: if false;
+    }
+  }
+}
