@@ -6,8 +6,8 @@ export default function MentionsLegalesPage() {
         <div className="prose prose-lg dark:prose-invert max-w-none">
           <h2>Éditeur du site</h2>
           <p>
-            <strong>Nom :</strong> The Day Info<br />
-            <strong>Responsable de publication :</strong> Armel Yara<br />
+            <strong>Nom :</strong> Yara Armel Désiré<br />
+            <strong>Responsable de publication :</strong>Yara Armel Désiré<br />
             <strong>Email :</strong> armelyara@thedayinfo.com
           </p>
   
