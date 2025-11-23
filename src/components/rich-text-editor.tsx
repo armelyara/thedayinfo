@@ -32,7 +32,7 @@ import {
   List,
   ListOrdered,
   Link,
-  Image as ImageIcon, // Renamed to avoid conflict with Image component
+  Image as ImageIcon,
   Type,
   Undo,
   Redo,
@@ -41,12 +41,15 @@ import {
   AlignRight,
   Upload,
   Palette,
-  CaseSensitive,
   CaseUpper,
   CaseLower
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useToast } from '@/hooks/use-toast';
+import { storage } from '@/lib/firebase-client';
+
 
 interface RichTextEditorProps {
   value: string;
@@ -100,8 +103,8 @@ export function RichTextEditor({
   const [imageAlt, setImageAlt] = useState('');
   const [savedSelection, setSavedSelection] = useState<Range | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
-  // Synchroniser le contenu sans causer de re-render intempestifs
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
       const selection = window.getSelection();
@@ -128,16 +131,16 @@ export function RichTextEditor({
     if (!editorRef.current) return;
     
     editorRef.current.focus();
+    restoreSelection();
     
     document.execCommand(command, false, value);
     
-    // Mettre à jour le contenu après l'exécution
     setTimeout(() => {
       if (editorRef.current) {
         onChange(editorRef.current.innerHTML);
       }
     }, 10);
-  }, [onChange]);
+  }, [onChange, savedSelection]);
 
   const changeCase = (caseType: 'upper' | 'lower') => {
     const selection = window.getSelection();
@@ -205,10 +208,10 @@ export function RichTextEditor({
     setLinkText('');
     setSavedSelection(null);
   };
-
-  const handleInsertImage = () => {
+  
+  const handleInsertImageFromUrl = () => {
     if (imageUrl && imageAlt) {
-      const html = `<img src="${imageUrl}" alt="${imageAlt}" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
+      const html = `<img src="${imageUrl}" alt="${imageAlt}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px;" />`;
       execCommand('insertHTML', html);
     }
     setIsImageDialogOpen(false);
@@ -216,19 +219,39 @@ export function RichTextEditor({
     setImageAlt('');
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImageUrl(result);
-        setImageAlt(file.name);
-        setIsImageDialogOpen(true);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        toast({ variant: 'destructive', title: 'Fichier invalide', description: 'Veuillez sélectionner un fichier image.' });
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        toast({ variant: 'destructive', title: 'Fichier trop volumineux', description: 'L\'image ne doit pas dépasser 10MB.' });
+        return;
+    }
+
+    toast({ title: 'Téléversement en cours...', description: 'L\'image est en cours de téléversement.' });
+
+    try {
+        const imagePath = `article-images/${Date.now()}_${file.name}`;
+        const imageStorageRef = storageRef(storage, imagePath);
+        
+        await uploadBytes(imageStorageRef, file);
+        const downloadURL = await getDownloadURL(imageStorageRef);
+
+        const html = `<img src="${downloadURL}" alt="${file.name}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px;" />`;
+        execCommand('insertHTML', html);
+
+        toast({ title: 'Image insérée !', description: 'L\'image a été ajoutée à votre article.' });
+
+    } catch (error) {
+        console.error("Image upload failed:", error);
+        toast({ variant: 'destructive', title: 'Erreur de téléversement', description: 'Impossible de téléverser l\'image.' });
     }
   };
+
 
   return (
     <TooltipProvider>
@@ -318,7 +341,7 @@ export function RichTextEditor({
           {/* Liens et images */}
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={insertLink} className="h-8 w-8 p-0"><Link className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Ajouter un lien</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="h-8 w-8 p-0"><Upload className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Télécharger une image</p></TooltipContent></Tooltip>
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => setIsImageDialogOpen(true)} className="h-8 w-8 p-0"><ImageIcon className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Insérer image par URL</p></TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => { saveSelection(); setIsImageDialogOpen(true); }} className="h-8 w-8 p-0"><ImageIcon className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Insérer image par URL</p></TooltipContent></Tooltip>
   
           <div className="w-px h-6 bg-border mx-1" />
   
@@ -379,14 +402,16 @@ export function RichTextEditor({
           <div className="space-y-4">
             <div><label className="text-sm font-medium">URL de l'image</label><Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://exemple.com/image.jpg" /></div>
             <div><label className="text-sm font-medium">Description (alt text)</label><Input value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} placeholder="Description de l'image" /></div>
-            {imageUrl && (<div className="border rounded p-2"><img src={imageUrl} alt={imageAlt} className="max-w-full h-auto max-h-32 object-contain" onError={() => setImageUrl('')} /></div>)}
+            {imageUrl && (<div className="border rounded p-2"><img src={imageUrl} alt={imageAlt} className="max-w-full h-auto max-h-32 object-contain" onError={() => {setImageUrl(''); toast({variant: 'destructive', title:'URL invalide'})}} /></div>)}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsImageDialogOpen(false)}>Annuler</Button>
-            <Button onClick={handleInsertImage} disabled={!imageUrl || !imageAlt}>Insérer l'image</Button>
+            <Button onClick={handleInsertImageFromUrl} disabled={!imageUrl || !imageAlt}>Insérer l'image</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </TooltipProvider>
   );
 }
+
+    
