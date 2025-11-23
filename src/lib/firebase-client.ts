@@ -1,9 +1,10 @@
 
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
+let app;
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -14,16 +15,19 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+try {
+  app = getApp();
+} catch (e) {
+  app = initializeApp(firebaseConfig);
+}
 
-// Initialize services
 const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
-// Simple function that does nothing - for compatibility
+// Asynchrone pour être cohérent, même si elle ne fait rien
 export async function initializeFirebaseClient() {
-  return Promise.resolve();
+  return app;
 }
 
 export { app, db, auth, storage };

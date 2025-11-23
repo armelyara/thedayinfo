@@ -46,10 +46,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from '@/hooks/use-toast';
-import { storage } from '@/lib/firebase-client';
-
+import { initializeFirebaseClient } from '@/lib/firebase-client';
+import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 interface RichTextEditorProps {
   value: string;
@@ -86,7 +85,6 @@ const ColorPicker = ({ command }: { command: 'foreColor' | 'backColor' }) => {
   );
 };
 
-
 export function RichTextEditor({
   value,
   onChange,
@@ -104,6 +102,17 @@ export function RichTextEditor({
   const [savedSelection, setSavedSelection] = useState<Range | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  
+  const [storage, setStorage] = useState<any>(null);
+
+  useEffect(() => {
+    const initFirebase = async () => {
+      const app = await initializeFirebaseClient();
+      setStorage(getStorage(app));
+    };
+    initFirebase();
+  }, []);
+
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
@@ -232,19 +241,35 @@ export function RichTextEditor({
         return;
     }
 
+    if (!storage) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Le service de stockage n\'est pas initialisé.' });
+      return;
+    }
+
     toast({ title: 'Téléversement en cours...', description: 'L\'image est en cours de téléversement.' });
 
     try {
         const imagePath = `article-images/${Date.now()}_${file.name}`;
         const imageStorageRef = storageRef(storage, imagePath);
         
-        await uploadBytes(imageStorageRef, file);
-        const downloadURL = await getDownloadURL(imageStorageRef);
+        const uploadTask = uploadBytesResumable(imageStorageRef, file);
 
-        const html = `<img src="${downloadURL}" alt="${file.name}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px;" />`;
-        execCommand('insertHTML', html);
-
-        toast({ title: 'Image insérée !', description: 'L\'image a été ajoutée à votre article.' });
+        uploadTask.on('state_changed',
+          (snapshot) => {
+            // Optionnel : gérer la progression
+          },
+          (error) => {
+            console.error("Image upload failed:", error);
+            toast({ variant: 'destructive', title: 'Erreur de téléversement', description: 'Impossible de téléverser l\'image.' });
+          },
+          () => {
+            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+              const html = `<img src="${downloadURL}" alt="${file.name}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px;" />`;
+              execCommand('insertHTML', html);
+              toast({ title: 'Image insérée !', description: 'L\'image a été ajoutée à votre article.' });
+            });
+          }
+        );
 
     } catch (error) {
         console.error("Image upload failed:", error);
@@ -413,5 +438,3 @@ export function RichTextEditor({
     </TooltipProvider>
   );
 }
-
-    
