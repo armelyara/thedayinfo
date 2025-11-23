@@ -147,55 +147,93 @@ export async function getSubscriberByEmail(email: string): Promise<Subscriber | 
  * Crée ou met à jour un brouillon/article programmé.
  */
 async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft> {
+    await initializeAdminDb();
     const db = await initializeAdminDb();
     const draftsCollection = db.collection('drafts');
     
-    const id = draftData.id || `draft_${Date.now()}`;
-    
-    const now = new Date();
-    let status: 'draft' | 'scheduled' = 'draft';
-    let scheduledForTimestamp: AdminTimestamp | null = null;
-    
-    if (draftData.scheduledFor) {
-        const scheduledDate = new Date(draftData.scheduledFor);
-        if (scheduledDate > now) {
-            status = 'scheduled';
-            scheduledForTimestamp = AdminTimestamp.fromDate(scheduledDate);
+    try {
+        const id = draftData.id || `draft_${Date.now()}`;
+        
+        // ✅ Validation des données requises
+        if (!draftData.title || draftData.title.trim() === '') {
+            throw new Error('Le titre est requis pour sauvegarder un brouillon');
         }
+        
+        if (!draftData.author || draftData.author.trim() === '') {
+            throw new Error('L\'auteur est requis pour sauvegarder un brouillon');
+        }
+
+        const status: Draft['status'] = draftData.scheduledFor ? 'scheduled' : 'draft';
+        
+        let scheduledForTimestamp: AdminTimestamp | null = null;
+        if (draftData.scheduledFor) {
+            try {
+                const scheduledDate = typeof draftData.scheduledFor === 'string'
+                    ? new Date(draftData.scheduledFor)
+                    : draftData.scheduledFor;
+                
+                if (isNaN(scheduledDate.getTime())) {
+                    throw new Error('Date de programmation invalide');
+                }
+                
+                scheduledForTimestamp = AdminTimestamp.fromMillis(scheduledDate.getTime());
+            } catch (error) {
+                console.error('Erreur lors de la conversion de scheduledFor:', error);
+                throw new Error('Format de date invalide pour la programmation');
+            }
+        }
+
+        const dataToSave = {
+            id,
+            title: draftData.title.trim(),
+            author: draftData.author.trim(),
+            category: draftData.category || '',
+            content: draftData.content || '',
+            image: draftData.image || { src: '', alt: '' },
+            status,
+            lastSaved: AdminTimestamp.now(),
+            createdAt: draftData.createdAt 
+                ? AdminTimestamp.fromMillis(new Date(draftData.createdAt).getTime()) 
+                : AdminTimestamp.now(),
+            scheduledFor: scheduledForTimestamp,
+            originalArticleSlug: draftData.originalArticleSlug || null,
+        };
+
+        // Sauvegarder avec merge pour éviter d'écraser les données existantes
+        await draftsCollection.doc(id).set(dataToSave, { merge: true });
+        
+        // ✅ Récupérer les données sauvegardées pour vérification
+        const savedDoc = await draftsCollection.doc(id).get();
+        
+        if (!savedDoc.exists) {
+            throw new Error('Le brouillon n\'a pas pu être sauvegardé correctement');
+        }
+        
+        const resultData = savedDoc.data()!;
+
+        return {
+            id: resultData.id,
+            title: resultData.title,
+            author: resultData.author,
+            category: resultData.category,
+            content: resultData.content,
+            image: resultData.image,
+            lastSaved: resultData.lastSaved.toDate().toISOString(),
+            createdAt: resultData.createdAt.toDate().toISOString(),
+            status: resultData.status,
+            scheduledFor: resultData.scheduledFor?.toDate().toISOString() || null,
+            originalArticleSlug: resultData.originalArticleSlug,
+        } as Draft;
+    } catch (error) {
+        console.error('Erreur dans saveAsDraftOrScheduled:', error);
+        
+        // ✅ Re-throw avec un message plus explicite
+        if (error instanceof Error) {
+            throw new Error(`Échec de la sauvegarde du brouillon: ${error.message}`);
+        }
+        
+        throw new Error('Échec de la sauvegarde du brouillon: erreur inconnue');
     }
-
-    const dataToSave = {
-        title: draftData.title || '',
-        author: draftData.author || '',
-        category: draftData.category || '',
-        content: draftData.content || '',
-        image: draftData.image || null,
-        id,
-        status,
-        lastSaved: AdminTimestamp.now(),
-        createdAt: draftData.createdAt ? AdminTimestamp.fromMillis(new Date(draftData.createdAt).getTime()) : AdminTimestamp.now(),
-        scheduledFor: scheduledForTimestamp,
-        originalArticleSlug: draftData.originalArticleSlug || null,
-    };
-
-    await draftsCollection.doc(id).set(dataToSave, { merge: true });
-    
-    const savedData = await draftsCollection.doc(id).get();
-    const resultData = savedData.data()!;
-
-    return {
-        id: resultData.id,
-        title: resultData.title,
-        author: resultData.author,
-        category: resultData.category,
-        content: resultData.content,
-        image: resultData.image,
-        lastSaved: resultData.lastSaved.toDate().toISOString(),
-        createdAt: resultData.createdAt.toDate().toISOString(),
-        status: resultData.status,
-        scheduledFor: resultData.scheduledFor?.toDate().toISOString() || null,
-        originalArticleSlug: resultData.originalArticleSlug,
-    } as Draft;
 }
 
 
