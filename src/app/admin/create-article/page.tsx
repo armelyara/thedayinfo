@@ -98,7 +98,58 @@ export default function CreateArticlePage() {
   }, [currentDraftId]);
   
   useAutoSave(watchedValues, onSave, { delay: 30000 });
-
+ 
+  useEffect(() => {
+    // Vérifier s'il existe un backup localStorage à restaurer
+    const checkForLocalBackup = () => {
+      if (currentDraftId) {
+        try {
+          const backupKey = `draft_backup_${currentDraftId}`;
+          const backup = localStorage.getItem(backupKey);
+          
+          if (backup) {
+            const parsed = JSON.parse(backup);
+            const backupData = parsed.data;
+            const backupTimestamp = parsed.timestamp;
+            
+            // Vérifier si le backup est récent (< 24h)
+            const isRecent = Date.now() - backupTimestamp < 24 * 60 * 60 * 1000;
+            
+            if (isRecent && backupData) {
+              // Demander à l'utilisateur s'il veut restaurer
+              const shouldRestore = window.confirm(
+                '⚠️ Un brouillon non sauvegardé a été trouvé. Voulez-vous le restaurer ?'
+              );
+              
+              if (shouldRestore) {
+                form.reset({
+                  title: backupData.title || '',
+                  author: backupData.author || 'Armel Yara',
+                  category: backupData.category || '',
+                  content: backupData.content || '',
+                  image: backupData.image || { src: '', alt: '' },
+                  scheduledFor: backupData.scheduledFor ? new Date(backupData.scheduledFor) : undefined,
+                });
+                
+                toast({
+                  title: '✅ Brouillon restauré',
+                  description: 'Votre contenu non sauvegardé a été récupéré.',
+                });
+              }
+              
+              // Supprimer le backup après traitement
+              localStorage.removeItem(backupKey);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to check for local backup:', error);
+        }
+      }
+    };
+    
+    checkForLocalBackup();
+  }, [currentDraftId, form, toast]);
+  
   const executeSaveAction = async (actionType: 'draft' | 'publish' | 'schedule') => {
     setIsSaving(true);
     setShowPublishConfirm(false);
