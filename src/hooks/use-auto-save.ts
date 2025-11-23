@@ -11,6 +11,8 @@ interface UseAutoSaveOptions {
   onSaveError?: (error: Error) => void;
 }
 
+const LOCALSTORAGE_KEY_PREFIX = 'draft_backup_';
+
 export function useAutoSave<T extends Partial<Draft>>(
   data: T,
   onSave: (data: T) => Promise<any>,
@@ -29,8 +31,29 @@ export function useAutoSave<T extends Partial<Draft>>(
     try {
       await onSave(saveData);
       onSaveSuccess?.();
+      
+      // ✅ Supprimer le backup local après sauvegarde réussie
+      if (saveData.id) {
+        localStorage.removeItem(`${LOCALSTORAGE_KEY_PREFIX}${saveData.id}`);
+      }
     } catch (error) {
+      console.error('Auto-save error:', error);
       onSaveError?.(error as Error);
+      
+      // ✅ Sauvegarder localement en cas d'échec
+      if (saveData.id) {
+        try {
+          localStorage.setItem(
+            `${LOCALSTORAGE_KEY_PREFIX}${saveData.id}`,
+            JSON.stringify({
+              data: saveData,
+              timestamp: Date.now()
+            })
+          );
+        } catch (storageError) {
+          console.error('Failed to save to localStorage:', storageError);
+        }
+      }
     }
   }, [onSave, enabled, onSaveSuccess, onSaveError]);
 
@@ -43,24 +66,37 @@ export function useAutoSave<T extends Partial<Draft>>(
     if (enabled && hasContent(data)) {
       debouncedSave.current(data);
     }
-    // Nettoyer le debounce à la fin
     return () => {
         debouncedSave.current.cancel();
     }
   }, [data, enabled]);
 
-  // Sauvegarde avant fermeture de page
+  // ✅ Sauvegarde avant fermeture de page (améliorée)
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (enabled && hasContent(dataRef.current)) {
-        // La sauvegarde se fait via Beacon API, qui est asynchrone mais fiable pour ça.
-        // On ne peut pas attendre de réponse. C'est une sauvegarde de "dernier recours".
+        // 1. Tentative avec Beacon API (async, ne bloque pas)
         const payload = JSON.stringify(dataRef.current);
-        if (navigator.sendBeacon('/api/drafts/emergency-save', payload)) {
-             // Beacon sent successfully
-        } else {
-            // Beacon not sent, try to save synchronously (less reliable)
-            saveFunction(dataRef.current);
+        const blob = new Blob([payload], { type: 'application/json' });
+        const beaconSent = navigator.sendBeacon('/api/drafts/emergency-save', blob);
+        
+        // 2. ✅ Backup dans localStorage en parallèle (sécurité)
+        if (dataRef.current.id) {
+          try {
+            localStorage.setItem(
+              `${LOCALSTORAGE_KEY_PREFIX}${dataRef.current.id}`,
+              JSON.stringify({
+                data: dataRef.current,
+                timestamp: Date.now()
+              })
+            );
+          } catch (storageError) {
+            console.error('Failed to save to localStorage:', storageError);
+          }
+        }
+        
+        if (!beaconSent) {
+          console.warn('Beacon failed, backup saved to localStorage');
         }
       }
     };
@@ -79,7 +115,21 @@ export function useAutoSave<T extends Partial<Draft>>(
     return saveFunction(dataRef.current);
   }, [saveFunction]);
 
-  return { saveNow };
+  // ✅ Fonction pour récupérer un backup depuis localStorage
+  const restoreFromLocalStorage = useCallback((draftId: string) => {
+    try {
+      const backup = localStorage.getItem(`${LOCALSTORAGE_KEY_PREFIX}${draftId}`);
+      if (backup) {
+        const parsed = JSON.parse(backup);
+        return parsed.data as T;
+      }
+    } catch (error) {
+      console.error('Failed to restore from localStorage:', error);
+    }
+    return null;
+  }, []);
+
+  return { saveNow, restoreFromLocalStorage };
 }
 
 function hasContent(data: any): boolean {
