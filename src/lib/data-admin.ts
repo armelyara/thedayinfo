@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
@@ -5,14 +6,11 @@ import { initializeFirebaseAdmin } from './auth';
 import type { Article, ArticleImage, Draft, Profile, Subscriber, Project } from './data-types';
 import { sendNewsletterNotification } from './newsletter-service';
 
-let adminDb: FirebaseFirestore.Firestore;
-const initializeAdminDb = async () => {
-  if (!adminDb) {
-    await initializeFirebaseAdmin();
-    adminDb = getAdminFirestore();
-  }
-  return adminDb;
-};
+// Utiliser une fonction pour garantir l'initialisation avant d'obtenir la DB
+async function getDb() {
+  await initializeFirebaseAdmin();
+  return getAdminFirestore();
+}
 
 
 /**
@@ -24,7 +22,7 @@ async function publishArticle(
     articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory' | 'likes' | 'dislikes'> & { scheduledFor?: string | null },
     existingSlug?: string
 ): Promise<Article> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const articlesCollection = db.collection('articles');
 
     const isUpdate = !!existingSlug;
@@ -123,7 +121,7 @@ async function publishArticle(
 }
 
 export async function getSubscriberByEmail(email: string): Promise<Subscriber | null> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const q = db.collection('subscribers').where('email', '==', email.toLowerCase());
     const snapshot = await q.get();
 
@@ -147,8 +145,7 @@ export async function getSubscriberByEmail(email: string): Promise<Subscriber | 
  * Crée ou met à jour un brouillon/article programmé.
  */
 async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft> {
-    await initializeAdminDb();
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const draftsCollection = db.collection('drafts');
     
     try {
@@ -238,7 +235,6 @@ async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft>
 
 
 export async function saveDraftAction(draftData: Partial<Draft>): Promise<Draft> {
-    await initializeAdminDb();
     return saveAsDraftOrScheduled(draftData);
 }
 
@@ -253,7 +249,6 @@ export async function saveArticleAction(articleData: {
     id?: string; // L'ID du brouillon
     slug?: string; // Le slug de l'article original (si on modifie un article publié)
   }): Promise<Article | Draft> {
-    await initializeAdminDb();
     
     const payload = {
       title: articleData.title,
@@ -317,7 +312,7 @@ export async function saveArticleAction(articleData: {
   }
 
 export async function getDrafts(): Promise<Draft[]> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const snapshot = await db.collection('drafts').orderBy('lastSaved', 'desc').get();
         
     return snapshot.docs.map(doc => {
@@ -339,7 +334,7 @@ export async function getDrafts(): Promise<Draft[]> {
 }
 
 export async function getDraft(id: string): Promise<Draft | null> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const doc = await db.collection('drafts').doc(id).get();
     
     if (!doc.exists) return null;
@@ -361,7 +356,7 @@ export async function getDraft(id: string): Promise<Draft | null> {
 }
 
 export async function deleteDraft(id: string): Promise<boolean> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     try {
         await db.collection('drafts').doc(id).delete();
         return true;
@@ -373,7 +368,7 @@ export async function deleteDraft(id: string): Promise<boolean> {
 
 
 export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const draftsCollection = db.collection('drafts');
     const now = AdminTimestamp.now();
 
@@ -436,7 +431,7 @@ export async function publishScheduledArticle(draft: Draft): Promise<Article> {
 
 
 export async function deleteArticle(slug: string): Promise<boolean> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const docRef = db.collection('articles').doc(slug);
     try {
         await docRef.delete();
@@ -448,7 +443,7 @@ export async function deleteArticle(slug: string): Promise<boolean> {
 }
 
 export async function getAdminArticles(): Promise<Article[]> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const articlesCollection = db.collection('articles');
     const q = articlesCollection.orderBy('publishedAt', 'desc');
     const snapshot = await q.get();
@@ -474,7 +469,7 @@ export async function getAdminArticles(): Promise<Article[]> {
 }
 
 export async function updateArticleComments(slug: string, comments: any[]): Promise<boolean> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const docRef = db.collection('articles').doc(slug);
     
     try {
@@ -487,7 +482,7 @@ export async function updateArticleComments(slug: string, comments: any[]): Prom
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const docRef = db.collection('articles').doc(slug);
     const doc = await docRef.get();
     
@@ -514,7 +509,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
 }
 
 export async function getPublishedArticles(): Promise<Article[] | { error: string, message: string }> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     try {
         const articlesCollection = db.collection('articles');
         const q = articlesCollection
@@ -557,7 +552,7 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
 }
 
 export async function updateProfile(data: Partial<Profile>): Promise<Profile> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const docRef = db.collection('site-config').doc('profile');
     
     await docRef.set(data, { merge: true });
@@ -567,7 +562,7 @@ export async function updateProfile(data: Partial<Profile>): Promise<Profile> {
 }
 
 export async function addSubscriber(email: string, name?: string, preferences?: any): Promise<Subscriber> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const subscribersCollection = db.collection('subscribers');
     
     const querySnapshot = await subscribersCollection.where('email', '==', email.toLowerCase()).limit(1).get();
@@ -599,7 +594,7 @@ export async function addSubscriber(email: string, name?: string, preferences?: 
 }
 
 export async function getSubscribers(): Promise<Subscriber[]> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const subscribersCollection = db.collection('subscribers');
     const snapshot = await subscribersCollection.orderBy('subscribedAt', 'desc').get();
     
@@ -616,7 +611,7 @@ export async function getSubscribers(): Promise<Subscriber[]> {
 }
 
 export async function deleteSubscriber(email: string): Promise<boolean> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const q = db.collection('subscribers').where('email', '==', email.toLowerCase());
     const snapshot = await q.get();
 
@@ -636,7 +631,7 @@ export async function deleteSubscriber(email: string): Promise<boolean> {
 }
 
 export async function updateSubscriberStatus(email: string, status: 'active' | 'inactive' | 'unsubscribed'): Promise<boolean> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const q = db.collection('subscribers').where('email', '==', email.toLowerCase());
     const snapshot = await q.get();
 
@@ -661,7 +656,7 @@ export async function saveProject(
     projectData: Omit<Project, 'slug' | 'createdAt' | 'updatedAt'>,
     existingSlug?: string
 ): Promise<Project> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const projectsCollection = db.collection('projects');
     const now = new Date();
     let slug: string;
@@ -726,7 +721,7 @@ export async function saveProject(
 }
 
 export async function getProjects(): Promise<Project[]> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     const snapshot = await db.collection('projects').orderBy('createdAt', 'desc').get();
     return snapshot.docs.map(doc => {
         const data = doc.data();
@@ -740,7 +735,7 @@ export async function getProjects(): Promise<Project[]> {
 }
 
 export async function deleteProject(slug: string): Promise<boolean> {
-    const db = await initializeAdminDb();
+    const db = await getDb();
     try {
         await db.collection('projects').doc(slug).delete();
         return true;
