@@ -1,10 +1,11 @@
+
 // src/lib/newsletter-service.ts
 'use server';
 
 import { Resend } from 'resend';
 import type { Article, Subscriber } from './data-types';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY_NEW);
 
 /**
  * Envoie une notification par email aux abonnés actifs concernant un nouvel article ou une mise à jour.
@@ -17,8 +18,8 @@ export async function sendNewsletterNotification(
   allSubscribers: Subscriber[],
   isUpdate: boolean = false
 ) {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn("RESEND_API_KEY non configurée. Impossible d'envoyer la newsletter.");
+  if (!process.env.RESEND_API_KEY_NEW) {
+    console.warn("RESEND_API_KEY_NEW non configurée. Impossible d'envoyer la newsletter.");
     return;
   }
   
