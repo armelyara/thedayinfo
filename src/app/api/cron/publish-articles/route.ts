@@ -5,10 +5,7 @@ import { revalidatePath } from 'next/cache';
 
 async function handler(request: NextRequest) {
   // Vérification de sécurité pour s'assurer que la requête vient du Cloud Scheduler
-  // FIX: Reading the correct header 'cron_secret_token' (case-insensitive)
   const cronSecret = request.headers.get('cron_secret_token');
-  
-  // FIX: Expecting the correct environment variable 'CRON_JOB_SECRET'
   const expectedSecret = process.env.CRON_JOB_SECRET;
   
   if (!expectedSecret) {
@@ -76,4 +73,3 @@ async function handler(request: NextRequest) {
 // Handler for both GET and POST to match the scheduler's configuration
 export const GET = handler;
 export const POST = handler;
-
