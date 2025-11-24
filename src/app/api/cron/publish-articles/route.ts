@@ -5,12 +5,19 @@ import { revalidatePath } from 'next/cache';
 
 async function handler(request: NextRequest) {
   // Vérification de sécurité pour s'assurer que la requête vient du Cloud Scheduler
-  const cronSecret = request.headers.get('x-cron-secret');
-  // Using a new secret name to ensure it gets picked up correctly.
+  // FIX: Reading the correct header 'cron_secret_token' (case-insensitive)
+  const cronSecret = request.headers.get('cron_secret_token');
+  
+  // FIX: Expecting the correct environment variable 'CRON_JOB_SECRET'
   const expectedSecret = process.env.CRON_JOB_SECRET;
   
+  if (!expectedSecret) {
+    console.error('CRON_JOB_SECRET is not set in the environment.');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
   if (cronSecret !== expectedSecret) {
-    console.error('Invalid cron secret');
+    console.error(`Invalid cron secret. Received: ${cronSecret}`);
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -66,5 +73,7 @@ async function handler(request: NextRequest) {
   }
 }
 
+// Handler for both GET and POST to match the scheduler's configuration
 export const GET = handler;
 export const POST = handler;
+
