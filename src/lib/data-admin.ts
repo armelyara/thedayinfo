@@ -109,12 +109,14 @@ async function publishArticle(
 
     // CORRECTION : Envoyer des emails pour TOUS les articles (nouveaux ET modifiés)
     try {
+        console.log(`[publishArticle] Getting subscribers for newsletter...`);
         const subscribers = await getSubscribers();
+        console.log(`[publishArticle] Found ${subscribers.length} subscribers. Sending notification...`);
         await sendNewsletterNotification(resultArticle, subscribers, isUpdate);
-        console.log(`Newsletter envoyée pour ${isUpdate ? 'modification' : 'création'} de l'article "${resultArticle.title}"`);
+        console.log(`[publishArticle] Newsletter sent for ${isUpdate ? 'modification' : 'création'} of article "${resultArticle.title}"`);
     } catch (error) {
-        console.error(`Échec envoi newsletter:`, error);
-        // Ne pas bloquer la publication si l'envoi d'email échoue
+        console.error(`[publishArticle] Failed to send newsletter:`, error);
+        // Ne pas bloquer la publication si l'envoi d'email échoue, mais logguer l'erreur
     }
 
     return resultArticle;
@@ -368,7 +370,9 @@ export async function deleteDraft(id: string): Promise<boolean> {
 
 
 export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
+    console.log('[data-admin] getScheduledArticlesToPublish: Starting function.');
     const db = await getDb();
+    console.log('[data-admin] getScheduledArticlesToPublish: Database connection obtained.');
     const draftsCollection = db.collection('drafts');
     const now = AdminTimestamp.now();
 
@@ -378,6 +382,7 @@ export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
 
     try {
       const snapshot = await q.get();
+      console.log(`[data-admin] getScheduledArticlesToPublish: Query executed. Found ${snapshot.size} documents.`);
 
       if (snapshot.empty) {
           return [];
@@ -400,7 +405,8 @@ export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
           } as Draft;
       });
     } catch(e) {
-      console.error(e);
+      console.error('[data-admin] getScheduledArticlesToPublish: Firestore query failed.', e);
+      // Re-throwing the error is crucial for the calling handler to catch it.
       throw e;
     }
 }
@@ -408,24 +414,32 @@ export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
 
 // Note : La fonction accepte maintenant l'objet Draft complet pour éviter une lecture redondante.
 export async function publishScheduledArticle(draft: Draft): Promise<Article> {
-    // La lecture getDraft(draftId) a été supprimée car inutile.
-
+    console.log(`[data-admin] publishScheduledArticle: Publishing draft ID ${draft.id}`);
+    
     if (!draft || (draft.status !== 'scheduled' && draft.status !== 'draft')) {
+        console.error(`[data-admin] publishScheduledArticle: Invalid draft object for publication. Status is ${draft.status}`);
         throw new Error('Brouillon invalide pour la publication.');
     }
 
-    const article = await publishArticle({
-        title: draft.title,
-        author: draft.author,
-        category: draft.category,
-        content: draft.content,
-        image: draft.image as ArticleImage,
-    }, draft.originalArticleSlug); // On utilise directement le slug de l'objet draft passé en argument
+    try {
+        const article = await publishArticle({
+            title: draft.title,
+            author: draft.author,
+            category: draft.category,
+            content: draft.content,
+            image: draft.image as ArticleImage,
+        }, draft.originalArticleSlug); // On utilise directement le slug de l'objet draft passé en argument
+        console.log(`[data-admin] publishScheduledArticle: Article created/updated with slug ${article.slug}`);
 
-    // Supprimer le brouillon après la publication en utilisant son ID
-    await deleteDraft(draft.id);
+        // Supprimer le brouillon après la publication en utilisant son ID
+        await deleteDraft(draft.id);
+        console.log(`[data-admin] publishScheduledArticle: Draft ${draft.id} deleted.`);
 
-    return article;
+        return article;
+    } catch(error) {
+        console.error(`[data-admin] publishScheduledArticle: Error during publication process for draft ${draft.id}.`, error);
+        throw error; // Re-throw to be caught by the main handler
+    }
 }
 
 
@@ -594,20 +608,26 @@ export async function addSubscriber(email: string, name?: string, preferences?: 
 }
 
 export async function getSubscribers(): Promise<Subscriber[]> {
-    const db = await getDb();
-    const subscribersCollection = db.collection('subscribers');
-    const snapshot = await subscribersCollection.orderBy('subscribedAt', 'desc').get();
-    
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            email: data.email,
-            name: data.name || '',
-            subscribedAt: data.subscribedAt.toDate().toISOString(),
-            status: data.status || 'active',
-            preferences: data.preferences
-        };
-    });
+    try {
+        const db = await getDb();
+        const subscribersCollection = db.collection('subscribers');
+        const snapshot = await subscribersCollection.orderBy('subscribedAt', 'desc').get();
+        console.log(`[data-admin] [getSubscribers] Found ${snapshot.size} total subscribers.`);
+        
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                email: data.email,
+                name: data.name || '',
+                subscribedAt: data.subscribedAt.toDate().toISOString(),
+                status: data.status || 'active',
+                preferences: data.preferences
+            };
+        });
+    } catch(e) {
+        console.error('[data-admin] [getSubscribers] Failed to fetch subscribers.', e);
+        throw e;
+    }
 }
 
 export async function deleteSubscriber(email: string): Promise<boolean> {
