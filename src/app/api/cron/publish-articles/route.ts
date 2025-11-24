@@ -4,14 +4,14 @@ import { getScheduledArticlesToPublish, publishScheduledArticle } from '@/lib/da
 import { revalidatePath } from 'next/cache';
 
 async function handler(request: NextRequest) {
-  // // Vérification de sécurité pour s'assurer que la requête vient du Cloud Scheduler
-  // const cronSecret = request.headers.get('x-cron-secret');
-  // const expectedSecret = process.env.CRON_SECRET_TOKEN;
+  // Vérification de sécurité pour s'assurer que la requête vient du Cloud Scheduler
+  const cronSecret = request.headers.get('x-cron-secret');
+  const expectedSecret = process.env.CRON_SECRET_TOKEN;
   
-  // if (cronSecret !== expectedSecret) {
-  //   console.error('Invalid cron secret');
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
+  if (cronSecret !== expectedSecret) {
+    console.error('Invalid cron secret');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const draftsToPublish = await getScheduledArticlesToPublish();
