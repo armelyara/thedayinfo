@@ -6,7 +6,8 @@ import { revalidatePath } from 'next/cache';
 async function handler(request: NextRequest) {
   // Vérification de sécurité pour s'assurer que la requête vient du Cloud Scheduler
   const cronSecret = request.headers.get('x-cron-secret');
-  const expectedSecret = process.env.CRON_SECRET_TOKEN;
+  // Using a new secret name to ensure it gets picked up correctly.
+  const expectedSecret = process.env.CRON_JOB_SECRET;
   
   if (cronSecret !== expectedSecret) {
     console.error('Invalid cron secret');
