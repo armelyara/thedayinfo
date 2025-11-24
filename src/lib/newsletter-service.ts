@@ -4,8 +4,7 @@
 import { Resend } from 'resend';
 import type { Article, Subscriber } from './data-types';
 
-// Initialisation de Resend TEMPORAIREMENT commentée pour réinitialisation
-// const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
  * Envoie une notification par email aux abonnés actifs concernant un nouvel article ou une mise à jour.
@@ -18,15 +17,10 @@ export async function sendNewsletterNotification(
   allSubscribers: Subscriber[],
   isUpdate: boolean = false
 ) {
-  // Remettre la clé API après la réinitialisation
-  const resendApiKey = process.env.RESEND_API_KEY;
-
-  if (!resendApiKey) {
+  if (!process.env.RESEND_API_KEY) {
     console.warn("RESEND_API_KEY non configurée. Impossible d'envoyer la newsletter.");
     return;
   }
-
-  const resend = new Resend(resendApiKey);
   
   if (!article || !article.title || !article.slug) {
     console.error("Données de l'article invalides pour la newsletter.");
