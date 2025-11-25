@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
@@ -50,16 +50,25 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
     const handlePublish = async (id: string) => {
         if (!confirm("Voulez-vous vraiment publier ce brouillon maintenant ?")) return;
 
+        console.log("Début publication pour ID:", id); // Log de debug
         setPublishingId(id);
+        
         try {
             const result = await publishDraftNow(id);
+            console.log("Résultat publication:", result); // Log de debug
 
             if (result.success) {
+                // 1. Mise à jour immédiate de l'UI (Optimistic UI)
+                // On retire l'article de la liste des brouillons car il est publié
                 setDrafts(prev => prev.filter(d => d.id !== id));
+                
                 toast({
                     title: 'Succès',
                     description: result.message,
+                    className: "bg-green-50 border-green-200", // Petit style vert
                 });
+                
+                // 2. Rafraîchissement des données serveur en arrière-plan
                 router.refresh(); 
             } else {
                 toast({
@@ -69,10 +78,11 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                 });
             }
         } catch (error) {
+            console.error("Erreur catch handlePublish:", error);
             toast({
                 variant: 'destructive',
-                title: 'Erreur',
-                description: 'Impossible de publier le brouillon.',
+                title: 'Erreur système',
+                description: 'Impossible de contacter le serveur.',
             });
         } finally {
             setPublishingId(null);
@@ -81,6 +91,17 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
 
     const handleEdit = (id: string) => {
         router.push(`/admin/edit/${id}`);
+    };
+
+    // Helper robuste pour la date
+    const renderScheduledDate = (date: string | Date | undefined | null) => {
+        if (!date) return null;
+        try {
+            const dateObj = typeof date === 'string' ? parseISO(date) : date;
+            return format(dateObj, 'dd/MM/yyyy à HH:mm', { locale: fr });
+        } catch (e) {
+            return "Date invalide";
+        }
     };
 
     if (drafts.length === 0) {
@@ -136,19 +157,14 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                                 <div className="text-xs text-muted-foreground">
                                     {draft.status === 'scheduled' && draft.scheduledFor && (
                                         <p className="font-semibold text-blue-700 mb-1">
-                                            Publication le {format(
-                                                typeof draft.scheduledFor === 'string' 
-                                                    ? parseISO(draft.scheduledFor) 
-                                                    : draft.scheduledFor, 
-                                                'dd/MM/yyyy à HH:mm', 
-                                                { locale: fr }
-                                            )}
+                                            Publication le {renderScheduledDate(draft.scheduledFor)}
                                         </p>
                                     )}
-                                    <p>Dernière sauvegarde : {formatDistanceToNow(new Date(draft.lastSaved), { 
-                                        addSuffix: true, 
-                                        locale: fr 
-                                    })}</p>
+                                    <p>Dernière sauvegarde : {
+                                        draft.lastSaved 
+                                        ? formatDistanceToNow(new Date(draft.lastSaved), { addSuffix: true, locale: fr })
+                                        : 'jamais'
+                                    }</p>
                                 </div>
                                 
                                 <div className="flex gap-2">

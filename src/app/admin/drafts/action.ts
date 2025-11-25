@@ -6,7 +6,7 @@ import {
     getDraft as getDraftFromDb, 
     deleteDraft as deleteDraftFromDb, 
     saveArticleAction as saveArticle,
-    publishScheduledArticle as publishScheduled
+    publishScheduledArticle as publishScheduled // Importation directe de la logique DB
 } from '@/lib/data-admin';
 import type { Draft, Article } from '@/lib/data-types';
 import { revalidatePath } from 'next/cache';
@@ -60,9 +60,10 @@ export async function deleteDraftAction(id: string): Promise<boolean> {
     return result;
 }
 
-// Publier un article programmé (pour cron job)
 export async function publishScheduledArticleAction(draftId: string): Promise<Article> {
-    const publishedArticle = await publishScheduled({ id: draftId } as Draft); // Petit fix de type si nécessaire
+    const draft = await getDraftFromDb(draftId);
+    if (!draft) throw new Error("Brouillon introuvable");
+    const publishedArticle = await publishScheduled(draft);
     
     revalidatePath('/');
     revalidatePath('/admin');
@@ -72,19 +73,13 @@ export async function publishScheduledArticleAction(draftId: string): Promise<Ar
     return publishedArticle;
 }
 
-// 👇 LA NOUVELLE FONCTION AJOUTÉE 👇
 export async function publishDraftNow(draftId: string) {
   try {
-    const draft = await getDraftFromDb(draftId);
-    if (!draft) throw new Error("Brouillon introuvable");
-
-    // On force le statut à 'scheduled' temporairement pour que la fonction l'accepte
-    // Ou mieux : on utilise votre fonction publishScheduledArticleAction existante qui fait déjà le travail !
+    console.log("[Action] Publication immédiate demandée pour :", draftId);
     await publishScheduledArticleAction(draftId);
-
     return { success: true, message: "Article publié avec succès !" };
   } catch (error) {
-    console.error("Erreur publication brouillon:", error);
-    return { success: false, message: "Erreur lors de la publication." };
+    console.error("[Action] Erreur publication :", error);
+    return { success: false, message: (error as Error).message || "Erreur lors de la publication." };
   }
 }
