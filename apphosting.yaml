@@ -1,3 +1,5 @@
 env:
-  - variable: CRON_SECRET_TOKEN
-    secret: CRON_SECRET_TOKEN
+  - variable: CRON_JOB_SECRET
+    secret: CRON_JOB_SECRET
+  - variable: RESEND_API_KEY
+    secret: RESEND_API_KEY
