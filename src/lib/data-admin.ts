@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
@@ -110,7 +109,9 @@ async function publishArticle(
     // CORRECTION : Envoyer des emails pour TOUS les articles (nouveaux ET modifiés)
     try {
         console.log(`[publishArticle] Getting subscribers for newsletter...`);
-        const subscribers = await getSubscribers();
+        // Note: Ici on utilise getSubscribers, mais pour le CRON on utilisera getAllSubscribers
+        // Idéalement, uniformisez pour utiliser getAllSubscribers partout si vous avez besoin du token.
+        const subscribers = await getAllSubscribers(); 
         console.log(`[publishArticle] Found ${subscribers.length} subscribers. Sending notification...`);
         await sendNewsletterNotification(resultArticle, subscribers, isUpdate);
         console.log(`[publishArticle] Newsletter sent for ${isUpdate ? 'modification' : 'création'} of article "${resultArticle.title}"`);
@@ -629,6 +630,37 @@ export async function getSubscribers(): Promise<Subscriber[]> {
         throw e;
     }
 }
+
+// ⬇️⬇️ C'EST ICI LA NOUVELLE FONCTION POUR LE CRON ⬇️⬇️
+export async function getAllSubscribers(): Promise<Subscriber[]> {
+  try {
+    const db = await getDb();
+    // On filtre pour ne garder que les abonnés "actifs"
+    // Attention : Assurez-vous d'avoir un index composite si vous ajoutez un orderBy plus tard
+    const subscribersCollection = db.collection('subscribers');
+    const q = subscribersCollection.where('status', '==', 'active');
+    
+    const snapshot = await q.get();
+
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            email: data.email,
+            name: data.name || '',
+            subscribedAt: data.subscribedAt.toDate().toISOString(),
+            status: data.status,
+            // C'est ce champ qui est vital pour le lien de désabonnement
+            unsubscribeToken: data.unsubscribeToken || doc.id, 
+            preferences: data.preferences
+        } as Subscriber;
+    });
+  } catch (error) {
+    console.error("Erreur lors de la récupération des abonnés (getAllSubscribers):", error);
+    return [];
+  }
+}
+// ⬆️⬆️ FIN DE L'AJOUT ⬆️⬆️
 
 export async function deleteSubscriber(email: string): Promise<boolean> {
     const db = await getDb();
