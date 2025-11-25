@@ -1,3 +1,4 @@
+
 // src/app/admin/projects/projects-list.tsx
 'use client';
 
@@ -59,10 +60,7 @@ export function ProjectsList({ initialProjects }: ProjectsListProps) {
     };
 
     const handleEdit = (slug: string) => {
-        // La page d'édition de projet sera implémentée plus tard si nécessaire
-        // Pour l'instant, on redirige vers la création pour montrer le flux
-        // router.push(`/admin/edit-project/${slug}`);
-        toast({ title: "Info", description: "La page de modification de projet sera ajoutée prochainement."});
+        router.push(`/admin/edit-project/${slug}`);
     };
 
     if (projects.length === 0) {
