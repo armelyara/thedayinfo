@@ -62,7 +62,7 @@ export async function deleteDraftAction(id: string): Promise<boolean> {
 
 // Publier un article programmé (pour cron job)
 export async function publishScheduledArticleAction(draftId: string): Promise<Article> {
-    const publishedArticle = await publishScheduled(draftId);
+    const publishedArticle = await publishScheduled({ id: draftId } as Draft); // Petit fix de type si nécessaire
     
     revalidatePath('/');
     revalidatePath('/admin');
@@ -70,4 +70,21 @@ export async function publishScheduledArticleAction(draftId: string): Promise<Ar
     revalidatePath(`/article/${publishedArticle.slug}`);
     
     return publishedArticle;
+}
+
+// 👇 LA NOUVELLE FONCTION AJOUTÉE 👇
+export async function publishDraftNow(draftId: string) {
+  try {
+    const draft = await getDraftFromDb(draftId);
+    if (!draft) throw new Error("Brouillon introuvable");
+
+    // On force le statut à 'scheduled' temporairement pour que la fonction l'accepte
+    // Ou mieux : on utilise votre fonction publishScheduledArticleAction existante qui fait déjà le travail !
+    await publishScheduledArticleAction(draftId);
+
+    return { success: true, message: "Article publié avec succès !" };
+  } catch (error) {
+    console.error("Erreur publication brouillon:", error);
+    return { success: false, message: "Erreur lors de la publication." };
+  }
 }

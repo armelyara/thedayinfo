@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -81,6 +80,9 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
   });
 
   const scheduledDate = form.watch('scheduledFor');
+
+  // État de chargement pour les boutons
+  const { isSubmitting } = form.formState;
 
   async function handleAction(actionType: 'draft' | 'publish' | 'schedule') {
     const isValid = await form.trigger();
@@ -298,25 +300,28 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
           )}
         />
         
-        <div className="flex gap-4">
-          <Button variant="outline" onClick={() => handleAction('draft')}>
+        <div className="flex gap-4 items-center">
+          <Button variant="outline" onClick={() => handleAction('draft')} disabled={isSubmitting}>
               <Save className="h-4 w-4 mr-2" />
-              Sauvegarder en brouillon
+              {isSubmitting ? 'Sauvegarde...' : 'Sauvegarder en brouillon'}
           </Button>
 
           {scheduledDate ? (
-              <Button onClick={() => handleAction('schedule')} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={() => handleAction('schedule')} className="bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
                   <Clock className="h-4 w-4 mr-2" />
-                  Mettre à jour la programmation
+                  {isSubmitting ? 'Mise à jour...' : 'Mettre à jour la programmation'}
               </Button>
           ) : (
-              <Button onClick={() => handleAction('publish')}>
+            <>
+              {/* Le bouton principal : Met à jour si publié, Publie si brouillon */}
+              <Button onClick={() => handleAction('publish')} disabled={isSubmitting}>
                   <Send className="h-4 w-4 mr-2" />
-                  {isDraft ? "Publier Maintenant" : "Mettre à jour et Publier"}
+                  {isSubmitting ? 'Publication...' : (isDraft ? "Publier Maintenant" : "Mettre à jour et Publier")}
               </Button>
+            </>
           )}
 
-           <Button type="button" variant="ghost" onClick={() => router.back()}>
+           <Button type="button" variant="ghost" onClick={() => router.back()} disabled={isSubmitting}>
             Annuler
           </Button>
         </div>
@@ -324,5 +329,3 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
     </Form>
   );
 }
-
-    

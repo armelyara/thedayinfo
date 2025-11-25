@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { FileEdit, Trash2, Clock, Pencil } from 'lucide-react';
-import { deleteDraftAction } from '@/app/admin/drafts/action';
+import { FileEdit, Trash2, Clock, Pencil, Send } from 'lucide-react'; 
+import { deleteDraftAction, publishDraftNow } from '@/app/admin/drafts/action'; 
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import type { Draft } from '@/lib/data-types';
@@ -19,6 +19,7 @@ interface DraftsListProps {
 export function DraftsList({ initialDrafts }: DraftsListProps) {
     const [drafts, setDrafts] = useState(initialDrafts);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [publishingId, setPublishingId] = useState<string | null>(null); 
     const { toast } = useToast();
     const router = useRouter();
 
@@ -43,6 +44,38 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
             });
         } finally {
             setIsDeleting(null);
+        }
+    };
+
+    const handlePublish = async (id: string) => {
+        if (!confirm("Voulez-vous vraiment publier ce brouillon maintenant ?")) return;
+
+        setPublishingId(id);
+        try {
+            const result = await publishDraftNow(id);
+
+            if (result.success) {
+                setDrafts(prev => prev.filter(d => d.id !== id));
+                toast({
+                    title: 'Succès',
+                    description: result.message,
+                });
+                router.refresh(); 
+            } else {
+                toast({
+                    title: "Erreur",
+                    description: result.message,
+                    variant: "destructive" 
+                });
+            }
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Erreur',
+                description: 'Impossible de publier le brouillon.',
+            });
+        } finally {
+            setPublishingId(null);
         }
     };
 
@@ -99,11 +132,17 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                                 </div>
                             )}
                             
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between mt-4 pt-4 border-t">
                                 <div className="text-xs text-muted-foreground">
                                     {draft.status === 'scheduled' && draft.scheduledFor && (
-                                        <p className="font-semibold text-blue-700">
-                                            Publication le {format(parseISO(draft.scheduledFor), 'dd/MM/yyyy à HH:mm', { locale: fr })}
+                                        <p className="font-semibold text-blue-700 mb-1">
+                                            Publication le {format(
+                                                typeof draft.scheduledFor === 'string' 
+                                                    ? parseISO(draft.scheduledFor) 
+                                                    : draft.scheduledFor, 
+                                                'dd/MM/yyyy à HH:mm', 
+                                                { locale: fr }
+                                            )}
                                         </p>
                                     )}
                                     <p>Dernière sauvegarde : {formatDistanceToNow(new Date(draft.lastSaved), { 
@@ -116,7 +155,19 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                                     <Button
                                         variant="outline"
                                         size="sm"
+                                        className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                                        onClick={() => handlePublish(draft.id)}
+                                        disabled={publishingId === draft.id || isDeleting === draft.id}
+                                    >
+                                        <Send className="h-4 w-4 mr-2" />
+                                        {publishingId === draft.id ? '...' : 'Publier'}
+                                    </Button>
+
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
                                         onClick={() => handleEdit(draft.id)}
+                                        disabled={publishingId === draft.id || isDeleting === draft.id}
                                     >
                                         <Pencil className="h-4 w-4 mr-2" />
                                         Modifier
@@ -125,11 +176,11 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                                     <Button
                                         variant="destructive"
                                         size="sm"
-                                        disabled={isDeleting === draft.id}
+                                        disabled={isDeleting === draft.id || publishingId === draft.id}
                                         onClick={() => handleDelete(draft.id)}
                                     >
                                         <Trash2 className="h-4 w-4 mr-2" />
-                                        {isDeleting === draft.id ? 'Suppression...' : 'Supprimer'}
+                                        {isDeleting === draft.id ? '...' : 'Supprimer'}
                                     </Button>
                                 </div>
                             </div>
