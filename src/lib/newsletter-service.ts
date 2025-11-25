@@ -1,4 +1,3 @@
-
 // src/lib/newsletter-service.ts
 'use server';
 
