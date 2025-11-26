@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useRef, useCallback, useEffect, useState } from 'react';
@@ -117,15 +116,15 @@ export function RichTextEditor({
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
       const selection = window.getSelection();
-      let range = null;
+      // let range = null; // Inutilisé pour l'instant
       
-      try {
-        if (selection && selection.rangeCount > 0) {
-          range = selection.getRangeAt(0);
-        }
-      } catch (e) {
-        // Ignorer l'erreur si pas de range disponible
-      }
+      // try {
+      //   if (selection && selection.rangeCount > 0) {
+      //     range = selection.getRangeAt(0);
+      //   }
+      // } catch (e) {
+      //   // Ignorer l'erreur si pas de range disponible
+      // }
       
       const isEditorFocused = document.activeElement === editorRef.current || 
         editorRef.current?.contains(document.activeElement);
@@ -136,31 +135,60 @@ export function RichTextEditor({
     }
   }, [value]);
 
+  const saveSelection = () => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      // Vérifier si la sélection est dans l'éditeur
+      if (editorRef.current && editorRef.current.contains(range.commonAncestorContainer)) {
+          setSavedSelection(range.cloneRange());
+      }
+    }
+  };
+
+  const restoreSelection = useCallback(() => {
+    if (savedSelection) {
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(savedSelection);
+    } else if (editorRef.current) {
+        // Si pas de sélection sauvegardée, on met le curseur à la fin
+        editorRef.current.focus();
+        const range = document.createRange();
+        range.selectNodeContents(editorRef.current);
+        range.collapse(false);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+    }
+  }, [savedSelection]);
+
   const execCommand = useCallback((command: string, value?: string) => {
     if (!editorRef.current) return;
     
     editorRef.current.focus();
-    restoreSelection();
+    // restoreSelection(); // Parfois redondant ici si le focus est déjà là
     
     document.execCommand(command, false, value);
     
-    setTimeout(() => {
-      if (editorRef.current) {
-        onChange(editorRef.current.innerHTML);
-      }
-    }, 10);
-  }, [onChange, savedSelection]);
+    // Force update
+    const html = editorRef.current.innerHTML;
+    onChange(html);
+  }, [onChange]); // Supprimé restoreSelection des deps pour éviter boucle
 
   const changeCase = (caseType: 'upper' | 'lower') => {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
 
     const range = selection.getRangeAt(0);
+    if (!editorRef.current?.contains(range.commonAncestorContainer)) return;
+
     const selectedText = range.toString();
 
     if (selectedText) {
       const newText = caseType === 'upper' ? selectedText.toUpperCase() : selectedText.toLowerCase();
       document.execCommand('insertText', false, newText);
+      onChange(editorRef.current.innerHTML); // Update state
     }
   };
 
@@ -182,24 +210,10 @@ export function RichTextEditor({
     }
   }, [execCommand]);
 
-  const saveSelection = () => {
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      setSavedSelection(selection.getRangeAt(0).cloneRange());
-    }
-  };
-
-  const restoreSelection = () => {
-    if (savedSelection) {
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(savedSelection);
-    }
-  };
-
   const insertLink = () => {
     saveSelection();
-    const selectedText = savedSelection?.toString() || '';
+    const selection = window.getSelection();
+    const selectedText = selection?.toString() || '';
     setLinkText(selectedText);
     setLinkUrl('');
     setIsLinkDialogOpen(true);
@@ -207,30 +221,42 @@ export function RichTextEditor({
 
   const handleInsertLink = () => {
     setIsLinkDialogOpen(false);
-    editorRef.current?.focus();
-    restoreSelection();
-    if (linkUrl) {
-      const html = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${linkText || linkUrl}</a>`;
-      execCommand('insertHTML', html);
-    }
-    setLinkUrl('');
-    setLinkText('');
-    setSavedSelection(null);
+    // Important: restore selection before executing command
+    setTimeout(() => {
+        restoreSelection();
+        if (linkUrl) {
+            const html = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${linkText || linkUrl}</a>`;
+            document.execCommand('insertHTML', false, html);
+            handleContentChange();
+        }
+        setLinkUrl('');
+        setLinkText('');
+        setSavedSelection(null);
+    }, 10);
   };
   
   const handleInsertImageFromUrl = () => {
-    if (imageUrl && imageAlt) {
-      const html = `<img src="${imageUrl}" alt="${imageAlt}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px;" />`;
-      execCommand('insertHTML', html);
-    }
     setIsImageDialogOpen(false);
-    setImageUrl('');
-    setImageAlt('');
+    
+    setTimeout(() => {
+        restoreSelection();
+        if (imageUrl && imageAlt) {
+            // Utilisation de style inline standard pour maximiser la compatibilité
+            const html = `<img src="${imageUrl}" alt="${imageAlt}" style="max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 8px;" />`;
+            document.execCommand('insertHTML', false, html);
+            handleContentChange();
+        }
+        setImageUrl('');
+        setImageAlt('');
+    }, 10);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Save selection before upload starts to insert image at correct place later
+    saveSelection();
 
     if (!file.type.startsWith('image/')) {
         toast({ variant: 'destructive', title: 'Fichier invalide', description: 'Veuillez sélectionner un fichier image.' });
@@ -264,8 +290,10 @@ export function RichTextEditor({
           },
           () => {
             getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-              const html = `<img src="${downloadURL}" alt="${file.name}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px;" />`;
-              execCommand('insertHTML', html);
+              restoreSelection(); // Restore cursor position
+              const html = `<img src="${downloadURL}" alt="${file.name}" style="max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 8px;" />`;
+              document.execCommand('insertHTML', false, html);
+              handleContentChange();
               toast({ title: 'Image insérée !', description: 'L\'image a été ajoutée à votre article.' });
             });
           }
@@ -275,18 +303,21 @@ export function RichTextEditor({
         console.error("Image upload failed:", error);
         toast({ variant: 'destructive', title: 'Erreur de téléversement', description: 'Impossible de téléverser l\'image.' });
     }
+    
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
 
   return (
     <TooltipProvider>
-      <div className={cn('border rounded-lg', className)}>
+      <div className={cn('border rounded-lg flex flex-col', className)} style={{ height: height ? 'auto' : undefined }}>
         {/* Barre d'outils - STICKY */}
         <div className="sticky top-0 z-10 border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
           {/* Styles de police */}
           <div className="flex items-center gap-1">
             <Select onValueChange={(value) => execCommand('fontName', value)}>
-              <SelectTrigger className="h-8 w-32">
+              <SelectTrigger className="h-8 w-32 bg-background">
                 <SelectValue placeholder="Police" />
               </SelectTrigger>
               <SelectContent>
@@ -301,17 +332,14 @@ export function RichTextEditor({
             </Select>
   
             <Select onValueChange={(value) => execCommand('fontSize', value)}>
-              <SelectTrigger className="h-8 w-16">
+              <SelectTrigger className="h-8 w-16 bg-background">
                 <SelectValue placeholder="Taille" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">8pt</SelectItem>
-                <SelectItem value="2">10pt</SelectItem>
-                <SelectItem value="3">12pt</SelectItem>
-                <SelectItem value="4">14pt</SelectItem>
-                <SelectItem value="5">18pt</SelectItem>
-                <SelectItem value="6">24pt</SelectItem>
-                <SelectItem value="7">36pt</SelectItem>
+                <SelectItem value="1">Petite</SelectItem>
+                <SelectItem value="3">Normale</SelectItem>
+                <SelectItem value="5">Grande</SelectItem>
+                <SelectItem value="7">Titre</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -376,17 +404,20 @@ export function RichTextEditor({
         </div>
   
         {/* Zone d'édition avec overflow */}
-        <div className="overflow-y-auto" style={{ maxHeight: height }}>
+        <div className="flex-1 overflow-hidden min-h-[300px]" style={{ height: height }}>
           <div
             ref={editorRef}
             contentEditable
-            className="p-4 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 overflow-y-auto prose prose-sm max-w-none"
-            style={{ minHeight: height }}
+            className="h-full w-full p-4 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 overflow-y-auto prose prose-sm max-w-none dark:prose-invert"
             onInput={handleContentChange}
             onKeyDown={handleKeyDown}
-            onBlur={saveSelection}
+            onBlur={saveSelection} // IMPORTANT: sauvegarder la sélection quand on quitte l'éditeur
             suppressContentEditableWarning={true}
             data-placeholder={placeholder}
+            style={{ 
+                whiteSpace: 'pre-wrap', 
+                wordBreak: 'break-word' 
+            }}
           />
         </div>
   
@@ -427,7 +458,7 @@ export function RichTextEditor({
           <div className="space-y-4">
             <div><label className="text-sm font-medium">URL de l'image</label><Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://exemple.com/image.jpg" /></div>
             <div><label className="text-sm font-medium">Description (alt text)</label><Input value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} placeholder="Description de l'image" /></div>
-            {imageUrl && (<div className="border rounded p-2"><img src={imageUrl} alt={imageAlt} className="max-w-full h-auto max-h-32 object-contain" onError={() => {setImageUrl(''); toast({variant: 'destructive', title:'URL invalide'})}} /></div>)}
+            {imageUrl && (<div className="border rounded p-2"><img src={imageUrl} alt={imageAlt || 'Aperçu'} className="max-w-full h-auto max-h-32 object-contain mx-auto" onError={() => {toast({variant: 'destructive', title:'URL invalide'})}} /></div>)}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsImageDialogOpen(false)}>Annuler</Button>
