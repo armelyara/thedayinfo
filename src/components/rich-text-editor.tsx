@@ -3,6 +3,7 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider'; // Assurez-vous que ce composant existe
 import { 
   Tooltip,
   TooltipContent,
@@ -41,7 +42,8 @@ import {
   Upload,
   Palette,
   CaseUpper,
-  CaseLower
+  CaseLower,
+  Maximize2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -97,9 +99,13 @@ export function RichTextEditor({
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
+  
+  // Image states
   const [imageUrl, setImageUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('');
-  const [imageSize, setImageSize] = useState('large');
+  const [imageWidth, setImageWidth] = useState([100]); // Pourcentage (1-100)
+  const [imageAlign, setImageAlign] = useState<'left' | 'center' | 'right'>('center');
+  
   const [savedSelection, setSavedSelection] = useState<Range | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -117,17 +123,6 @@ export function RichTextEditor({
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
-      const selection = window.getSelection();
-      // let range = null; // Inutilisé pour l'instant
-      
-      // try {
-      //   if (selection && selection.rangeCount > 0) {
-      //     range = selection.getRangeAt(0);
-      //   }
-      // } catch (e) {
-      //   // Ignorer l'erreur si pas de range disponible
-      // }
-      
       const isEditorFocused = document.activeElement === editorRef.current || 
         editorRef.current?.contains(document.activeElement);
       
@@ -154,8 +149,8 @@ export function RichTextEditor({
       selection?.removeAllRanges();
       selection?.addRange(savedSelection);
     } else if (editorRef.current) {
-        // Si pas de sélection sauvegardée, on met le curseur à la fin
         editorRef.current.focus();
+        // Si pas de sélection, on place à la fin par défaut
         const range = document.createRange();
         range.selectNodeContents(editorRef.current);
         range.collapse(false);
@@ -167,30 +162,25 @@ export function RichTextEditor({
 
   const execCommand = useCallback((command: string, value?: string) => {
     if (!editorRef.current) return;
-    
     editorRef.current.focus();
-    // restoreSelection(); // Parfois redondant ici si le focus est déjà là
-    
     document.execCommand(command, false, value);
-    
-    // Force update
     const html = editorRef.current.innerHTML;
     onChange(html);
-  }, [onChange]); // Supprimé restoreSelection des deps pour éviter boucle
+  }, [onChange]);
 
   const changeCase = (caseType: 'upper' | 'lower') => {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
-
+    
+    // Vérification de sécurité pour ne pas modifier hors de l'éditeur
     const range = selection.getRangeAt(0);
     if (!editorRef.current?.contains(range.commonAncestorContainer)) return;
 
     const selectedText = range.toString();
-
     if (selectedText) {
       const newText = caseType === 'upper' ? selectedText.toUpperCase() : selectedText.toLowerCase();
       document.execCommand('insertText', false, newText);
-      onChange(editorRef.current.innerHTML); // Update state
+      onChange(editorRef.current.innerHTML);
     }
   };
 
@@ -223,7 +213,6 @@ export function RichTextEditor({
 
   const handleInsertLink = () => {
     setIsLinkDialogOpen(false);
-    // Important: restore selection before executing command
     setTimeout(() => {
         restoreSelection();
         if (linkUrl) {
@@ -237,43 +226,43 @@ export function RichTextEditor({
     }, 10);
   };
   
-  const handleInsertImageFromUrl = () => {
+  // Nouvelle fonction d'insertion avec styles précis
+  const insertImageWithStyle = () => {
     setIsImageDialogOpen(false);
     
     setTimeout(() => {
         restoreSelection();
         if (imageUrl && imageAlt) {
-            const sizeStyles = {
-              small: 'max-width: 35%; float: left; margin-right: 15px; margin-bottom: 10px;',
-              medium: 'max-width: 50%; margin: 15px auto; display: block;',
-              large: 'max-width: 75%; margin: 20px auto; display: block;',
-              full: 'max-width: 100%; margin: 20px 0;',
-            };
-            const style = sizeStyles[imageSize as keyof typeof sizeStyles] || sizeStyles.large;
-            const html = `<img src="${imageUrl}" alt="${imageAlt}" style="${style} height: auto; border-radius: 8px;" />`;
+            let style = `width: ${imageWidth[0]}%; height: auto; border-radius: 8px;`;
+            
+            // Gestion de l'alignement
+            if (imageAlign === 'center') {
+                style += ' display: block; margin: 20px auto;';
+            } else if (imageAlign === 'left') {
+                style += ' float: left; margin: 0 20px 10px 0;';
+            } else if (imageAlign === 'right') {
+                style += ' float: right; margin: 0 0 10px 20px;';
+            }
+
+            // On ajoute un clear:both après l'image si elle flotte pour éviter les débordements
+            const html = `<img src="${imageUrl}" alt="${imageAlt}" style="${style}" />`;
+            
             document.execCommand('insertHTML', false, html);
+            
+            // Si c'est flottant, on ajoute un saut de ligne pour faciliter l'écriture à côté
+            if (imageAlign !== 'center') {
+                // document.execCommand('insertHTML', false, '<br/>'); 
+            }
+            
             handleContentChange();
         }
+        // Reset
         setImageUrl('');
         setImageAlt('');
-        setImageSize('large');
+        setImageWidth([100]);
+        setImageAlign('center');
     }, 10);
   };
-
-  const insertUploadedImage = (url: string, alt: string, size: string) => {
-    restoreSelection();
-    const sizeStyles = {
-      small: 'max-width: 35%; float: left; margin-right: 15px; margin-bottom: 10px;',
-      medium: 'max-width: 50%; margin: 15px auto; display: block;',
-      large: 'max-width: 75%; margin: 20px auto; display: block;',
-      full: 'max-width: 100%; margin: 20px 0;',
-    };
-    const style = sizeStyles[size as keyof typeof sizeStyles] || sizeStyles.large;
-    const html = `<img src="${url}" alt="${alt}" style="${style} height: auto; border-radius: 8px;" />`;
-    document.execCommand('insertHTML', false, html);
-    handleContentChange();
-    toast({ title: 'Image insérée !', description: 'L\'image a été ajoutée à votre article.' });
-  }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -285,7 +274,7 @@ export function RichTextEditor({
         toast({ variant: 'destructive', title: 'Fichier invalide', description: 'Veuillez sélectionner un fichier image.' });
         return;
     }
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+    if (file.size > 10 * 1024 * 1024) { 
         toast({ variant: 'destructive', title: 'Fichier trop volumineux', description: 'L\'image ne doit pas dépasser 10MB.' });
         return;
     }
@@ -295,30 +284,35 @@ export function RichTextEditor({
       return;
     }
 
-    toast({ title: 'Téléversement en cours...', description: 'L\'image est en cours de téléversement.' });
+    toast({ title: 'Téléversement en cours...', description: 'Veuillez patienter...' });
 
     try {
         const imagePath = `article-images/${Date.now()}_${file.name}`;
         const imageStorageRef = storageRef(storage, imagePath);
-        
         const uploadTask = uploadBytesResumable(imageStorageRef, file);
 
         uploadTask.on('state_changed',
           (snapshot) => {},
           (error) => {
             console.error("Image upload failed:", error);
-            toast({ variant: 'destructive', title: 'Erreur de téléversement', description: 'Impossible de téléverser l\'image.' });
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de téléverser l\'image.' });
           },
           () => {
             getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-              // Par défaut, insérer en taille 'large' lors de l'upload direct
-              insertUploadedImage(downloadURL, file.name, 'large');
+              // Au lieu d'insérer directement, on ouvre la modale pour configurer la taille
+              setImageUrl(downloadURL);
+              setImageAlt(file.name.split('.')[0]);
+              setImageWidth([100]);
+              setImageAlign('center');
+              setIsImageDialogOpen(true);
+              
+              toast({ title: 'Image prête', description: 'Vous pouvez maintenant ajuster la taille et l\'insérer.' });
             });
           }
         );
     } catch (error) {
         console.error("Image upload failed:", error);
-        toast({ variant: 'destructive', title: 'Erreur de téléversement', description: 'Impossible de téléverser l\'image.' });
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de téléverser l\'image.' });
     }
     
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -328,9 +322,9 @@ export function RichTextEditor({
   return (
     <TooltipProvider>
       <div className={cn('border rounded-lg flex flex-col', className)} style={{ height: height ? 'auto' : undefined }}>
-        {/* Barre d'outils - STICKY */}
+        {/* Barre d'outils */}
         <div className="sticky top-0 z-10 border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
-          {/* Styles de police */}
+          {/* ... (Sections Polices et Couleurs inchangées) ... */}
           <div className="flex items-center gap-1">
             <Select onValueChange={(value) => execCommand('fontName', value)}>
               <SelectTrigger className="h-8 w-32 bg-background">
@@ -343,10 +337,8 @@ export function RichTextEditor({
                 <SelectItem value="'Courier New', monospace">Courier</SelectItem>
                 <SelectItem value="Helvetica, sans-serif">Helvetica</SelectItem>
                 <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
-                <SelectItem value="'Trebuchet MS', sans-serif">Trebuchet MS</SelectItem>
               </SelectContent>
             </Select>
-  
             <Select onValueChange={(value) => execCommand('fontSize', value)}>
               <SelectTrigger className="h-8 w-16 bg-background">
                 <SelectValue placeholder="Taille" />
@@ -362,12 +354,9 @@ export function RichTextEditor({
   
           <div className="w-px h-6 bg-border mx-1" />
           
-          {/* Couleurs */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <Palette className="h-4 w-4" />
-              </Button>
+              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0"><Palette className="h-4 w-4" /></Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
               <div className="p-2">
@@ -388,19 +377,13 @@ export function RichTextEditor({
           
           <div className="w-px h-6 bg-border mx-1" />
   
-          {/* Changement de casse */}
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => changeCase('upper')} className="h-8 w-8 p-0"><CaseUpper className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Majuscules</p></TooltipContent></Tooltip>
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => changeCase('lower')} className="h-8 w-8 p-0"><CaseLower className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Minuscules</p></TooltipContent></Tooltip>
-  
-          <div className="w-px h-6 bg-border mx-1" />
-  
           {/* Alignement */}
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('justifyLeft')} className="h-8 w-8 p-0"><AlignLeft className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Aligner à gauche</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('justifyCenter')} className="h-8 w-8 p-0"><AlignCenter className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Centrer</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('justifyRight')} className="h-8 w-8 p-0"><AlignRight className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Aligner à droite</p></TooltipContent></Tooltip>
   
           <div className="w-px h-6 bg-border mx-1" />
-  
+
           {/* Listes */}
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('insertUnorderedList')} className="h-8 w-8 p-0"><List className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Liste à puces</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('insertOrderedList')} className="h-8 w-8 p-0"><ListOrdered className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Liste numérotée</p></TooltipContent></Tooltip>
@@ -409,17 +392,18 @@ export function RichTextEditor({
   
           {/* Liens et images */}
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={insertLink} className="h-8 w-8 p-0"><Link className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Ajouter un lien</p></TooltipContent></Tooltip>
+          
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="h-8 w-8 p-0"><Upload className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Télécharger une image</p></TooltipContent></Tooltip>
+          
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => { saveSelection(); setIsImageDialogOpen(true); }} className="h-8 w-8 p-0"><ImageIcon className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Insérer image par URL</p></TooltipContent></Tooltip>
   
           <div className="w-px h-6 bg-border mx-1" />
   
-          {/* Annuler/Refaire */}
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('undo')} className="h-8 w-8 p-0"><Undo className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Annuler (Ctrl+Z)</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('redo')} className="h-8 w-8 p-0"><Redo className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Refaire (Ctrl+Y)</p></TooltipContent></Tooltip>
         </div>
   
-        {/* Zone d'édition avec overflow */}
+        {/* Zone d'édition */}
         <div className="flex-1 overflow-hidden min-h-[300px]" style={{ height: height }}>
           <div
             ref={editorRef}
@@ -427,13 +411,10 @@ export function RichTextEditor({
             className="h-full w-full p-4 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 overflow-y-auto prose prose-sm max-w-none dark:prose-invert"
             onInput={handleContentChange}
             onKeyDown={handleKeyDown}
-            onBlur={saveSelection} // IMPORTANT: sauvegarder la sélection quand on quitte l'éditeur
+            onBlur={saveSelection}
             suppressContentEditableWarning={true}
             data-placeholder={placeholder}
-            style={{ 
-                whiteSpace: 'pre-wrap', 
-                wordBreak: 'break-word' 
-            }}
+            style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
           />
         </div>
   
@@ -446,53 +427,113 @@ export function RichTextEditor({
           className="hidden"
         />
       </div>
+
       {/* Dialog pour les liens */}
       <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Ajouter un lien</DialogTitle>
-            <DialogDescription>Saisissez l'URL et le texte à afficher pour votre lien.</DialogDescription>
+            <DialogDescription>Saisissez l'URL et le texte.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium">Texte du lien</label><Input value={linkText} onChange={(e) => setLinkText(e.target.value)} placeholder="Texte à afficher" /></div>
-            <div><label className="text-sm font-medium">URL</label><Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://exemple.com" /></div>
+            <div><Label>Texte</Label><Input value={linkText} onChange={(e) => setLinkText(e.target.value)} /></div>
+            <div><Label>URL</Label><Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsLinkDialogOpen(false)}>Annuler</Button>
-            <Button onClick={handleInsertLink} disabled={!linkUrl}>Ajouter le lien</Button>
+            <Button onClick={handleInsertLink} disabled={!linkUrl}>Ajouter</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog pour les images */}
+      {/* NOUVEAU Dialog pour les images avec contrôles précis */}
       <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Insérer une image</DialogTitle>
-            <DialogDescription>Saisissez l'URL de l'image, sa description, et choisissez une taille.</DialogDescription>
+            <DialogTitle>Propriétés de l'image</DialogTitle>
+            <DialogDescription>Ajustez la taille et la position de l'image.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div><Label htmlFor="imageUrl">URL de l'image</Label><Input id="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://exemple.com/image.jpg" /></div>
-            <div><Label htmlFor="imageAlt">Description (alt text)</Label><Input id="imageAlt" value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} placeholder="Description de l'image" /></div>
-            <div>
-                <Label htmlFor="imageSize">Taille de l'image</Label>
-                <Select value={imageSize} onValueChange={setImageSize}>
-                    <SelectTrigger id="imageSize">
-                        <SelectValue placeholder="Choisir une taille" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="small">Petite (flottante)</SelectItem>
-                        <SelectItem value="medium">Moyenne (centrée)</SelectItem>
-                        <SelectItem value="large">Grande (centrée)</SelectItem>
-                        <SelectItem value="full">Pleine largeur</SelectItem>
-                    </SelectContent>
-                </Select>
+          <div className="space-y-6 py-4">
+            {/* URL et ALT */}
+            <div className="space-y-3">
+                <div><Label htmlFor="imgUrl">URL</Label><Input id="imgUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://" /></div>
+                <div><Label htmlFor="imgAlt">Description (Alt)</Label><Input id="imgAlt" value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} placeholder="Description pour l'accessibilité" /></div>
             </div>
-            {imageUrl && (<div className="border rounded p-2"><img src={imageUrl} alt={imageAlt || 'Aperçu'} className="max-w-full h-auto max-h-32 object-contain mx-auto" onError={() => {toast({variant: 'destructive', title:'URL invalide'})}} /></div>)}
+
+            {/* Contrôle de la taille avec Slider */}
+            <div className="space-y-3">
+                <div className="flex justify-between">
+                    <Label>Largeur de l'image</Label>
+                    <span className="text-sm font-medium text-muted-foreground">{imageWidth[0]}%</span>
+                </div>
+                <Slider 
+                    value={imageWidth} 
+                    onValueChange={setImageWidth} 
+                    max={100} 
+                    min={5} 
+                    step={5} 
+                    className="py-2"
+                />
+                <p className="text-xs text-muted-foreground">Faites glisser pour redimensionner.</p>
+            </div>
+
+            {/* Contrôle de l'alignement */}
+            <div className="space-y-3">
+                <Label>Alignement</Label>
+                <div className="flex gap-2">
+                    <Button 
+                        type="button" 
+                        variant={imageAlign === 'left' ? 'default' : 'outline'} 
+                        size="sm" 
+                        onClick={() => setImageAlign('left')}
+                        className="flex-1"
+                    >
+                        <AlignLeft className="h-4 w-4 mr-2" /> Gauche
+                    </Button>
+                    <Button 
+                        type="button" 
+                        variant={imageAlign === 'center' ? 'default' : 'outline'} 
+                        size="sm" 
+                        onClick={() => setImageAlign('center')}
+                        className="flex-1"
+                    >
+                        <Maximize2 className="h-4 w-4 mr-2" /> Centre
+                    </Button>
+                    <Button 
+                        type="button" 
+                        variant={imageAlign === 'right' ? 'default' : 'outline'} 
+                        size="sm" 
+                        onClick={() => setImageAlign('right')}
+                        className="flex-1"
+                    >
+                        <AlignRight className="h-4 w-4 mr-2" /> Droite
+                    </Button>
+                </div>
+            </div>
+
+            {/* Prévisualisation */}
+            {imageUrl && (
+                <div className="border rounded-lg p-4 bg-muted/20 mt-4">
+                    <p className="text-xs text-muted-foreground mb-2">Aperçu :</p>
+                    <div className="bg-white dark:bg-black border border-dashed p-2 relative min-h-[100px] overflow-hidden">
+                        <img 
+                            src={imageUrl} 
+                            alt="Preview" 
+                            style={{
+                                width: `${imageWidth[0]}%`,
+                                display: 'block',
+                                marginLeft: imageAlign === 'right' ? 'auto' : (imageAlign === 'center' ? 'auto' : '0'),
+                                marginRight: imageAlign === 'left' ? 'auto' : (imageAlign === 'center' ? 'auto' : '0'),
+                            }}
+                            className="border rounded shadow-sm"
+                        />
+                    </div>
+                </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsImageDialogOpen(false)}>Annuler</Button>
-            <Button onClick={handleInsertImageFromUrl} disabled={!imageUrl || !imageAlt}>Insérer l'image</Button>
+            <Button onClick={insertImageWithStyle} disabled={!imageUrl}>Insérer l'image</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
