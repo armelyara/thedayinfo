@@ -48,6 +48,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebaseClient } from '@/lib/firebase-client';
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { Label } from './ui/label';
 
 interface RichTextEditorProps {
   value: string;
@@ -98,6 +99,7 @@ export function RichTextEditor({
   const [linkText, setLinkText] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('');
+  const [imageSize, setImageSize] = useState('large');
   const [savedSelection, setSavedSelection] = useState<Range | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -241,21 +243,42 @@ export function RichTextEditor({
     setTimeout(() => {
         restoreSelection();
         if (imageUrl && imageAlt) {
-            // Utilisation de style inline standard pour maximiser la compatibilité
-            const html = `<img src="${imageUrl}" alt="${imageAlt}" style="max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 8px;" />`;
+            const sizeStyles = {
+              small: 'max-width: 35%; float: left; margin-right: 15px; margin-bottom: 10px;',
+              medium: 'max-width: 50%; margin: 15px auto; display: block;',
+              large: 'max-width: 75%; margin: 20px auto; display: block;',
+              full: 'max-width: 100%; margin: 20px 0;',
+            };
+            const style = sizeStyles[imageSize as keyof typeof sizeStyles] || sizeStyles.large;
+            const html = `<img src="${imageUrl}" alt="${imageAlt}" style="${style} height: auto; border-radius: 8px;" />`;
             document.execCommand('insertHTML', false, html);
             handleContentChange();
         }
         setImageUrl('');
         setImageAlt('');
+        setImageSize('large');
     }, 10);
   };
+
+  const insertUploadedImage = (url: string, alt: string, size: string) => {
+    restoreSelection();
+    const sizeStyles = {
+      small: 'max-width: 35%; float: left; margin-right: 15px; margin-bottom: 10px;',
+      medium: 'max-width: 50%; margin: 15px auto; display: block;',
+      large: 'max-width: 75%; margin: 20px auto; display: block;',
+      full: 'max-width: 100%; margin: 20px 0;',
+    };
+    const style = sizeStyles[size as keyof typeof sizeStyles] || sizeStyles.large;
+    const html = `<img src="${url}" alt="${alt}" style="${style} height: auto; border-radius: 8px;" />`;
+    document.execCommand('insertHTML', false, html);
+    handleContentChange();
+    toast({ title: 'Image insérée !', description: 'L\'image a été ajoutée à votre article.' });
+  }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Save selection before upload starts to insert image at correct place later
     saveSelection();
 
     if (!file.type.startsWith('image/')) {
@@ -281,30 +304,23 @@ export function RichTextEditor({
         const uploadTask = uploadBytesResumable(imageStorageRef, file);
 
         uploadTask.on('state_changed',
-          (snapshot) => {
-            // Optionnel : gérer la progression
-          },
+          (snapshot) => {},
           (error) => {
             console.error("Image upload failed:", error);
             toast({ variant: 'destructive', title: 'Erreur de téléversement', description: 'Impossible de téléverser l\'image.' });
           },
           () => {
             getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-              restoreSelection(); // Restore cursor position
-              const html = `<img src="${downloadURL}" alt="${file.name}" style="max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 8px;" />`;
-              document.execCommand('insertHTML', false, html);
-              handleContentChange();
-              toast({ title: 'Image insérée !', description: 'L\'image a été ajoutée à votre article.' });
+              // Par défaut, insérer en taille 'large' lors de l'upload direct
+              insertUploadedImage(downloadURL, file.name, 'large');
             });
           }
         );
-
     } catch (error) {
         console.error("Image upload failed:", error);
         toast({ variant: 'destructive', title: 'Erreur de téléversement', description: 'Impossible de téléverser l\'image.' });
     }
     
-    // Reset input
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -453,11 +469,25 @@ export function RichTextEditor({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Insérer une image</DialogTitle>
-            <DialogDescription>Saisissez l'URL de l'image et sa description.</DialogDescription>
+            <DialogDescription>Saisissez l'URL de l'image, sa description, et choisissez une taille.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium">URL de l'image</label><Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://exemple.com/image.jpg" /></div>
-            <div><label className="text-sm font-medium">Description (alt text)</label><Input value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} placeholder="Description de l'image" /></div>
+            <div><Label htmlFor="imageUrl">URL de l'image</Label><Input id="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://exemple.com/image.jpg" /></div>
+            <div><Label htmlFor="imageAlt">Description (alt text)</Label><Input id="imageAlt" value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} placeholder="Description de l'image" /></div>
+            <div>
+                <Label htmlFor="imageSize">Taille de l'image</Label>
+                <Select value={imageSize} onValueChange={setImageSize}>
+                    <SelectTrigger id="imageSize">
+                        <SelectValue placeholder="Choisir une taille" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="small">Petite (flottante)</SelectItem>
+                        <SelectItem value="medium">Moyenne (centrée)</SelectItem>
+                        <SelectItem value="large">Grande (centrée)</SelectItem>
+                        <SelectItem value="full">Pleine largeur</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
             {imageUrl && (<div className="border rounded p-2"><img src={imageUrl} alt={imageAlt || 'Aperçu'} className="max-w-full h-auto max-h-32 object-contain mx-auto" onError={() => {toast({variant: 'destructive', title:'URL invalide'})}} /></div>)}
           </div>
           <DialogFooter>
