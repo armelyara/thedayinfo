@@ -3,7 +3,7 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider'; // Assurez-vous que ce composant existe
+import { Slider } from '@/components/ui/slider'; 
 import { 
   Tooltip,
   TooltipContent,
@@ -43,7 +43,8 @@ import {
   Palette,
   CaseUpper,
   CaseLower,
-  Maximize2
+  Maximize2,
+  ScanEye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -105,6 +106,7 @@ export function RichTextEditor({
   const [imageAlt, setImageAlt] = useState('');
   const [imageWidth, setImageWidth] = useState([100]); // Pourcentage (1-100)
   const [imageAlign, setImageAlign] = useState<'left' | 'center' | 'right'>('center');
+  const [imageRendering, setImageRendering] = useState<'auto' | 'pixelated'>('auto'); // Nouveau state pour le rendu
   
   const [savedSelection, setSavedSelection] = useState<Range | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -226,7 +228,7 @@ export function RichTextEditor({
     }, 10);
   };
   
-  // Nouvelle fonction d'insertion avec styles précis
+  // Nouvelle fonction d'insertion avec styles précis et gestion du flou
   const insertImageWithStyle = () => {
     setIsImageDialogOpen(false);
     
@@ -244,16 +246,17 @@ export function RichTextEditor({
                 style += ' float: right; margin: 0 0 10px 20px;';
             }
 
-            // On ajoute un clear:both après l'image si elle flotte pour éviter les débordements
+            // Gestion du flou (image-rendering)
+            if (imageRendering === 'pixelated') {
+                // 'pixelated' empêche le lissage flou lors du redimensionnement
+                style += ' image-rendering: pixelated;';
+            } else {
+                style += ' image-rendering: auto;';
+            }
+
             const html = `<img src="${imageUrl}" alt="${imageAlt}" style="${style}" />`;
             
             document.execCommand('insertHTML', false, html);
-            
-            // Si c'est flottant, on ajoute un saut de ligne pour faciliter l'écriture à côté
-            if (imageAlign !== 'center') {
-                // document.execCommand('insertHTML', false, '<br/>'); 
-            }
-            
             handleContentChange();
         }
         // Reset
@@ -261,6 +264,7 @@ export function RichTextEditor({
         setImageAlt('');
         setImageWidth([100]);
         setImageAlign('center');
+        setImageRendering('auto');
     }, 10);
   };
 
@@ -299,11 +303,11 @@ export function RichTextEditor({
           },
           () => {
             getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-              // Au lieu d'insérer directement, on ouvre la modale pour configurer la taille
               setImageUrl(downloadURL);
               setImageAlt(file.name.split('.')[0]);
               setImageWidth([100]);
               setImageAlign('center');
+              setImageRendering('auto'); // Reset rendu
               setIsImageDialogOpen(true);
               
               toast({ title: 'Image prête', description: 'Vous pouvez maintenant ajuster la taille et l\'insérer.' });
@@ -451,7 +455,7 @@ export function RichTextEditor({
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Propriétés de l'image</DialogTitle>
-            <DialogDescription>Ajustez la taille et la position de l'image.</DialogDescription>
+            <DialogDescription>Ajustez la taille, la position et la netteté.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             {/* URL et ALT */}
@@ -477,37 +481,66 @@ export function RichTextEditor({
                 <p className="text-xs text-muted-foreground">Faites glisser pour redimensionner.</p>
             </div>
 
-            {/* Contrôle de l'alignement */}
-            <div className="space-y-3">
-                <Label>Alignement</Label>
-                <div className="flex gap-2">
-                    <Button 
-                        type="button" 
-                        variant={imageAlign === 'left' ? 'default' : 'outline'} 
-                        size="sm" 
-                        onClick={() => setImageAlign('left')}
-                        className="flex-1"
-                    >
-                        <AlignLeft className="h-4 w-4 mr-2" /> Gauche
-                    </Button>
-                    <Button 
-                        type="button" 
-                        variant={imageAlign === 'center' ? 'default' : 'outline'} 
-                        size="sm" 
-                        onClick={() => setImageAlign('center')}
-                        className="flex-1"
-                    >
-                        <Maximize2 className="h-4 w-4 mr-2" /> Centre
-                    </Button>
-                    <Button 
-                        type="button" 
-                        variant={imageAlign === 'right' ? 'default' : 'outline'} 
-                        size="sm" 
-                        onClick={() => setImageAlign('right')}
-                        className="flex-1"
-                    >
-                        <AlignRight className="h-4 w-4 mr-2" /> Droite
-                    </Button>
+            <div className="grid grid-cols-2 gap-4">
+                {/* Contrôle de l'alignement */}
+                <div className="space-y-3">
+                    <Label>Alignement</Label>
+                    <div className="flex gap-1">
+                        <Button 
+                            type="button" 
+                            variant={imageAlign === 'left' ? 'default' : 'outline'} 
+                            size="icon" 
+                            onClick={() => setImageAlign('left')}
+                            title="Gauche"
+                        >
+                            <AlignLeft className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                            type="button" 
+                            variant={imageAlign === 'center' ? 'default' : 'outline'} 
+                            size="icon" 
+                            onClick={() => setImageAlign('center')}
+                            title="Centre"
+                        >
+                            <Maximize2 className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                            type="button" 
+                            variant={imageAlign === 'right' ? 'default' : 'outline'} 
+                            size="icon" 
+                            onClick={() => setImageAlign('right')}
+                            title="Droite"
+                        >
+                            <AlignRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Contrôle du rendu (Netteté) */}
+                <div className="space-y-3">
+                    <Label>Rendu (Flou/Net)</Label>
+                    <div className="flex gap-1">
+                        <Button 
+                            type="button" 
+                            variant={imageRendering === 'auto' ? 'default' : 'outline'} 
+                            size="sm" 
+                            onClick={() => setImageRendering('auto')}
+                            className="flex-1 text-xs"
+                        >
+                            Lissé
+                        </Button>
+                        <Button 
+                            type="button" 
+                            variant={imageRendering === 'pixelated' ? 'default' : 'outline'} 
+                            size="sm" 
+                            onClick={() => setImageRendering('pixelated')}
+                            className="flex-1 text-xs"
+                            title="Évite le flou sur les images réduites"
+                        >
+                            <ScanEye className="h-3 w-3 mr-1" />
+                            Net
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -524,6 +557,7 @@ export function RichTextEditor({
                                 display: 'block',
                                 marginLeft: imageAlign === 'right' ? 'auto' : (imageAlign === 'center' ? 'auto' : '0'),
                                 marginRight: imageAlign === 'left' ? 'auto' : (imageAlign === 'center' ? 'auto' : '0'),
+                                imageRendering: imageRendering // Appliquer le rendu en direct
                             }}
                             className="border rounded shadow-sm"
                         />
