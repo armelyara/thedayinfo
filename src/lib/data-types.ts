@@ -43,8 +43,6 @@ export type Article = {
     comments: Comment[];
     viewHistory: ViewHistory[];
     scheduledFor?: string | null; // Pour référence, mais n'affecte pas le statut
-    likes: number;      
-    dislikes: number; 
 };
 
 export type Category = {

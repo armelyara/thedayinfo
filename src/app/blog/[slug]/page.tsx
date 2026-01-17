@@ -96,8 +96,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           articleSlug={article.slug}
           initialViews={article.views}
           initialComments={article.comments || []}
-          initialLikes={article.likes || 0}
-          initialDislikes={article.dislikes || 0}
         />
         
         {/* Section d'abonnement newsletter */}
