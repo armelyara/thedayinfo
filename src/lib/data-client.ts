@@ -39,8 +39,6 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
                 views: data.views || 0,
                 comments: data.comments || [],
                 viewHistory: data.viewHistory || [],
-                likes: data.likes || 0,
-                dislikes: data.dislikes || 0,
             } as Article;
         });
     } catch (error: any) {
@@ -93,8 +91,6 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
             views: data.views || 0,
             comments: data.comments || [],
             viewHistory: data.viewHistory || [],
-            likes: data.likes || 0,
-            dislikes: data.dislikes || 0,
         } as Article;
     } catch (error) {
         console.error('Error getting article by slug:', error);
@@ -242,8 +238,6 @@ export async function incrementViews(slug: string): Promise<Article | null> {
             views: data.views || 0,
             comments: data.comments || [],
             viewHistory: data.viewHistory || [],
-            likes: data.likes || 0,
-            dislikes: data.dislikes || 0,
         } as Article;
     } catch (error) {
         console.error('Error incrementing views:', error);
