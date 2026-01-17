@@ -10,6 +10,7 @@ import RelatedContent from '@/components/article/related-content';
 import Feedback from '@/components/article/feedback';
 import { ArticleClientWrapper } from '@/components/article/article-client-wrapper';
 import { SubscriptionModal } from '@/components/newsletter/subscription-modal';
+import ViewTracker from '@/components/article/view-tracker';
 
 type ArticlePageProps = {
   params: Promise<{
@@ -37,6 +38,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   return (
     <article className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      {/* Client-side view tracking with deduplication */}
+      <ViewTracker articleSlug={article.slug} />
+
       <header className="mb-8">
         <Badge variant="secondary" className="mb-4">{article.category}</Badge>
         <h1 className="text-4xl font-headline font-extrabold tracking-tight lg:text-5xl mb-4">
@@ -91,7 +95,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         <Feedback
           articleSlug={article.slug}
           initialViews={article.views}
-          initialComments={article.comments || []} initialLikes={0} initialDislikes={0}        />
+          initialComments={article.comments || []}
+          initialLikes={article.likes || 0}
+          initialDislikes={article.dislikes || 0}
+        />
         
         {/* Section d'abonnement newsletter */}
         <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg text-center border">
