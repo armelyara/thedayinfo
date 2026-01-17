@@ -62,23 +62,15 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
     try {
         const docRef = doc(db, 'articles', slug);
-        
-        // Use a transaction to safely increment the view count
-        await runTransaction(db, async (transaction) => {
-            const docSnap = await transaction.get(docRef);
-            if (!docSnap.exists()) {
-                throw new Error("Document does not exist!");
-            }
-            const newViews = (docSnap.data().views || 0) + 1;
-            transaction.update(docRef, { views: newViews });
-        });
 
-        const updatedDoc = await getDoc(docRef);
-        if (!updatedDoc.exists()) {
+        // Fetch the article without incrementing views
+        // View tracking is now handled client-side by ViewTracker component
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) {
             return null;
         }
 
-        const data = updatedDoc.data();
+        const data = docSnap.data();
         // Check if the article is actually published
         if (data.status !== 'published') {
             const now = new Date();
@@ -90,7 +82,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
         }
         
         return {
-            slug: updatedDoc.id,
+            slug: docSnap.id,
             title: data.title,
             author: data.author,
             category: data.category,
@@ -98,7 +90,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
             status: data.status,
             image: data.image,
             content: data.content,
-            views: data.views || 0, // The updated view count
+            views: data.views || 0,
             comments: data.comments || [],
             viewHistory: data.viewHistory || [],
             likes: data.likes || 0,
