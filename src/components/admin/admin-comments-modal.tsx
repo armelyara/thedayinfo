@@ -9,10 +9,20 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle, User, Reply, ThumbsUp, Send } from 'lucide-react';
+import { MessageCircle, User, Reply, ThumbsUp, Send, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Comment } from '@/lib/data-types';
 import { getAuthorAvatarUrl } from '@/app/actions/author-avatar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface AdminCommentsModalProps {
   isOpen: boolean;
@@ -41,6 +51,8 @@ function CommentItem({
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   const handleReply = async () => {
@@ -67,7 +79,7 @@ function CommentItem({
       });
 
       if (!response.ok) throw new Error('Erreur lors de l\'ajout de la réponse');
-      
+
       onCommentsUpdate(updatedComments);
       setReplyText('');
       setShowReplyForm(false);
@@ -79,7 +91,50 @@ function CommentItem({
       setIsSubmitting(false);
     }
   };
-  
+
+  // Function to recursively get all child comment IDs
+  const getAllChildIds = (commentId: number): number[] => {
+    const children = allComments.filter(c => c.parentId === commentId);
+    const childIds = children.map(c => c.id);
+    const grandChildIds = children.flatMap(c => getAllChildIds(c.id));
+    return [...childIds, ...grandChildIds];
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      // Get all child comment IDs recursively
+      const idsToDelete = [comment.id, ...getAllChildIds(comment.id)];
+
+      // Filter out the comment and all its children
+      const updatedComments = allComments.filter(c => !idsToDelete.includes(c.id));
+
+      const response = await fetch(`/api/articles/${articleSlug}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comments: updatedComments }),
+      });
+
+      if (!response.ok) throw new Error('Erreur lors de la suppression');
+
+      onCommentsUpdate(updatedComments);
+      setShowDeleteDialog(false);
+
+      const deletedCount = idsToDelete.length;
+      toast({
+        title: 'Commentaire supprimé',
+        description: deletedCount > 1
+          ? `${deletedCount} commentaires supprimés (incluant les réponses)`
+          : 'Commentaire supprimé avec succès'
+      });
+
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer le commentaire' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const childComments = allComments.filter(c => c.parentId === comment.id);
 
   return (
@@ -111,6 +166,14 @@ function CommentItem({
                   Annuler
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDeleteDialog(true)}
+                className="flex items-center gap-1 h-auto p-0 hover:bg-transparent text-destructive hover:text-destructive"
+              >
+                <Trash2 className="w-3 h-3" /> Supprimer
+              </Button>
             </div>
           </div>
         </div>
@@ -142,6 +205,29 @@ function CommentItem({
           ))}
         </div>
       )}
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce commentaire ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {childComments.length > 0
+                ? `Ce commentaire a ${childComments.length} réponse(s). Toutes les réponses seront également supprimées. Cette action est irréversible.`
+                : 'Cette action est irréversible. Le commentaire sera définitivement supprimé.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Suppression...' : 'Supprimer'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
