@@ -1,6 +1,6 @@
 // src/app/api/articles/[slug]/comments/route.ts
 import { NextResponse } from 'next/server';
-import { updateArticleComments } from '@/lib/data-admin';
+import { updateArticleComments, getSubscriberByEmail } from '@/lib/data-admin';
 import type { Comment } from '@/lib/data-types';
 import { z } from 'zod';
 import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
@@ -15,6 +15,7 @@ const commentSchema = z.object({
   author: z.string().min(1, "Le nom est requis").max(100, "Le nom est trop long").trim(),
   text: z.string().min(1, "Le commentaire ne peut pas être vide").max(1000, "Le commentaire est trop long (max 1000 caractères)").trim(),
   avatar: z.string(),
+  email: z.string().email("Email invalide").trim(),
   parentId: z.number().nullable().optional(),
   likes: z.number().optional()
 });
@@ -74,15 +75,32 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     // 3. Valider chaque commentaire avec Zod
     const validatedComments: Comment[] = [];
-    
+
     for (const comment of comments) {
       try {
         // Valider avec Zod
         const validated = commentSchema.parse(comment);
-        
+
+        // IMPORTANT: Vérifier que l'email appartient à un abonné actif
+        // Exception: l'admin peut toujours commenter
+        const isAdmin = validated.email.toLowerCase() === 'admin@thedayinfo.com';
+
+        if (!isAdmin) {
+          const subscriber = await getSubscriberByEmail(validated.email.toLowerCase());
+          if (!subscriber || subscriber.status !== 'active') {
+            return NextResponse.json(
+              {
+                error: 'Vous devez être abonné pour commenter',
+                requiresSubscription: true
+              },
+              { status: 403 }
+            );
+          }
+        }
+
         // Sanitizer le texte
         const sanitizedText = sanitizeText(validated.text);
-        
+
         // Vérifier que le texte n'est pas vide après sanitization
         if (!sanitizedText || sanitizedText.length === 0) {
           return NextResponse.json(
@@ -90,13 +108,14 @@ export async function POST(request: Request, { params }: RouteParams) {
             { status: 400 }
           );
         }
-        
+
         // Ajouter le commentaire validé et nettoyé
         validatedComments.push({
           id: validated.id,
           author: validated.author.trim(),
           text: sanitizedText,
           avatar: validated.avatar,
+          email: validated.email.toLowerCase(),
           parentId: validated.parentId ?? null,
           likes: validated.likes ?? 0
         });

@@ -53,6 +53,7 @@ function CommentItem({
         author: 'Armel Yara',
         text: replyText.trim(),
         avatar: authorAvatarUrl, // ✅ Utiliser la vraie photo
+        email: 'admin@thedayinfo.com', // Admin email (auto-approved)
         parentId: comment.id,
         likes: 0,
       };
@@ -179,6 +180,7 @@ export function AdminCommentsModal({
         author: 'Armel Yara',
         text: globalComment.trim(),
         avatar: authorAvatarUrl, // ✅ Utiliser la vraie photo
+        email: 'admin@thedayinfo.com', // Admin email (auto-approved)
         likes: 0,
       };
 

@@ -10,6 +10,9 @@ import { Send, User, Reply, ThumbsUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Comment } from '@/lib/data-types';
 import { getAuthorAvatar, getAnonymousAuthorName } from '@/lib/avatar-utils';
+import { SubscriptionModal } from '@/components/newsletter/subscription-modal';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 interface PublicCommentsSectionProps {
@@ -44,6 +47,14 @@ function CommentThread({
       toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez remplir le champ de réponse' });
       return;
     }
+
+    // Get subscriber email from localStorage
+    const subscriberEmail = localStorage.getItem('subscriber-email');
+    if (!subscriberEmail) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Vous devez être abonné pour commenter' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const authorName = getAnonymousAuthorName();
@@ -52,6 +63,7 @@ function CommentThread({
         author: authorName,
         text: replyText.trim(),
         avatar: getAuthorAvatar(authorName),
+        email: subscriberEmail,
         parentId: comment.id,
         likes: 0
       };
@@ -164,18 +176,49 @@ function CommentThread({
   );
 }
 
-export function PublicCommentsSection({ 
-  articleSlug, 
-  comments, 
-  onCommentsUpdate 
+export function PublicCommentsSection({
+  articleSlug,
+  comments,
+  onCommentsUpdate
 }: PublicCommentsSectionProps) {
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentAuthor, setCurrentAuthor] = useState('');
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscriberEmail, setSubscriberEmail] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
     setCurrentAuthor(getAnonymousAuthorName());
+
+    // Check if user is subscribed
+    const checkSubscription = () => {
+      const email = localStorage.getItem('subscriber-email');
+      if (email) {
+        setIsSubscribed(true);
+        setSubscriberEmail(email);
+      }
+    };
+
+    checkSubscription();
+
+    // Listen for storage changes (in case user subscribes in another tab or after modal closes)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'subscriber-email' && e.newValue) {
+        setIsSubscribed(true);
+        setSubscriberEmail(e.newValue);
+      }
+    };
+
+    // Also set up a periodic check in case modal is in same window
+    const intervalId = setInterval(checkSubscription, 1000);
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(intervalId);
+    };
   }, []);
 
   const { rootComments, commentsByParent } = useMemo(() => {
@@ -196,6 +239,12 @@ export function PublicCommentsSection({
         toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez écrire un commentaire' });
         return;
     }
+
+    if (!subscriberEmail) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Vous devez être abonné pour commenter' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const authorName = getAnonymousAuthorName();
@@ -203,7 +252,8 @@ export function PublicCommentsSection({
         id: Date.now(),
         author: authorName,
         text: newComment.trim(),
-       avatar: getAuthorAvatar(authorName),
+        avatar: getAuthorAvatar(authorName),
+        email: subscriberEmail,
         likes: 0,
         parentId: null
       };
@@ -255,18 +305,43 @@ export function PublicCommentsSection({
       </div>
       <div className="border-t pt-8">
         <h4 className="font-semibold mb-2">Laisser un commentaire</h4>
-        <p className="text-sm text-muted-foreground mb-4">
-          Vous commentez en tant que : <span className="font-medium text-foreground">{currentAuthor}</span>
-        </p>
-        <form onSubmit={handleSubmitComment} className="space-y-4">
-          <div>
-            <Label htmlFor="newComment" className="sr-only">Votre commentaire</Label>
-            <Textarea id="newComment" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Partagez votre avis sur cet article..." rows={4} disabled={isSubmitting} className="mt-1" />
-          </div>
-          <Button type="submit" disabled={isSubmitting || !newComment.trim()}>
-            {isSubmitting ? 'Publication...' : <><Send className="w-4 h-4 mr-2" /> Publier le commentaire</>}
-          </Button>
-        </form>
+
+        {!isSubscribed ? (
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Abonnement requis</AlertTitle>
+            <AlertDescription className="space-y-4">
+              <p>
+                Vous devez être abonné à la newsletter pour laisser un commentaire.
+                L'abonnement est gratuit et vous permettra de participer aux discussions.
+              </p>
+              <SubscriptionModal />
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground mb-4">
+              Vous commentez en tant que : <span className="font-medium text-foreground">{currentAuthor}</span>
+            </p>
+            <form onSubmit={handleSubmitComment} className="space-y-4">
+              <div>
+                <Label htmlFor="newComment" className="sr-only">Votre commentaire</Label>
+                <Textarea
+                  id="newComment"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Partagez votre avis sur cet article..."
+                  rows={4}
+                  disabled={isSubmitting}
+                  className="mt-1"
+                />
+              </div>
+              <Button type="submit" disabled={isSubmitting || !newComment.trim()}>
+                {isSubmitting ? 'Publication...' : <><Send className="w-4 h-4 mr-2" /> Publier le commentaire</>}
+              </Button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );

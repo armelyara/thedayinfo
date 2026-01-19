@@ -14,6 +14,7 @@ export type Comment = {
     author: string;
     text: string;
     avatar: string;
+    email: string; // Email of the subscriber who posted the comment
     parentId?: number | null;
     likes?: number;
 };
