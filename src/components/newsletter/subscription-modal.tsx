@@ -58,9 +58,13 @@ export function SubscriptionModal() {
       }
 
       setIsSuccess(true);
+
+      // Store subscriber email in localStorage for comment validation
+      localStorage.setItem('subscriber-email', email.trim().toLowerCase());
+
       toast({
         title: 'Abonnement réussi !',
-        description: 'Vous recevrez désormais les notifications de nouveaux articles.',
+        description: 'Vous pouvez maintenant commenter les articles !',
       });
 
       setTimeout(() => {
