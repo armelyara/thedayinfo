@@ -1,0 +1,94 @@
+{
+  "common": {
+    "readMore": "Lire la suite",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "close": "Fermer",
+    "back": "Retour"
+  },
+  "nav": {
+    "home": "Accueil",
+    "blog": "Blog",
+    "about": "À propos",
+    "contact": "Contact"
+  },
+  "article": {
+    "views": "Vues",
+    "comments": "Commentaires",
+    "publishedOn": "Publié le",
+    "author": "Auteur",
+    "category": "Catégorie",
+    "noComments": "Aucun commentaire pour le moment. Soyez le premier à commenter !",
+    "leaveComment": "Laisser un commentaire",
+    "commentAs": "Vous commentez en tant que :",
+    "publishComment": "Publier le commentaire",
+    "publishing": "Publication...",
+    "reply": "Répondre",
+    "likes": "J'aime",
+    "statistics": "Statistiques de l'article",
+    "engagement": "Engagement des lecteurs avec cet article."
+  },
+  "subscription": {
+    "subscribe": "S'abonner",
+    "email": "Adresse email",
+    "subscribing": "Abonnement en cours...",
+    "success": "Abonnement réussi !",
+    "successDesc": "Vous pouvez maintenant commenter les articles !",
+    "newsletterTitle": "Abonnement Newsletter",
+    "newsletterDesc": "Votre abonnement vous permettra de ne recevoir que les mails de notification d'un nouvel article publié ou de la modification d'un ancien article déjà publié. Si vous êtes d'accord, veuillez inscrire votre email dans le champ ci-dessous.",
+    "stayInformed": "Restez informé",
+    "stayInformedDesc": "Recevez une notification par email à chaque nouvel article ou modification",
+    "required": "Abonnement requis",
+    "requiredDesc": "Vous devez être abonné à la newsletter pour laisser un commentaire. L'abonnement est gratuit et vous permettra de participer aux discussions.",
+    "mustSubscribe": "Vous devez être abonné pour commenter"
+  },
+  "comments": {
+    "title": "Commentaires",
+    "replyAdded": "Réponse ajoutée",
+    "commentAdded": "Commentaire ajouté",
+    "commentAddedDesc": "Votre commentaire a été publié",
+    "fillField": "Veuillez remplir le champ de réponse",
+    "writeComment": "Veuillez écrire un commentaire",
+    "yourComment": "Votre commentaire",
+    "yourReply": "Votre réponse",
+    "shareOpinion": "Partagez votre avis sur cet article...",
+    "replyPlaceholder": "Répondre...",
+    "cannotAdd": "Impossible d'ajouter le commentaire",
+    "cannotReply": "Impossible d'ajouter la réponse",
+    "deleteTitle": "Supprimer ce commentaire ?",
+    "deleteDesc": "Cette action est irréversible. Le commentaire sera définitivement supprimé.",
+    "deleteDescWithReplies": "Ce commentaire a {count} réponse(s). Toutes les réponses seront également supprimées. Cette action est irréversible.",
+    "deleted": "Commentaire supprimé",
+    "deletedDesc": "{count} commentaires supprimés (incluant les réponses)",
+    "deletedDescSingle": "Commentaire supprimé avec succès",
+    "cannotDelete": "Impossible de supprimer le commentaire",
+    "deleting": "Suppression..."
+  },
+  "admin": {
+    "commentsModal": "Commentaires - {title}",
+    "manageComments": "Gérez les commentaires de cet article ({count} commentaires)",
+    "postPublicComment": "Poster un commentaire public",
+    "writeForReaders": "Écrivez un commentaire pour tous les lecteurs...",
+    "publish": "Publier",
+    "sending": "Envoi..."
+  },
+  "feedback": {
+    "title": "Cet article vous a-t-il été utile ?",
+    "tellUs": "Faites-nous savoir ce que vous en pensez.",
+    "like": "J'aime",
+    "dislike": "Je n'aime pas",
+    "statsTitle": "Statistiques de l'article"
+  },
+  "ai": {
+    "summary": "Résumé IA",
+    "relatedContent": "Contenu connexe",
+    "generateSummary": "Générer un résumé",
+    "generating": "Génération en cours..."
+  }
+}

@@ -1,19 +1,34 @@
+import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { locales, defaultLocale } from './i18n';
+
+// Create the i18n middleware
+const intlMiddleware = createMiddleware({
+  locales,
+  defaultLocale,
+  localeDetection: true, // Automatically detect locale from browser
+  localePrefix: 'as-needed' // Don't add prefix for default locale (fr)
+});
 
 export function middleware(request: NextRequest) {
+  // First, handle i18n routing for non-API routes
+  if (!request.nextUrl.pathname.startsWith('/api/')) {
+    const intlResponse = intlMiddleware(request);
+
+    // If i18n middleware handled it (redirect), return that response
+    if (intlResponse && intlResponse.status !== 200) {
+      return intlResponse;
+    }
+  }
+
+  // Get the response (either from intl or create new)
   const response = NextResponse.next();
-  
-  // Exclude API routes from pathname header
+
+  // Add pathname header for non-API routes
   if (!request.nextUrl.pathname.startsWith('/api/')) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-next-pathname', request.nextUrl.pathname);
-    
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
   }
 
   // ========================================
