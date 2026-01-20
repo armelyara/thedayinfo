@@ -1,7 +1,7 @@
 // src/app/blog/[slug]/page.tsx
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { getArticleBySlug, getProfile } from '@/lib/data-client';
+import { getArticleBySlug, getProfile } from '@/lib/data-admin';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CalendarDays, User } from 'lucide-react';

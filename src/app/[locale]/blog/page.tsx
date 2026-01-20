@@ -1,4 +1,4 @@
-import { getPublishedArticles} from '@/lib/data-client';
+import { getPublishedArticles} from '@/lib/data-admin';
 import type { Article } from '@/lib/data-types';
 import { ArticleCard } from '@/components/article/article-card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';

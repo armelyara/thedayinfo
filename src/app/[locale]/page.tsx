@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, FolderGit2 } from 'lucide-react';
-import { getPublishedArticles, getProjects } from '@/lib/data-client';
+import { getPublishedArticles, getProjects } from '@/lib/data-admin';
 import { ArticleCard } from '@/components/article/article-card';
 import { ProjectCard } from '@/components/project/project-card';
 import type { Article, Project } from '@/lib/data-types';

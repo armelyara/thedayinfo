@@ -1,6 +1,6 @@
 // src/app/about/page.tsx
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getProfile } from '@/lib/data-client';
+import { getProfile } from '@/lib/data-admin';
 import { User } from 'lucide-react';
 
 export const revalidate = 3600; // Revalidate every hour

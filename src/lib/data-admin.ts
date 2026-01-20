@@ -556,6 +556,23 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
     }
 }
 
+export async function getProfile(): Promise<Profile | null> {
+    try {
+        const db = await getDb();
+        const docRef = db.collection('site-config').doc('profile');
+        const doc = await docRef.get();
+        
+        if (!doc.exists) {
+            return null;
+        }
+        
+        return doc.data() as Profile;
+    } catch (error) {
+        console.error('Error getting profile:', error);
+        return null;
+    }
+}
+
 export async function updateProfile(data: Partial<Profile>): Promise<Profile> {
     const db = await getDb();
     const docRef = db.collection('site-config').doc('profile');

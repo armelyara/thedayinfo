@@ -1,7 +1,7 @@
 // src/app/admin/profile/actions.ts
 'use server';
 
-import { getProfile } from '@/lib/data-client';
+import { getProfile } from '@/lib/data-admin';
 import { updateProfile } from '@/lib/data-admin';
 import type { Profile } from '@/lib/data-types';
 import { revalidatePath } from 'next/cache';
