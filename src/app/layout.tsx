@@ -36,10 +36,10 @@ export default function RootLayout({
 }>) {
   const headersList = headers();
   const pathname = headersList.get('x-next-pathname') || '';
-  
+
   // Détermine quel layout utiliser en fonction de la route
-  const isAdminRoute = pathname.startsWith('/admin') || pathname === '/login';
-  const isBlogRoute = pathname.startsWith('/blog');
+  const isAdminRoute = pathname.startsWith('/admin') || pathname === '/login' || pathname.includes('/admin') || pathname.includes('/login');
+  const isBlogRoute = pathname.startsWith('/blog') || pathname.includes('/blog');
 
   let layout;
   if (isAdminRoute) {
@@ -52,9 +52,9 @@ export default function RootLayout({
     // Le reste du site utilise le layout public simple avec le header horizontal
     layout = <SiteLayout>{children}</SiteLayout>;
   }
-  
+
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
