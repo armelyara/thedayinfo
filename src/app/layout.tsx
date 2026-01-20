@@ -1,5 +1,5 @@
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -12,11 +12,15 @@ import { ThemeProvider } from '@/components/layout/theme-provider';
 export const metadata: Metadata = {
   title: 'The Day Info',
   description: "Résoudre des problèmes par la technologie. Promoteur du dev.",
+};
+
+export const viewport: Viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: 'white' },
     { media: '(prefers-color-scheme: dark)', color: 'black' },
   ],
 };
+
 
 // Layout pour les pages publiques sans sidebar (accueil, projets, etc.)
 function SiteLayout({ children }: { children: React.ReactNode }) {
