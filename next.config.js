@@ -1,4 +1,11 @@
-const withNextIntl = require('next-intl/plugin')('./src/i18n.ts');
+// Try to load next-intl plugin, but gracefully handle if not installed yet
+let withNextIntl;
+try {
+  withNextIntl = require('next-intl/plugin')('./src/i18n.ts');
+} catch (error) {
+  console.warn('next-intl plugin not available yet, using default config');
+  withNextIntl = (config) => config;
+}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
