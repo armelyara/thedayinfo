@@ -4,8 +4,6 @@
 import { Resend } from 'resend';
 import type { Article, Subscriber } from './data-types';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 /**
  * Envoie une notification par email aux abonnés actifs concernant un nouvel article ou une mise à jour.
  * @param article L'objet article concerné.
@@ -21,6 +19,9 @@ export async function sendNewsletterNotification(
     console.warn("RESEND_API_KEY non configurée. Impossible d'envoyer la newsletter.");
     return;
   }
+
+  // Initialize Resend at runtime, not at module load time
+  const resend = new Resend(process.env.RESEND_API_KEY);
   
   if (!article || !article.title || !article.slug) {
     console.error("Données de l'article invalides pour la newsletter.");
