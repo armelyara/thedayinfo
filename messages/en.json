@@ -1,0 +1,94 @@
+{
+  "common": {
+    "readMore": "Read more",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "save": "Save",
+    "close": "Close",
+    "back": "Back"
+  },
+  "nav": {
+    "home": "Home",
+    "blog": "Blog",
+    "about": "About",
+    "contact": "Contact"
+  },
+  "article": {
+    "views": "Views",
+    "comments": "Comments",
+    "publishedOn": "Published on",
+    "author": "Author",
+    "category": "Category",
+    "noComments": "No comments yet. Be the first to comment!",
+    "leaveComment": "Leave a comment",
+    "commentAs": "You are commenting as:",
+    "publishComment": "Publish comment",
+    "publishing": "Publishing...",
+    "reply": "Reply",
+    "likes": "Likes",
+    "statistics": "Article statistics",
+    "engagement": "Reader engagement with this article."
+  },
+  "subscription": {
+    "subscribe": "Subscribe",
+    "email": "Email address",
+    "subscribing": "Subscribing...",
+    "success": "Successfully subscribed!",
+    "successDesc": "You can now comment on articles!",
+    "newsletterTitle": "Newsletter Subscription",
+    "newsletterDesc": "Your subscription will allow you to receive notifications when a new article is published or an existing article is modified. If you agree, please enter your email in the field below.",
+    "stayInformed": "Stay informed",
+    "stayInformedDesc": "Receive an email notification for each new article or modification",
+    "required": "Subscription required",
+    "requiredDesc": "You must be subscribed to the newsletter to leave a comment. Subscription is free and will allow you to participate in discussions.",
+    "mustSubscribe": "You must be subscribed to comment"
+  },
+  "comments": {
+    "title": "Comments",
+    "replyAdded": "Reply added",
+    "commentAdded": "Comment added",
+    "commentAddedDesc": "Your comment has been published",
+    "fillField": "Please fill in the reply field",
+    "writeComment": "Please write a comment",
+    "yourComment": "Your comment",
+    "yourReply": "Your reply",
+    "shareOpinion": "Share your thoughts on this article...",
+    "replyPlaceholder": "Reply...",
+    "cannotAdd": "Unable to add comment",
+    "cannotReply": "Unable to add reply",
+    "deleteTitle": "Delete this comment?",
+    "deleteDesc": "This action is irreversible. The comment will be permanently deleted.",
+    "deleteDescWithReplies": "This comment has {count} reply(ies). All replies will also be deleted. This action is irreversible.",
+    "deleted": "Comment deleted",
+    "deletedDesc": "{count} comments deleted (including replies)",
+    "deletedDescSingle": "Comment successfully deleted",
+    "cannotDelete": "Unable to delete comment",
+    "deleting": "Deleting..."
+  },
+  "admin": {
+    "commentsModal": "Comments - {title}",
+    "manageComments": "Manage comments for this article ({count} comments)",
+    "postPublicComment": "Post a public comment",
+    "writeForReaders": "Write a comment for all readers...",
+    "publish": "Publish",
+    "sending": "Sending..."
+  },
+  "feedback": {
+    "title": "Was this article helpful?",
+    "tellUs": "Let us know what you think.",
+    "like": "Like",
+    "dislike": "Dislike",
+    "statsTitle": "Article statistics"
+  },
+  "ai": {
+    "summary": "AI Summary",
+    "relatedContent": "Related content",
+    "generateSummary": "Generate summary",
+    "generating": "Generating..."
+  }
+}
