@@ -1,28 +1,7 @@
-import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { locales, defaultLocale } from './i18n';
-
-// Create the i18n middleware
-const intlMiddleware = createMiddleware({
-  locales,
-  defaultLocale,
-  localeDetection: true, // Automatically detect locale from browser
-  localePrefix: 'as-needed' // Don't add prefix for default locale (fr)
-});
 
 export function middleware(request: NextRequest) {
-  // First, handle i18n routing for non-API routes
-  if (!request.nextUrl.pathname.startsWith('/api/')) {
-    const intlResponse = intlMiddleware(request);
-
-    // If i18n middleware handled it (redirect), return that response
-    if (intlResponse && intlResponse.status !== 200) {
-      return intlResponse;
-    }
-  }
-
-  // Get the response (either from intl or create new)
   const response = NextResponse.next();
 
   // Add pathname header for non-API routes
@@ -34,7 +13,7 @@ export function middleware(request: NextRequest) {
   // ========================================
   // HEADERS DE SÉCURITÉ POUR TOUTES LES ROUTES
   // ========================================
-  
+
   // 1. Content Security Policy (CSP)
   // Protège contre les attaques XSS en contrôlant les sources de contenu autorisées
   const cspHeader = `
@@ -49,31 +28,31 @@ export function middleware(request: NextRequest) {
     frame-ancestors 'none';
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, ' ').trim();
-  
+
   response.headers.set('Content-Security-Policy', cspHeader);
-  
+
   // 2. X-Frame-Options
   // Empêche le site d'être chargé dans une iframe (protection contre le clickjacking)
   response.headers.set('X-Frame-Options', 'DENY');
-  
+
   // 3. X-Content-Type-Options
   // Empêche le navigateur de deviner le type MIME
   response.headers.set('X-Content-Type-Options', 'nosniff');
-  
+
   // 4. Referrer-Policy
   // Contrôle les informations de referrer envoyées
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
+
   // 5. Permissions-Policy
   // Désactive les fonctionnalités du navigateur non nécessaires
   response.headers.set(
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=(), interest-cohort=()'
   );
-  
+
   // 6. X-XSS-Protection (pour les vieux navigateurs)
   response.headers.set('X-XSS-Protection', '1; mode=block');
-  
+
   // 7. Strict-Transport-Security (HSTS)
   // Force l'utilisation de HTTPS (seulement en production)
   if (process.env.NODE_ENV === 'production') {
