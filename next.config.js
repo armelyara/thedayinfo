@@ -1,3 +1,4 @@
+
 // Try to load next-intl plugin, but gracefully handle if not installed yet
 let withNextIntl;
 try {
@@ -65,12 +66,29 @@ const nextConfig = {
     ]
   },
 
-  // Exclure les modules admin du bundle client
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
+    // Enable WebAssembly
+    config.experiments = { ...config.experiments, asyncWebAssembly: true };
+
+    // Add rule to handle wasm modules
+    config.module.rules.push({
+      test: /\.wasm$/,
+      type: 'webassembly/async',
+    });
+
+    // Handle node: schema by stripping the 'node:' prefix
+    config.plugins.push(
+      new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+        resource.request = resource.request.replace(/^node:/, '');
+      })
+    );
+
+    // Exclude firebase-admin from the client bundle and polyfill process
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         'firebase-admin': false,
+        'process': require.resolve('process/browser'),
       };
     }
     return config;
