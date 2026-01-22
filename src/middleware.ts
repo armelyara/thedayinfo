@@ -1,6 +1,6 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
-import { verifySession } from './lib/auth';
 import { locales, defaultLocale } from './i18n';
 
 const intlMiddleware = createMiddleware({
@@ -10,24 +10,37 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'as-needed'
 });
 
+async function checkAuth(request: NextRequest) {
+    const sessionCookie = request.cookies.get('session')?.value;
+    if (!sessionCookie) return { isAuthenticated: false };
+
+    const url = new URL('/api/auth-check', request.url);
+    const response = await fetch(url.toString(), {
+        method: 'POST',
+        body: sessionCookie,
+    });
+
+    if (response.ok) {
+        const { isUserAuthenticated } = await response.json();
+        return { isAuthenticated: isUserAuthenticated };
+    } else {
+        return { isAuthenticated: false };
+    }
+}
+
 export async function middleware(request: NextRequest) {
-  // Run i18n middleware
   const i18nResponse = intlMiddleware(request);
 
-  // Check for session
-  const sessionCookie = request.cookies.get('session')?.value;
-  const decodedToken = sessionCookie ? await verifySession(sessionCookie) : null;
-  const isUserAuthenticated = !!decodedToken;
-  const { pathname } = request.nextUrl;
+  const { isAuthenticated } = await checkAuth(request);
 
+  const { pathname } = request.nextUrl;
   const isAdminRoute = new RegExp(`^/(${locales.join('|')})?/admin`).test(pathname);
   const isLoginPage = new RegExp(`^/(${locales.join('|')})?/login`).test(pathname);
 
-  // Auth redirects
-  if (isUserAuthenticated && isLoginPage) {
+  if (isAuthenticated && isLoginPage) {
     return NextResponse.redirect(new URL('/admin', request.url));
   }
-  if (!isUserAuthenticated && isAdminRoute) {
+  if (!isAuthenticated && isAdminRoute) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
@@ -38,7 +51,7 @@ export async function middleware(request: NextRequest) {
   }
   
   const response = i18nResponse;
-  
+
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com;
@@ -68,6 +81,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)'
+    '/((?!api|_next/static|_next/image|favicon.ico).*?)'
   ]
 };

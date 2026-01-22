@@ -1,22 +1,13 @@
 
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { NextResponse, type NextRequest } from 'next/server';
 import { verifySession } from '@/lib/auth';
 
-export async function GET() {
-  const sessionCookie = (await cookies()).get('session')?.value;
-
-  if (!sessionCookie) {
-    return NextResponse.json({ authenticated: false }, { status: 401 });
+export async function POST(request: NextRequest) {
+  const session = await request.text();
+  if (!session) {
+    return NextResponse.json({ isUserAuthenticated: false }, { status: 400 });
   }
-
-  try {
-    const decodedClaims = await verifySession(sessionCookie);
-    if (decodedClaims) {
-      return NextResponse.json({ authenticated: true });
-    }
-    return NextResponse.json({ authenticated: false }, { status: 401 });
-  } catch (error) {
-    return NextResponse.json({ authenticated: false }, { status: 401 });
-  }
+  const decodedToken = await verifySession(session);
+  const isUserAuthenticated = !!decodedToken;
+  return NextResponse.json({ isUserAuthenticated, decodedToken });
 }

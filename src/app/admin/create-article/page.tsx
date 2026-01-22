@@ -21,7 +21,7 @@ import { categories } from '@/components/layout/main-layout';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { SaveStatus } from '@/components/admin/save-status';
-import { saveDraftActionServer, saveArticleAction } from './actions';
+import { saveDraftActionServer, saveArticleAction } from './action';
 import { useState, useEffect, useCallback } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
