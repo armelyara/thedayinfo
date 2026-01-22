@@ -89,6 +89,7 @@ const nextConfig = {
         ...config.resolve.fallback,
         'firebase-admin': false,
         'process': require.resolve('process/browser'),
+        'stream': require.resolve('stream-browserify'),
       };
     }
     return config;
