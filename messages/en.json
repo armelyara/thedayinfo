@@ -1,0 +1,47 @@
+{
+    "Navigation": {
+        "home": "Home",
+        "blog": "Blog",
+        "projects": "Projects",
+        "about": "About",
+        "contact": "Contact",
+        "admin": "Admin",
+        "login": "Login",
+        "logout": "Logout",
+        "profile": "Profile"
+    },
+    "HomePage": {
+        "title": "Welcome to The Day Info",
+        "description": "Real-time technology news.",
+        "readMore": "Read more",
+        "latestArticles": "Latest articles"
+    },
+    "Footer": {
+        "rights": "All rights reserved.",
+        "privacy": "Privacy Policy",
+        "legal": "Legal Notice"
+    },
+    "Admin": {
+        "dashboard": "Dashboard",
+        "articles": "Articles",
+        "users": "Users",
+        "settings": "Settings",
+        "createArticle": "New Article"
+    },
+    "Auth": {
+        "signInTitle": "Sign In",
+        "emailLabel": "Email",
+        "passwordLabel": "Password",
+        "submitButton": "Login",
+        "error": "Authentication error"
+    },
+    "Common": {
+        "loading": "Loading...",
+        "error": "An error occurred",
+        "success": "Success",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit"
+    }
+}

@@ -1,0 +1,47 @@
+{
+    "Navigation": {
+        "home": "Accueil",
+        "blog": "Blog",
+        "projects": "Projets",
+        "about": "À propos",
+        "contact": "Contact",
+        "admin": "Admin",
+        "login": "Connexion",
+        "logout": "Déconnexion",
+        "profile": "Profil"
+    },
+    "HomePage": {
+        "title": "Bienvenue sur The Day Info",
+        "description": "L'actualité technologique en temps réel.",
+        "readMore": "Lire la suite",
+        "latestArticles": "Derniers articles"
+    },
+    "Footer": {
+        "rights": "Tous droits réservés.",
+        "privacy": "Politique de confidentialité",
+        "legal": "Mentions légales"
+    },
+    "Admin": {
+        "dashboard": "Tableau de bord",
+        "articles": "Articles",
+        "users": "Utilisateurs",
+        "settings": "Paramètres",
+        "createArticle": "Nouvel Article"
+    },
+    "Auth": {
+        "signInTitle": "Se connecter",
+        "emailLabel": "Email",
+        "passwordLabel": "Mot de passe",
+        "submitButton": "Connexion",
+        "error": "Erreur d'authentification"
+    },
+    "Common": {
+        "loading": "Chargement...",
+        "error": "Une erreur est survenue",
+        "success": "Succès",
+        "save": "Enregistrer",
+        "cancel": "Annuler",
+        "delete": "Supprimer",
+        "edit": "Modifier"
+    }
+}
