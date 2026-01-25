@@ -46,15 +46,18 @@ export function middleware(request: NextRequest) {
   // On applique les headers sur la réponse générée par next-intl
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com;
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com https://apis.google.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' blob: data: https: firebasestorage.googleapis.com;
     font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
+    frame-src 'self' https://accounts.google.com;
     frame-ancestors 'none';
+    connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com;
     upgrade-insecure-requests;
+
   `.replace(/\s{2,}/g, ' ').trim();
 
   response.headers.set('Content-Security-Policy', cspHeader);
