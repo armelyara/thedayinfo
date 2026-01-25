@@ -1,18 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
-
-// Assurez-vous que ces valeurs correspondent à votre src/i18n.ts ou src/navigation.ts
-const locales = ['fr', 'en'];
-const defaultLocale = 'fr';
+import { routing } from './routing';
 
 // Initialisation du middleware next-intl
-const intlMiddleware = createMiddleware({
-  locales,
-  defaultLocale,
-  localeDetection: true,
-  localePrefix: 'as-needed'
-});
+const intlMiddleware = createMiddleware(routing);
+
 
 export function middleware(request: NextRequest) {
   // 1. Exécuter le middleware d'internationalisation en premier
@@ -28,12 +21,13 @@ export function middleware(request: NextRequest) {
 
   // Regex pour détecter les routes admin, peu importe la locale (/fr/admin ou /admin)
   // On échappe les locales pour la regex
-  const localesPattern = locales.join('|');
+  const localesPattern = routing.locales.join('|');
   const isAdminRoute = new RegExp(`^(/(${localesPattern}))?/admin`).test(pathname);
   const isLoginPage = new RegExp(`^(/(${localesPattern}))?/login`).test(pathname);
 
   // Déterminer la locale actuelle pour les redirections
-  const currentLocale = locales.find(l => pathname.startsWith(`/${l}`)) || defaultLocale;
+  const currentLocale = routing.locales.find(l => pathname.startsWith(`/${l}`)) || routing.defaultLocale;
+
 
   // CAS 1: Tentative d'accès Admin sans être connecté -> Login
   if (isAdminRoute && !isAuthenticated) {
