@@ -53,10 +53,11 @@ export function middleware(request: NextRequest) {
     object-src 'none';
     base-uri 'self';
     form-action 'self';
-    frame-src 'self' https://accounts.google.com;
+    frame-src 'self' https://accounts.google.com https://*.firebaseapp.com;
     frame-ancestors 'none';
     connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com;
     upgrade-insecure-requests;
+
 
   `.replace(/\s{2,}/g, ' ').trim();
 

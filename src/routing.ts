@@ -1,13 +1,13 @@
 import { defineRouting } from 'next-intl/routing';
+import { createNavigation } from 'next-intl/navigation';
 
 export const routing = defineRouting({
-    // A list of all locales that are supported
+    // Vos langues supportées
     locales: ['fr', 'en'],
-
-    // Used when no locale matches
     defaultLocale: 'fr',
-
-    // Optional: The default locale prefix is 'as-needed' which avoids
-    // /fr/... and simply uses /... for the default locale
     localePrefix: 'as-needed'
 });
+
+// Helpers de navigation typés
+export const { Link, redirect, usePathname, useRouter, getPathname } =
+    createNavigation(routing);
