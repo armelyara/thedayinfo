@@ -20,10 +20,10 @@ let auth: any;
 let storage: any;
 
 // Check if we're in browser and have valid config
+// Check if we have valid config
 const isValidConfig = firebaseConfig.apiKey && firebaseConfig.projectId;
-const isBrowser = typeof window !== 'undefined';
 
-if (isBrowser && isValidConfig) {
+if (isValidConfig) {
   try {
     app = getApp();
   } catch (e) {
@@ -31,13 +31,21 @@ if (isBrowser && isValidConfig) {
   }
 
   db = getFirestore(app);
-  auth = getAuth(app);
-  storage = getStorage(app);
+  // Auth and Storage might have issues in Node.js without polyfills, but Firestore usually works.
+  // We wrap them in try-catch to be safe or just initialize them. 
+  // For server-side rendering of public content, we mostly need db.
+  try {
+    auth = getAuth(app);
+    storage = getStorage(app);
+  } catch (e) {
+    console.warn('Auth/Storage init failed (expected on server):', e);
+  }
 } else {
   // During build or when config is missing, export undefined
-  // This prevents initialization errors during Next.js build
-  console.warn('Firebase client not initialized - missing config or not in browser');
+  console.warn('Firebase client not initialized - missing config.');
+  console.warn('Config:', JSON.stringify(firebaseConfig, null, 2));
 }
+
 
 // Asynchrone pour être cohérent, même si elle ne fait rien
 export async function initializeFirebaseClient() {

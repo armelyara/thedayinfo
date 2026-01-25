@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, FolderGit2 } from 'lucide-react';
 import { getPublishedArticles, getProjects } from '@/lib/data-client';
+
+
 import { ArticleCard } from '@/components/article/article-card';
 import { ProjectCard } from '@/components/project/project-card';
 import type { Article, Project } from '@/lib/data-types';
@@ -18,8 +20,8 @@ async function getRecentArticles(): Promise<Article[]> {
 }
 
 async function getFeaturedProjects(): Promise<Project[]> {
-    const allProjects = await getProjects();
-    return allProjects.slice(0, 3);
+  const allProjects = await getProjects();
+  return allProjects.slice(0, 3);
 }
 
 export default async function HomePage() {
@@ -83,7 +85,7 @@ export default async function HomePage() {
           </div>
         </section>
       )}
-      
+
       {/* Recent Articles Section */}
       {recentArticles.length > 0 && (
         <section id="blog" className="w-full py-12 md:py-24 lg:py-32">
