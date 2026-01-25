@@ -2,12 +2,15 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifySession } from '@/lib/auth';
 
-export async function POST(request: NextRequest) {
-  const session = await request.text();
+export async function GET(request: NextRequest) {
+  const session = request.cookies.get('session')?.value;
+
   if (!session) {
-    return NextResponse.json({ isUserAuthenticated: false }, { status: 400 });
+    return NextResponse.json({ authenticated: false });
   }
+
   const decodedToken = await verifySession(session);
-  const isUserAuthenticated = !!decodedToken;
-  return NextResponse.json({ isUserAuthenticated, decodedToken });
+  const authenticated = !!decodedToken;
+
+  return NextResponse.json({ authenticated, decodedToken });
 }
