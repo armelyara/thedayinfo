@@ -1,6 +1,6 @@
 
 import type { Metadata, Viewport } from 'next';
-import './globals.css';
+import '../globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { MainLayout } from '@/components/layout/main-layout';
 import { SiteHeader } from '@/components/layout/site-header';
@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/footer';
 import { cn } from '@/lib/utils';
 import { headers } from 'next/headers';
 import { ThemeProvider } from '@/components/layout/theme-provider';
+import { NextIntlClientProvider, useMessages } from 'next-intl';
 
 export const metadata: Metadata = {
   title: 'The Day Info',
@@ -33,13 +34,16 @@ function SiteLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function RootLayout({
+export default function LocaleLayout({
   children,
+  params: { locale }
 }: Readonly<{
   children: React.ReactNode;
+  params: { locale: string };
 }>) {
   const headersList = headers();
   const pathname = headersList.get('x-next-pathname') || '';
+  const messages = useMessages();
 
   // Détermine quel layout utiliser en fonction de la route
   const isAdminRoute = pathname.startsWith('/admin') || pathname === '/login' || pathname.includes('/admin') || pathname.includes('/login');
@@ -58,7 +62,7 @@ export default function RootLayout({
   }
 
   return (
-    <html suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -73,15 +77,17 @@ export default function RootLayout({
           'font-body'
         )}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {layout}
-          <Toaster />
-        </ThemeProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {layout}
+            <Toaster />
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
