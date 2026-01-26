@@ -1,8 +1,7 @@
-
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-import { getStorage } from "firebase/storage";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getAuth, Auth } from "firebase/auth";
+import { getStorage, FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,41 +12,33 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Only initialize Firebase in browser environment and when config is valid
-let app: any;
-let db: any;
-let auth: any;
-let storage: any;
+// CORRECTION : Ajout des types explicites pour éviter l'erreur "implicitly has an 'any' type"
+let app: FirebaseApp | undefined;
+let db: Firestore | undefined;
+let auth: Auth | undefined;
+let storage: FirebaseStorage | undefined;
 
-// Check if we're in browser and have valid config
-// Check if we have valid config
 const isValidConfig = firebaseConfig.apiKey && firebaseConfig.projectId;
 
+// MODIFICATION MAJEURE : On a retiré "isBrowser" de la condition
+// Next.js a besoin de Firebase sur le serveur pour le SSR
 if (isValidConfig) {
   try {
-    app = getApp();
-  } catch (e) {
-    app = initializeApp(firebaseConfig);
-  }
-
-  db = getFirestore(app);
-  // Auth and Storage might have issues in Node.js without polyfills, but Firestore usually works.
-  // We wrap them in try-catch to be safe or just initialize them. 
-  // For server-side rendering of public content, we mostly need db.
-  try {
+    // Singleton : On réutilise l'app si elle existe déjà
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    db = getFirestore(app);
     auth = getAuth(app);
     storage = getStorage(app);
   } catch (e) {
-    console.warn('Auth/Storage init failed (expected on server):', e);
+    console.error('Erreur initialisation Firebase:', e);
   }
 } else {
-  // During build or when config is missing, export undefined
-  console.warn('Firebase client not initialized - missing config.');
-  console.warn('Config:', JSON.stringify(firebaseConfig, null, 2));
+  // Warning seulement en dev pour ne pas polluer les logs de build
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('⚠️ Config Firebase manquante ou incomplète dans .env.local');
+  }
 }
 
-
-// Asynchrone pour être cohérent, même si elle ne fait rien
 export async function initializeFirebaseClient() {
   return app;
 }
