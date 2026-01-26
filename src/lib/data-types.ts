@@ -18,13 +18,13 @@ export type Comment = {
     parentId?: number | null;
     likes?: number;
 };
-  
+
 export type ViewHistory = {
     date: string;
     views: number;
-    
+
 };
-  
+
 export type ArticleImage = {
     src: string;
     alt: string;
@@ -34,12 +34,14 @@ export type ArticleImage = {
 export type Article = {
     slug: string;
     title: string;
+    title_en?: string; // Titre en anglais (optionnel)
     author: string;
     category: string;
     publishedAt: string;
     status: 'published'; // Un article publié est toujours 'published'
     image: ArticleImage;
     content: string;
+    content_en?: string; // Contenu en anglais (optionnel)
     views: number;
     comments: Comment[];
     viewHistory: ViewHistory[];
@@ -58,8 +60,8 @@ export type Subscriber = {
     status: 'active' | 'inactive' | 'unsubscribed';
     unsubscribeToken?: string; // ← Ajouter ce champ
     preferences?: {
-      frequency: 'daily' | 'weekly' | 'monthly' | 'immediate';
-      categories: string[];
+        frequency: 'daily' | 'weekly' | 'monthly' | 'immediate';
+        categories: string[];
     };
 };
 
@@ -74,14 +76,17 @@ export type Draft = {
     lastSaved: string;
     createdAt: string;
     status: 'draft' | 'scheduled'; // Statut au sein des brouillons
-    originalArticleSlug?: string; 
+    originalArticleSlug?: string;
 };
 
 export type Project = {
     slug: string;
     title: string;
+    title_en?: string; // Titre en anglais
     description: string; // Description courte pour la card
+    description_en?: string; // Description courte en anglais
     fullDescription: string; // Description complète pour /projets/[slug]
+    fullDescription_en?: string; // Description complète en anglais
     image: ArticleImage;
     technologies: string[]; // ["Next.js", "Firebase", "TensorFlow"]
     status: 'terminé' | 'en-cours' | 'maintenance';

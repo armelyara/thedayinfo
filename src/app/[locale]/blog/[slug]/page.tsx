@@ -15,15 +15,16 @@ import ViewTracker from '@/components/article/view-tracker';
 type ArticlePageProps = {
   params: Promise<{
     slug: string;
+    locale: string;
   }>;
 };
 
 export const revalidate = 0;
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
-  const { slug } = await params;
+  const { slug, locale } = await params;
   const article = await getArticleBySlug(slug);
-  
+
   // Récupérer le profil pour obtenir la vraie photo de l'auteur
   const profile = await getProfile();
 
@@ -31,9 +32,14 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     notFound();
   }
 
+  // Logique de traduction du contenu
+  const isEnglish = locale === 'en';
+  const displayTitle = (isEnglish && article.title_en) ? article.title_en : article.title;
+  const displayContent = (isEnglish && article.content_en) ? article.content_en : article.content;
+
   // Utiliser la photo du profil si l'auteur est "Armel Yara"
-  const authorAvatar = article.author === 'Armel Yara' && profile?.imageUrl 
-    ? profile.imageUrl 
+  const authorAvatar = article.author === 'Armel Yara' && profile?.imageUrl
+    ? profile.imageUrl
     : '/default-avatar.png';
 
   return (
@@ -44,7 +50,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       <header className="mb-8">
         <Badge variant="secondary" className="mb-4">{article.category}</Badge>
         <h1 className="text-4xl font-headline font-extrabold tracking-tight lg:text-5xl mb-4">
-          {article.title}
+          {displayTitle}
         </h1>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
@@ -82,22 +88,22 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       </div>
 
       <div className="prose prose-lg dark:prose-invert max-w-none mb-12"
-           dangerouslySetInnerHTML={{ __html: article.content }} />
+        dangerouslySetInnerHTML={{ __html: displayContent }} />
 
       <section className="space-y-12">
-        <AiSummary articleContent={article.content} />
-        
+        <AiSummary articleContent={displayContent} />
+
         <RelatedContent
-          currentArticleTitle={article.title}
-          articleContent={article.content}
+          currentArticleTitle={displayTitle}
+          articleContent={displayContent}
         />
-        
+
         <Feedback
           articleSlug={article.slug}
           initialViews={article.views}
           initialComments={article.comments || []}
         />
-        
+
         {/* Section d'abonnement newsletter */}
         <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg text-center border">
           <h3 className="text-lg font-semibold mb-2">📧 Restez informé</h3>
@@ -106,9 +112,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </p>
           <SubscriptionModal />
         </div>
-        
+
         {/* Section des commentaires publics - Wrapper client */}
-        <ArticleClientWrapper 
+        <ArticleClientWrapper
           articleSlug={article.slug}
           initialComments={article.comments || []}
         />
