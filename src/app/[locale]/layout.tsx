@@ -8,7 +8,7 @@ import { Footer } from '@/components/layout/footer';
 import { cn } from '@/lib/utils';
 import { headers } from 'next/headers';
 import { ThemeProvider } from '@/components/layout/theme-provider';
-import { NextIntlClientProvider, useMessages } from 'next-intl';
+import { NextIntlClientProvider } from 'next-intl';
 
 export const metadata: Metadata = {
   title: 'The Day Info',
@@ -34,16 +34,19 @@ function SiteLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function LocaleLayout({
+import { getMessages } from 'next-intl/server';
+
+export default async function LocaleLayout({
   children,
   params: { locale }
 }: Readonly<{
   children: React.ReactNode;
   params: { locale: string };
 }>) {
+  console.log('[LocaleLayout] Start rendering layout', { locale });
   const headersList = headers();
   const pathname = headersList.get('x-next-pathname') || '';
-  const messages = useMessages();
+  const messages = await getMessages();
 
   // Détermine quel layout utiliser en fonction de la route
   const isAdminRoute = pathname.startsWith('/admin') || pathname === '/login' || pathname.includes('/admin') || pathname.includes('/login');

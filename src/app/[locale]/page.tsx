@@ -25,8 +25,17 @@ async function getFeaturedProjects(): Promise<Project[]> {
 }
 
 export default async function HomePage() {
-  const recentArticles = await getRecentArticles();
-  const featuredProjects = await getFeaturedProjects();
+  console.log('[HomePage] Start rendering');
+  console.log('[HomePage] Fetching recent articles...');
+  // const recentArticles = await getRecentArticles();
+  const recentArticles = [];
+  console.log(`[HomePage] Fetched ${recentArticles.length} articles`);
+
+  console.log('[HomePage] Fetching featured projects...');
+  // const featuredProjects = await getFeaturedProjects();
+  const featuredProjects = [];
+  console.log(`[HomePage] Fetched ${featuredProjects.length} projects`);
+
 
   return (
     <div className="flex flex-1 flex-col">

@@ -7,7 +7,3 @@ export const routing = defineRouting({
     defaultLocale: 'fr',
     localePrefix: 'as-needed'
 });
-
-// Helpers de navigation typés
-export const { Link, redirect, usePathname, useRouter, getPathname } =
-    createNavigation(routing);
