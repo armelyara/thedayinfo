@@ -35,7 +35,22 @@
     "Footer": {
         "rights": "Tous droits réservés.",
         "privacy": "Politique de confidentialité",
-        "legal": "Mentions légales"
+        "legal": "Mentions légales",
+        "navigationTitle": "Navigation",
+        "legalTitle": "Légal",
+        "contactTitle": "Contact & Newsletter",
+        "subscribeText": "Abonnez-vous pour recevoir les dernières nouvelles."
+    },
+    "BlogPage": {
+        "title": "The Day Info - Le Blog",
+        "subtitle": "Votre dose quotidienne d'information, organisée pour les esprits curieux.",
+        "emptyState": "Aucun article publié pour le moment. Revenez bientôt !",
+        "loadingError": "Erreur de chargement",
+        "dbError": "Erreur de Configuration de la Base de Données"
+    },
+    "ProjectsPage": {
+        "title": "Mes Projets",
+        "subtitle": "Voici une sélection de projets sur lesquels j'ai travaillé, allant de plateformes web complexes à des outils d'IA."
     },
     "Admin": {
         "dashboard": "Tableau de bord",
@@ -58,6 +73,7 @@
         "save": "Enregistrer",
         "cancel": "Annuler",
         "delete": "Supprimer",
-        "edit": "Modifier"
+        "edit": "Modifier",
+        "readMore": "Lire la suite"
     }
 }

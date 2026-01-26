@@ -1,9 +1,10 @@
-import { getPublishedArticles} from '@/lib/data-client';
+import { getPublishedArticles } from '@/lib/data-client';
 import type { Article } from '@/lib/data-types';
 import { ArticleCard } from '@/components/article/article-card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 
 export const revalidate = 3600; // Revalidate every hour
 
@@ -28,13 +29,13 @@ const MissingIndexError = ({ message }: { message: string }) => {
             Une fois l'index créé, cette page fonctionnera correctement.
           </p>
         )}
-         {url ? (
-            <a href={url} target="_blank" rel="noopener noreferrer" className="font-medium text-destructive-foreground hover:underline mt-4 block break-all">
-             Créer l'Index Firestore
-            </a>
-          ) : (
-            <p className='mt-2 break-all'>{message}</p>
-          )}
+        {url ? (
+          <a href={url} target="_blank" rel="noopener noreferrer" className="font-medium text-destructive-foreground hover:underline mt-4 block break-all">
+            Créer l'Index Firestore
+          </a>
+        ) : (
+          <p className='mt-2 break-all'>{message}</p>
+        )}
       </AlertDescription>
     </Alert>
   );
@@ -42,7 +43,8 @@ const MissingIndexError = ({ message }: { message: string }) => {
 
 export default async function BlogHomePage() {
   const articlesResult = await getPublishedArticles();
-  
+  const t = await getTranslations('BlogPage');
+
   // Type guard pour vérifier si c'est une erreur
   const isErrorResult = (result: any): result is { error: string; message: string } => {
     return result && typeof result === 'object' && 'error' in result;
@@ -51,19 +53,19 @@ export default async function BlogHomePage() {
   if (isErrorResult(articlesResult)) {
     if (articlesResult.error === 'missing_index') {
       return (
-         <div className="container mx-auto px-4 py-8">
-            <header className="mb-12 text-center">
-              <h1 className="text-4xl font-headline font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-                The Day Info - Le Blog
-              </h1>
-              <p className="mt-3 text-lg text-muted-foreground sm:text-xl">
-                Votre dose quotidienne d'information, organisée pour les esprits curieux.
-              </p>
-            </header>
-            <main>
-               <MissingIndexError message={articlesResult.message} />
-            </main>
-         </div>
+        <div className="container mx-auto px-4 py-8">
+          <header className="mb-12 text-center">
+            <h1 className="text-4xl font-headline font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
+              {t('title')}
+            </h1>
+            <p className="mt-3 text-lg text-muted-foreground sm:text-xl">
+              {t('subtitle')}
+            </p>
+          </header>
+          <main>
+            <MissingIndexError message={articlesResult.message} />
+          </main>
+        </div>
       )
     }
     // Handle other errors gracefully
@@ -71,16 +73,13 @@ export default async function BlogHomePage() {
       <div className="container mx-auto px-4 py-8">
         <header className="mb-12 text-center">
           <h1 className="text-4xl font-headline font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            The Day Info - Le Blog
+            {t('title')}
           </h1>
-          <p className="mt-3 text-lg text-muted-foreground sm:text-xl">
-            Votre dose d'information, organisée pour les esprits curieux.
-          </p>
         </header>
         <main>
           <Alert variant="destructive">
             <Terminal className="h-4 w-4" />
-            <AlertTitle>Erreur de chargement</AlertTitle>
+            <AlertTitle>{t('loadingError')}</AlertTitle>
             <AlertDescription>{articlesResult.message}</AlertDescription>
           </Alert>
         </main>
@@ -94,10 +93,10 @@ export default async function BlogHomePage() {
     <div className="container mx-auto px-4 py-8">
       <header className="mb-12 text-center">
         <h1 className="text-4xl font-headline font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-          The Day Info - Le Blog
+          {t('title')}
         </h1>
         <p className="mt-3 text-lg text-muted-foreground sm:text-xl">
-          Votre dose d'information, organisée pour les esprits curieux.
+          {t('subtitle')}
         </p>
       </header>
 
@@ -110,7 +109,7 @@ export default async function BlogHomePage() {
           </div>
         ) : (
           <div>
-            <p>Aucun article publié pour le moment. Revenez bientôt !</p>
+            <p>{t('emptyState')}</p>
           </div>
         )}
       </main>

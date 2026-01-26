@@ -6,11 +6,14 @@ import { ArrowRight, Eye, MessageCircle } from 'lucide-react';
 import type { Article } from '@/lib/data-types';
 
 
+import { useTranslations } from 'next-intl';
+
 type ArticleCardProps = {
   article: Article;
 };
 
 export function ArticleCard({ article }: ArticleCardProps) {
+  const t = useTranslations('Common');
   // Supprimer les balises HTML du contenu pour l'aperçu
   const plainTextContent = article.content.replace(/<[^>]*>?/gm, '');
 
@@ -29,7 +32,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
           </Link>
         </div>
       </CardHeader>
-      
+
       <CardContent className="flex flex-1 flex-col p-6">
         <Badge variant="secondary" className="mb-2 w-fit">{article.category}</Badge>
         <Link href={`/blog/${article.slug}`} className="group">
@@ -41,27 +44,27 @@ export function ArticleCard({ article }: ArticleCardProps) {
           {plainTextContent.substring(0, 120)}...
         </p>
       </CardContent>
-      
+
       <CardFooter className="p-6 pt-0">
-  <Link href={`/blog/${article.slug}`} className="group w-full">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center text-sm font-semibold text-primary">
-        Lire la suite
-        <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-      </div>
-      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <Eye className="w-4 h-4" />
-          <span>{article.views}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <MessageCircle className="w-4 h-4" />
-          <span>{article.comments?.length || 0}</span>
-        </div>
-      </div>
-    </div>
-  </Link>
-</CardFooter>
+        <Link href={`/blog/${article.slug}`} className="group w-full">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center text-sm font-semibold text-primary">
+              {t('readMore')}
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+            </div>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Eye className="w-4 h-4" />
+                <span>{article.views}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <MessageCircle className="w-4 h-4" />
+                <span>{article.comments?.length || 0}</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+      </CardFooter>
     </Card>
   );
 }

@@ -4,6 +4,7 @@
 
 import { Link } from '@/navigation';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { LogoIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -11,13 +12,14 @@ import { ThemeToggle } from './theme-toggle';
 import { LanguageToggle } from './language-toggle';
 
 const navLinks = [
-  { href: '/', label: 'Accueil' },
-  { href: '/projets', label: 'Projets' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/about', label: 'À propos' },
+  { href: '/', label: 'home' },
+  { href: '/projets', label: 'projects' },
+  { href: '/blog', label: 'blog' },
+  { href: '/about', label: 'about' },
 ];
 
 export function SiteHeader() {
+  const t = useTranslations('Navigation');
   const pathname = usePathname();
   const [hasScrolled, setHasScrolled] = useState(false);
 
@@ -56,7 +58,7 @@ export function SiteHeader() {
                   : 'text-foreground/60 hover:text-primary'
               )}
             >
-              {link.label}
+              {t(link.label)}
             </Link>
           ))}
           <LanguageToggle />
