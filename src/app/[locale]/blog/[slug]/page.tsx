@@ -11,6 +11,7 @@ import Feedback from '@/components/article/feedback';
 import { ArticleClientWrapper } from '@/components/article/article-client-wrapper';
 import { SubscriptionModal } from '@/components/newsletter/subscription-modal';
 import ViewTracker from '@/components/article/view-tracker';
+import { SanitizedContent } from '@/components/ui/sanitized-content';
 
 type ArticlePageProps = {
   params: Promise<{
@@ -87,8 +88,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         />
       </div>
 
-      <div className="prose prose-lg dark:prose-invert max-w-none mb-12"
-        dangerouslySetInnerHTML={{ __html: displayContent }} />
+      <SanitizedContent content={displayContent} className="mb-12" />
 
       <section className="space-y-12">
         <AiSummary articleContent={displayContent} />

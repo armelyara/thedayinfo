@@ -2,21 +2,66 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2025, 12, 31);
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
     }
+    
+    // Helper function to check if only specific fields are modified
+    function onlyUpdates(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // Default: Deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Articles:
+    // - Public Read: status == 'published'
+    // - Public Write: Increment views ONLY
+    // - Admin: Full Access
+    match /articles/{slug} {
+      allow read: if isAdmin() || resource.data.status == 'published';
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        // Allow public to increment views and update history
+        onlyUpdates(['views', 'viewHistory'])
+      );
+    }
+
+    // Projects:
+    // - Public Read
+    // - Admin Write
+    match /projects/{slug} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Site Config (Profile):
+    // - Public Read
+    // - Admin Write
+    match /site-config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Subscribers:
+    // - Public Create (Newsletter signup)
+    // - Admin Read/Write/Delete
+    match /subscribers/{docId} {
+      allow create: if true; // Basic spam protection should be handled by App Check or Cloud Functions if needed
+      allow read, delete, update: if isAdmin();
+    }
+
+    // Drafts, Settings, etc.:
+    // - Admin Only
     match /drafts/{document} {
-     allow read, write: if request.auth != null && request.auth.token.admin == true;
-   }
+      allow read, write: if isAdmin();
+    }
+    match /settings/{document} {
+      allow read, write: if isAdmin();
+    }
   }
-} 
+}

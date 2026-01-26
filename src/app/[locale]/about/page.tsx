@@ -1,6 +1,7 @@
 // src/app/about/page.tsx
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getProfile } from '@/lib/data-client';
+import { SanitizedContent } from '@/components/ui/sanitized-content';
 import { User } from 'lucide-react';
 
 export const revalidate = 3600; // Revalidate every hour
@@ -24,7 +25,7 @@ export default async function AboutPage() {
     <div className="container mx-auto max-w-4xl px-4 py-12">
       <main className="flex flex-col items-center text-center">
         <Avatar className="h-40 w-40 mb-6 border-4 border-primary/20 shadow-lg">
-          <AvatarImage 
+          <AvatarImage
             src={profile.imageUrl}
             alt={`Un portrait de ${profile.name}`}
             data-ai-hint="portrait auteur"
@@ -39,10 +40,10 @@ export default async function AboutPage() {
         <p className="text-lg text-muted-foreground mb-8">
           Créateur de The Day Info
         </p>
-        
-        <div 
-          className="prose prose-lg dark:prose-invert max-w-none text-left"
-          dangerouslySetInnerHTML={{ __html: profile.biography }}
+
+        <SanitizedContent
+          content={profile.biography}
+          className="text-left"
         />
       </main>
     </div>

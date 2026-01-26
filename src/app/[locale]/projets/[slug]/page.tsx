@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getProjectBySlug, getProjects } from '@/lib/data-client';
 import type { Project } from '@/lib/data-types';
 import { Github, ExternalLink, Calendar, CheckCircle, Wrench, BookOpen } from 'lucide-react';
+import { SanitizedContent } from '@/components/ui/sanitized-content';
 
 const statusConfig = {
   'terminé': { icon: CheckCircle, label: 'Terminé', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
@@ -46,8 +47,9 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Main Content */}
-        <div className="md:col-span-2 prose prose-lg dark:prose-invert max-w-none"
-             dangerouslySetInnerHTML={{ __html: project.fullDescription }} />
+        <div className="md:col-span-2">
+          <SanitizedContent content={project.fullDescription} />
+        </div>
 
         {/* Sidebar */}
         <aside className="space-y-6">
@@ -59,7 +61,7 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
               <div className="flex items-center gap-2">
                 <StatusIcon className={`h-4 w-4 ${statusConfig[project.status].className.split(' ')[1]}`} />
                 <Badge variant="secondary" className={statusConfig[project.status].className}>
-                    {statusConfig[project.status].label}
+                  {statusConfig[project.status].label}
                 </Badge>
               </div>
               <div className="flex items-center gap-2">
@@ -68,7 +70,7 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Technologies</CardTitle>
@@ -96,11 +98,11 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
               </Button>
             )}
             {project.blogArticleSlug && (
-                <Button asChild variant="outline" className="w-full">
-                    <Link href={`/blog/${project.blogArticleSlug}`}>
-                        <BookOpen className="mr-2 h-4 w-4" /> Lire l'article associé
-                    </Link>
-                </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href={`/blog/${project.blogArticleSlug}`}>
+                  <BookOpen className="mr-2 h-4 w-4" /> Lire l'article associé
+                </Link>
+              </Button>
             )}
           </div>
         </aside>
@@ -111,9 +113,9 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
 
 // Générer les pages statiques pour chaque projet
 export async function generateStaticParams() {
-    const projects = await getProjects();
-   
-    return projects.map((project) => ({
-      slug: project.slug,
-    }));
+  const projects = await getProjects();
+
+  return projects.map((project) => ({
+    slug: project.slug,
+  }));
 }
