@@ -20,8 +20,6 @@ let storage: FirebaseStorage | undefined;
 
 const isValidConfig = firebaseConfig.apiKey && firebaseConfig.projectId;
 
-console.log('[FirebaseClient] Loading module, validConfig:', !!isValidConfig);
-
 // MODIFICATION MAJEURE : On a retiré "isBrowser" de la condition
 // Next.js a besoin de Firebase sur le serveur pour le SSR
 if (isValidConfig) {
@@ -44,7 +42,5 @@ if (isValidConfig) {
 export async function initializeFirebaseClient() {
   return app;
 }
-
-console.log('[FirebaseClient] Module initialization complete');
 
 export { app, db, auth, storage };

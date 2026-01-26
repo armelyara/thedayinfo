@@ -43,7 +43,6 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: { locale: string };
 }>) {
-  console.log('[LocaleLayout] Start rendering layout', { locale });
   const headersList = headers();
   const pathname = headersList.get('x-next-pathname') || '';
   const messages = await getMessages();

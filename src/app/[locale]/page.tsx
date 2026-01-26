@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, FolderGit2 } from 'lucide-react';
-import { getPublishedArticles, getProjects } from '@/lib/data-client';
+import { getPublishedArticles, getProjects } from '@/lib/data-admin';
 
 
 import { ArticleCard } from '@/components/article/article-card';
@@ -25,17 +25,8 @@ async function getFeaturedProjects(): Promise<Project[]> {
 }
 
 export default async function HomePage() {
-  console.log('[HomePage] Start rendering');
-  console.log('[HomePage] Fetching recent articles...');
-  // const recentArticles = await getRecentArticles();
-  const recentArticles = [];
-  console.log(`[HomePage] Fetched ${recentArticles.length} articles`);
-
-  console.log('[HomePage] Fetching featured projects...');
-  // const featuredProjects = await getFeaturedProjects();
-  const featuredProjects = [];
-  console.log(`[HomePage] Fetched ${featuredProjects.length} projects`);
-
+  const recentArticles = await getRecentArticles();
+  const featuredProjects = await getFeaturedProjects();
 
   return (
     <div className="flex flex-1 flex-col">

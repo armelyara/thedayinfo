@@ -8,11 +8,9 @@ const intlMiddleware = createMiddleware(routing);
 
 
 export function middleware(request: NextRequest) {
-  console.log('[Middleware] Request:', request.nextUrl.pathname);
   // 1. Exécuter le middleware d'internationalisation en premier
   // Cela gère les redirections / -> /fr, etc.
   const response = intlMiddleware(request);
-  console.log('[Middleware] intlMiddleware response status:', response.status);
 
   // 2. Vérification de l'authentification
   // On vérifie directement le cookie pour éviter un appel fetch interne coûteux
