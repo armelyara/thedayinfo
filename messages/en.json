@@ -14,7 +14,23 @@
         "title": "Welcome to The Day Info",
         "description": "Real-time technology news.",
         "readMore": "Read more",
-        "latestArticles": "Latest articles"
+        "latestArticles": "Latest articles",
+        "hero": {
+            "title": "Solving problems through technology.",
+            "subtitle": "Dev promoter.",
+            "viewProjects": "View projects",
+            "readBlog": "Read the blog"
+        },
+        "projects": {
+            "title": "Featured Projects",
+            "subtitle": "Some recent projects that illustrate my work.",
+            "viewAll": "All projects"
+        },
+        "blog": {
+            "title": "Latest Blog Articles",
+            "subtitle": "Explore my latest thoughts and technological discoveries.",
+            "visitBlog": "Visit the blog"
+        }
     },
     "Footer": {
         "rights": "All rights reserved.",

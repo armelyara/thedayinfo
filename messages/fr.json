@@ -14,7 +14,23 @@
         "title": "Bienvenue sur The Day Info",
         "description": "L'actualité technologique en temps réel.",
         "readMore": "Lire la suite",
-        "latestArticles": "Derniers articles"
+        "latestArticles": "Derniers articles",
+        "hero": {
+            "title": "Résoudre des problèmes par la technologie.",
+            "subtitle": "Promoteur du dev.",
+            "viewProjects": "Voir les projets",
+            "readBlog": "Lire le blog"
+        },
+        "projects": {
+            "title": "Projets Phares",
+            "subtitle": "Quelques projets récents qui illustrent mon travail.",
+            "viewAll": "Tous les projets"
+        },
+        "blog": {
+            "title": "Derniers articles du blog",
+            "subtitle": "Explorez mes dernières pensées et découvertes technologiques.",
+            "visitBlog": "Visiter le blog"
+        }
     },
     "Footer": {
         "rights": "Tous droits réservés.",
