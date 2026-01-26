@@ -2,12 +2,13 @@
 
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import { usePathname } from 'next/navigation';
 import { LogoIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { ThemeToggle } from './theme-toggle';
+import { LanguageToggle } from './language-toggle';
 
 const navLinks = [
   { href: '/', label: 'Accueil' },
@@ -50,7 +51,7 @@ export function SiteHeader() {
               href={link.href}
               className={cn(
                 'transition-colors',
-                pathname === link.href 
+                pathname === link.href
                   ? 'text-primary font-semibold'
                   : 'text-foreground/60 hover:text-primary'
               )}
@@ -58,6 +59,7 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
+          <LanguageToggle />
           <ThemeToggle />
         </nav>
       </div>
