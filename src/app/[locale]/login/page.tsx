@@ -57,70 +57,83 @@ export default function LoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!firebaseInitialized) {
-        toast({
-            variant: 'destructive',
-            title: 'Initialisation en cours',
-            description: 'Veuillez patienter pendant que Firebase est initialisé.',
-        });
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'Initialisation en cours',
+        description: 'Veuillez patienter pendant que Firebase est initialisé.',
+      });
+      return;
     }
-    
+
     setError(null);
+    console.log('🔐 Login attempt started');
+
     startTransition(async () => {
       try {
+        console.log('1️⃣ Getting Firebase Auth instance...');
         const auth = getAuth();
+
+        console.log('2️⃣ Signing in with email and password...');
         const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+        console.log('✅ Firebase Auth successful, user:', userCredential.user.uid);
+
+        console.log('3️⃣ Getting ID token...');
         const idToken = await userCredential.user.getIdToken();
-        
+        console.log('✅ ID token obtained');
+
         // Call the API route to set the session cookie
+        console.log('4️⃣ Creating session cookie via /api/login...');
         const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ idToken }),
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ idToken }),
         });
 
         if (response.ok) {
-            router.push('/admin');
+          console.log('✅ Session cookie created successfully');
+          router.push('/admin');
         } else {
-            const result = await response.json();
-            const errorMessage = result.error || 'Échec de la création de la session.';
-            setError(errorMessage);
-            toast({
-                variant: 'destructive',
-                title: 'Échec de la Connexion',
-                description: errorMessage,
-            });
-        }
-      } catch (e: any) {
-          let errorMessage = 'Une erreur inattendue est survenue.';
-          // See https://firebase.google.com/docs/auth/admin/errors
-          switch (e.code) {
-            case 'auth/user-not-found':
-            case 'auth/wrong-password':
-            case 'auth/invalid-credential':
-              errorMessage = 'Email ou mot de passe invalide.';
-              break;
-            case 'auth/invalid-email':
-              errorMessage = 'L\'adresse e-mail n\'est pas valide.';
-              break;
-            case 'auth/user-disabled':
-              errorMessage = 'Ce compte utilisateur a été désactivé.';
-              break;
-            case 'auth/invalid-api-key':
-              errorMessage = 'Clé d\'API Firebase invalide. La configuration a peut-être échoué.';
-              break;
-            default:
-              errorMessage = `Une erreur s'est produite: ${e.message}`;
-              break;
-          }
+          const result = await response.json();
+          const errorMessage = result.error || 'Échec de la création de la session.';
+          console.error('❌ Session creation failed:', result);
           setError(errorMessage);
           toast({
-              variant: 'destructive',
-              title: 'Échec de la Connexion',
-              description: errorMessage,
+            variant: 'destructive',
+            title: 'Échec de la Connexion',
+            description: errorMessage,
           });
+        }
+      } catch (e: any) {
+        console.error('❌ Login error:', e);
+        let errorMessage = 'Une erreur inattendue est survenue.';
+        // See https://firebase.google.com/docs/auth/admin/errors
+        switch (e.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+            errorMessage = 'Email ou mot de passe invalide.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'L\'adresse e-mail n\'est pas valide.';
+            break;
+          case 'auth/user-disabled':
+            errorMessage = 'Ce compte utilisateur a été désactivé.';
+            break;
+          case 'auth/invalid-api-key':
+            errorMessage = 'Clé d\'API Firebase invalide. La configuration a peut-être échoué.';
+            break;
+          default:
+            errorMessage = `Une erreur s'est produite: ${e.message}`;
+            break;
+        }
+        setError(errorMessage);
+        toast({
+          variant: 'destructive',
+          title: 'Échec de la Connexion',
+          description: errorMessage,
+        });
       }
     });
   }
