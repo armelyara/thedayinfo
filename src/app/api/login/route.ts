@@ -46,9 +46,14 @@ export async function POST(request: Request) {
     if (process.env.NODE_ENV === 'development') {
       console.log('=== API LOGIN START ===');
       console.log('IP:', ip);
+      console.log('Initializing Firebase Admin...');
     }
 
     await initializeFirebaseAdmin();
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Firebase Admin initialized, creating session cookie...');
+    }
 
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 jours
 
@@ -72,8 +77,14 @@ export async function POST(request: Request) {
     console.error('Erreur authentification:', {
       code: error.code,
       message: error.message,
+      name: error.name,
       ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     });
+
+    // Log specific Firebase Admin errors
+    if (error.code?.startsWith('auth/')) {
+      console.error('Firebase Auth Error:', error.code);
+    }
 
     const errorMessage = process.env.NODE_ENV === 'production'
       ? 'Échec de l\'authentification'
@@ -81,7 +92,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       error: errorMessage,
-      ...(process.env.NODE_ENV === 'development' && { code: error.code })
+      ...(process.env.NODE_ENV === 'development' && {
+        code: error.code,
+        details: error.message
+      })
     }, { status: 401 });
   }
 }
