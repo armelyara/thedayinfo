@@ -6,17 +6,17 @@ import { getStorage, FirebaseStorage } from "firebase/storage";
 // Get Firebase config from either local env vars or Firebase App Hosting
 let firebaseConfig: any;
 
+// Server-side: use FIREBASE_WEBAPP_CONFIG if available
 if (typeof window === 'undefined' && process.env.FIREBASE_WEBAPP_CONFIG) {
-  // Server-side on Firebase App Hosting
   try {
     firebaseConfig = JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG);
-    console.log('Using Firebase App Hosting webapp config');
+    console.log('Using Firebase App Hosting webapp config (server)');
   } catch (error) {
     console.error('Failed to parse FIREBASE_WEBAPP_CONFIG:', error);
     firebaseConfig = {};
   }
 } else {
-  // Client-side or local development
+  // Client-side or local development: use NEXT_PUBLIC_* variables
   firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -25,6 +25,11 @@ if (typeof window === 'undefined' && process.env.FIREBASE_WEBAPP_CONFIG) {
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   };
+
+  // If client-side and missing config, try to fetch from API
+  if (typeof window !== 'undefined' && !firebaseConfig.apiKey) {
+    console.warn('Client-side Firebase config missing, will fetch from API');
+  }
 }
 
 // CORRECTION : Ajout des types explicites pour éviter l'erreur "implicitly has an 'any' type"
@@ -33,7 +38,7 @@ let db: Firestore | undefined;
 let auth: Auth | undefined;
 let storage: FirebaseStorage | undefined;
 
-const isValidConfig = firebaseConfig.apiKey && firebaseConfig.projectId;
+const isValidConfig = firebaseConfig?.apiKey && firebaseConfig?.projectId;
 
 // MODIFICATION MAJEURE : On a retiré "isBrowser" de la condition
 // Next.js a besoin de Firebase sur le serveur pour le SSR
@@ -52,8 +57,8 @@ if (isValidConfig) {
   if (process.env.NODE_ENV !== 'production' && !process.env.IS_BUILD) {
     console.warn('⚠️ Config Firebase manquante ou incomplète');
     console.warn('Config reçue:', {
-      hasApiKey: !!firebaseConfig.apiKey,
-      hasProjectId: !!firebaseConfig.projectId
+      hasApiKey: !!firebaseConfig?.apiKey,
+      hasProjectId: !!firebaseConfig?.projectId
     });
   }
 }
