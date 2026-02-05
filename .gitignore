@@ -46,3 +46,8 @@ pnpm-debug.log*
 *.sln
 *.sw?
 src/lib/firebase-service-account.json
+
+# Documentation (not committed)
+/docs/**/*.md
+*.md
+!README.md
