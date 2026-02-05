@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getProjectBySlug, getProjects } from '@/lib/data-client';
+import { getProjectBySlug, getProjects } from '@/lib/data-admin';
 import type { Project } from '@/lib/data-types';
 import { Github, ExternalLink, Calendar, CheckCircle, Wrench, BookOpen } from 'lucide-react';
 import { SanitizedContent } from '@/components/ui/sanitized-content';

@@ -1,6 +1,6 @@
 // src/app/projets/page.tsx
 import { ProjectList } from '@/components/project/project-list';
-import { getProjects } from '@/lib/data-client';
+import { getProjects } from '@/lib/data-admin';
 import { getTranslations } from 'next-intl/server';
 import { FolderGit2 } from 'lucide-react';
 
