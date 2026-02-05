@@ -34,8 +34,23 @@ export async function initializeFirebaseAdmin() {
     // via FIREBASE_CONFIG environment variable
     if (process.env.FIREBASE_CONFIG) {
       console.log('Using Firebase App Hosting automatic credentials');
-      admin.initializeApp();
-      console.log('✅ Firebase Admin initialized successfully with FIREBASE_CONFIG');
+
+      try {
+        // Parse FIREBASE_CONFIG to get project info
+        const firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
+        console.log('Parsed FIREBASE_CONFIG, projectId:', firebaseConfig.projectId);
+
+        // Initialize with the project ID from FIREBASE_CONFIG
+        // Firebase App Hosting provides automatic credentials via Application Default Credentials (ADC)
+        admin.initializeApp({
+          projectId: firebaseConfig.projectId,
+        });
+
+        console.log('✅ Firebase Admin initialized successfully with FIREBASE_CONFIG');
+      } catch (parseError: any) {
+        console.error('Failed to parse FIREBASE_CONFIG:', parseError);
+        throw new Error('Invalid FIREBASE_CONFIG format');
+      }
     } else {
       // For local development, use explicit credentials
       const projectId = process.env.FIREBASE_PROJECT_ID;
