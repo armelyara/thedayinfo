@@ -6,10 +6,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  PlusCircle, 
-  FileText, 
-  Eye, 
+import {
+  PlusCircle,
+  FileText,
+  Eye,
   MessageCircle,
   Mail,
   UserCheck,
@@ -64,25 +64,47 @@ export default function AdminDashboard() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchDashboardData();
+    // Verify session validity first
+    const verifySession = async () => {
+      try {
+        const response = await fetch('/api/auth-check');
+        const data = await response.json();
 
-    // Déclencher la vérification des articles programmés
-    fetch('/api/cron/publish-articles', { 
-      method: 'POST',
-      headers: {
-        'X-Internal-Request': 'true' // Ajout du header pour l'autorisation
-      }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.results && data.results.some((r: any) => r.status === 'success')) {
-          console.log('De nouveaux articles ont été publiés, rafraîchissement des données...');
-          fetchDashboardData(); // Rafraîchir les données si des articles ont été publiés
-        } else {
-          console.log('Vérification des articles programmés terminée. Aucun changement.');
+        if (!data.authenticated) {
+          // Session is invalid, clear it and redirect to login
+          await fetch('/api/logout', { method: 'POST' });
+          window.location.href = '/login';
+          return;
         }
-      })
-      .catch(error => console.error('Erreur lors du déclenchement du cron:', error));
+
+        // Session is valid, proceed with loading dashboard
+        fetchDashboardData();
+
+        // Déclencher la vérification des articles programmés
+        fetch('/api/cron/publish-articles', {
+          method: 'POST',
+          headers: {
+            'X-Internal-Request': 'true' // Ajout du header pour l'autorisation
+          }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.results && data.results.some((r: any) => r.status === 'success')) {
+              console.log('De nouveaux articles ont été publiés, rafraîchissement des données...');
+              fetchDashboardData(); // Rafraîchir les données si des articles ont été publiés
+            } else {
+              console.log('Vérification des articles programmés terminée. Aucun changement.');
+            }
+          })
+          .catch(error => console.error('Erreur lors du déclenchement du cron:', error));
+      } catch (error) {
+        console.error('Error verifying session:', error);
+        // On error, redirect to login
+        window.location.href = '/login';
+      }
+    };
+
+    verifySession();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -120,12 +142,12 @@ export default function AdminDashboard() {
       setIsLoading(false);
     }
   };
-  
+
   const handleDeleteClick = (article: Article) => {
     setArticleToDelete(article);
     setIsDeleteDialogOpen(true);
   };
-  
+
   const handleConfirmDelete = async () => {
     if (!articleToDelete) return;
 
@@ -261,7 +283,7 @@ export default function AdminDashboard() {
             </CardHeader>
           </Link>
         </Card>
-        
+
         <Card className="cursor-pointer hover:shadow-md transition-shadow">
           <Link href="/admin/projects">
             <CardHeader>
@@ -385,7 +407,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               ))}
-              
+
               {articles.length > 5 && (
                 <div className="text-center pt-4">
                   <p className="text-sm text-muted-foreground">
@@ -410,9 +432,9 @@ export default function AdminDashboard() {
           articleTitle={selectedArticle.title}
           comments={selectedArticle.comments}
           onCommentsUpdate={(newComments) => {
-            setArticles(prev => 
-              prev.map(a => 
-                a.slug === selectedArticle.slug 
+            setArticles(prev =>
+              prev.map(a =>
+                a.slug === selectedArticle.slug
                   ? { ...a, comments: newComments }
                   : a
               )
