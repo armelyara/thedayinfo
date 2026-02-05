@@ -11,6 +11,7 @@ try {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
+  output: 'standalone', // Required for Firebase App Hosting
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
@@ -50,7 +51,7 @@ const nextConfig = {
       },
     ],
   },
-  
+
   async redirects() {
     return [
       {
