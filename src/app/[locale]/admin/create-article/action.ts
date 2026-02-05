@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { saveDraftAction as saveDraft, saveArticleAction as saveArticle } from '@/lib/data-admin';
+import { saveDraftAction as saveDraft, saveArticleAction as saveArticle, getDraft as getDraftFromDb } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
 import type { Article, Draft } from '@/lib/data-types';
 
@@ -60,10 +60,10 @@ export async function saveArticleAction(articleData: {
     if (dataToSave.scheduledFor && dataToSave.scheduledFor instanceof Date) {
       dataToSave.scheduledFor = dataToSave.scheduledFor.toISOString();
     }
-    
+
     // Le type `any` est utilisé car la fonction `saveArticle` sous-jacente attend une chaîne.
     const result = await saveArticle(dataToSave as any);
-    
+
     // Revalidation des chemins
     revalidatePath('/');
     revalidatePath('/admin');
@@ -71,10 +71,22 @@ export async function saveArticleAction(articleData: {
     if (articleData.actionType === 'publish' && 'slug' in result) {
       revalidatePath(`/article/${result.slug}`);
     }
-    
+
     return result;
   } catch (error) {
     console.error('Error saving article:', error);
     throw new Error("Erreur lors de la sauvegarde de l'article");
+  }
+}
+
+/**
+ * Récupère un brouillon par son ID.
+ */
+export async function getDraft(id: string): Promise<Draft | null> {
+  try {
+    return await getDraftFromDb(id);
+  } catch (error) {
+    console.error('Error fetching draft:', error);
+    return null;
   }
 }
