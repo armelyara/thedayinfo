@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { FileEdit, Trash2, Clock, Pencil, Send } from 'lucide-react'; 
-import { deleteDraftAction, publishDraftNow } from '@/app/admin/drafts/action'; 
+import { FileEdit, Trash2, Clock, Pencil, Send } from 'lucide-react';
+import { deleteDraftAction, publishDraftNow } from '@/app/[locale]/admin/drafts/action';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import type { Draft } from '@/lib/data-types';
@@ -19,7 +19,7 @@ interface DraftsListProps {
 export function DraftsList({ initialDrafts }: DraftsListProps) {
     const [drafts, setDrafts] = useState(initialDrafts);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
-    const [publishingId, setPublishingId] = useState<string | null>(null); 
+    const [publishingId, setPublishingId] = useState<string | null>(null);
     const { toast } = useToast();
     const router = useRouter();
 
@@ -52,7 +52,7 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
 
         console.log("Début publication pour ID:", id); // Log de debug
         setPublishingId(id);
-        
+
         try {
             const result = await publishDraftNow(id);
             console.log("Résultat publication:", result); // Log de debug
@@ -61,20 +61,20 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                 // 1. Mise à jour immédiate de l'UI (Optimistic UI)
                 // On retire l'article de la liste des brouillons car il est publié
                 setDrafts(prev => prev.filter(d => d.id !== id));
-                
+
                 toast({
                     title: 'Succès',
                     description: result.message,
                     className: "bg-green-50 border-green-200", // Petit style vert
                 });
-                
+
                 // 2. Rafraîchissement des données serveur en arrière-plan
-                router.refresh(); 
+                router.refresh();
             } else {
                 toast({
                     title: "Erreur",
                     description: result.message,
-                    variant: "destructive" 
+                    variant: "destructive"
                 });
             }
         } catch (error) {
@@ -131,7 +131,7 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                                 <div className="flex items-center gap-2 mt-2">
                                     {draft.status === 'scheduled' ? (
                                         <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                                            <Clock className="h-3 w-3 mr-1"/>
+                                            <Clock className="h-3 w-3 mr-1" />
                                             Programmé
                                         </Badge>
                                     ) : (
@@ -144,7 +144,7 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                             </div>
                         </div>
                     </CardHeader>
-                    
+
                     <CardContent>
                         <div className="space-y-4">
                             {draft.content && (
@@ -152,7 +152,7 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                                     {draft.content.replace(/<[^>]*>/g, '').substring(0, 200)}...
                                 </div>
                             )}
-                            
+
                             <div className="flex items-center justify-between mt-4 pt-4 border-t">
                                 <div className="text-xs text-muted-foreground">
                                     {draft.status === 'scheduled' && draft.scheduledFor && (
@@ -161,12 +161,12 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                                         </p>
                                     )}
                                     <p>Dernière sauvegarde : {
-                                        draft.lastSaved 
-                                        ? formatDistanceToNow(new Date(draft.lastSaved), { addSuffix: true, locale: fr })
-                                        : 'jamais'
+                                        draft.lastSaved
+                                            ? formatDistanceToNow(new Date(draft.lastSaved), { addSuffix: true, locale: fr })
+                                            : 'jamais'
                                     }</p>
                                 </div>
-                                
+
                                 <div className="flex gap-2">
                                     <Button
                                         variant="outline"
@@ -188,7 +188,7 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                                         <Pencil className="h-4 w-4 mr-2" />
                                         Modifier
                                     </Button>
-                                    
+
                                     <Button
                                         variant="destructive"
                                         size="sm"
