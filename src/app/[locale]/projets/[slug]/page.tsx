@@ -17,7 +17,14 @@ const statusConfig = {
 };
 
 export default async function ProjectDetailPage({ params }: { params: { slug: string } }) {
-  const project = await getProjectBySlug(params.slug);
+  let project;
+
+  try {
+    project = await getProjectBySlug(params.slug);
+  } catch (error) {
+    console.error('Error loading project:', error);
+    notFound();
+  }
 
   if (!project) {
     notFound();
@@ -113,9 +120,13 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
 
 // Générer les pages statiques pour chaque projet
 export async function generateStaticParams() {
-  const projects = await getProjects();
-
-  return projects.map((project) => ({
-    slug: project.slug,
-  }));
+  try {
+    const projects = await getProjects();
+    return projects.map((project) => ({
+      slug: project.slug,
+    }));
+  } catch (error) {
+    console.error('Error generating static params for projects:', error);
+    return [];
+  }
 }

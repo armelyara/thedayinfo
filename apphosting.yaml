@@ -9,3 +9,5 @@ env:
     secret: CRON_SECRET_TOKEN
   - variable: RESEND_API_KEY
     secret: RESEND_API_KEY
+  - variable: GOOGLE_GENAI_API_KEY
+    secret: GOOGLE_GENAI_API_KEY

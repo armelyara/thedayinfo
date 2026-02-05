@@ -57,7 +57,13 @@ export function middleware(request: NextRequest) {
     form-action 'self';
     frame-src 'self' https://accounts.google.com https://*.firebaseapp.com;
     frame-ancestors 'none';
-    connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com;
+    connect-src 'self' 
+      https://identitytoolkit.googleapis.com 
+      https://securetoken.googleapis.com 
+      https://firebasestorage.googleapis.com 
+      https://firestore.googleapis.com 
+      https://*.googleapis.com
+      https://generativelanguage.googleapis.com;
     upgrade-insecure-requests;
 
 
