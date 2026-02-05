@@ -30,28 +30,43 @@ export async function initializeFirebaseAdmin() {
   });
 
   try {
-    // On Firebase App Hosting, credentials are automatically provided
-    // via FIREBASE_CONFIG environment variable
-    if (process.env.FIREBASE_CONFIG) {
-      console.log('Using Firebase App Hosting automatic credentials');
+    // Priority 1: Use explicit service account secret (most reliable)
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      console.log('🔑 Using FIREBASE_SERVICE_ACCOUNT secret');
+      try {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+          projectId: serviceAccount.project_id,
+        });
+        console.log('✅ Firebase Admin initialized with service account secret');
+      } catch (parseError: any) {
+        console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT:', parseError);
+        throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT format');
+      }
+    }
+    // Priority 2: Firebase App Hosting automatic credentials
+    else if (process.env.FIREBASE_CONFIG) {
+      console.log('🔧 Using Firebase App Hosting automatic credentials');
 
       try {
-        // Parse FIREBASE_CONFIG to get project info
         const firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
         console.log('Parsed FIREBASE_CONFIG, projectId:', firebaseConfig.projectId);
 
-        // Initialize with the project ID from FIREBASE_CONFIG
-        // Firebase App Hosting provides automatic credentials via Application Default Credentials (ADC)
+        // Try with Application Default Credentials
         admin.initializeApp({
+          credential: admin.credential.applicationDefault(),
           projectId: firebaseConfig.projectId,
         });
 
-        console.log('✅ Firebase Admin initialized successfully with FIREBASE_CONFIG');
+        console.log('✅ Firebase Admin initialized with FIREBASE_CONFIG + ADC');
       } catch (parseError: any) {
-        console.error('Failed to parse FIREBASE_CONFIG:', parseError);
-        throw new Error('Invalid FIREBASE_CONFIG format');
+        console.error('❌ Failed with FIREBASE_CONFIG:', parseError);
+        throw new Error('Invalid FIREBASE_CONFIG format or ADC not available');
       }
-    } else {
+    }
+    // Priority 3: Local development with explicit env vars
+    else {
       // For local development, use explicit credentials
       const projectId = process.env.FIREBASE_PROJECT_ID;
       const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
