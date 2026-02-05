@@ -16,10 +16,18 @@ export async function initializeFirebaseAdmin() {
 
   if (admin.apps.length > 0) {
     adminInitialized = true;
+    console.log('Firebase Admin already initialized');
     return;
   }
 
   console.log('Initialisation Firebase Admin...');
+  console.log('Environment check:', {
+    hasFirebaseConfig: !!process.env.FIREBASE_CONFIG,
+    hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
+    hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+    hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+    nodeEnv: process.env.NODE_ENV,
+  });
 
   try {
     // On Firebase App Hosting, credentials are automatically provided
@@ -27,6 +35,7 @@ export async function initializeFirebaseAdmin() {
     if (process.env.FIREBASE_CONFIG) {
       console.log('Using Firebase App Hosting automatic credentials');
       admin.initializeApp();
+      console.log('✅ Firebase Admin initialized successfully with FIREBASE_CONFIG');
     } else {
       // For local development, use explicit credentials
       const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -50,10 +59,14 @@ export async function initializeFirebaseAdmin() {
         }),
         projectId,
       });
-      console.log('Firebase admin initialisé avec les variables d\'environnement explicites.');
+      console.log('✅ Firebase admin initialisé avec les variables d\'environnement explicites.');
     }
-  } catch (error) {
-    console.error('Échec de l\'initialisation Firebase Admin:', error);
+  } catch (error: any) {
+    console.error('❌ Échec de l\'initialisation Firebase Admin:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
     throw error;
   }
 
@@ -61,15 +74,28 @@ export async function initializeFirebaseAdmin() {
 }
 
 export async function verifySession(session: string) {
-  await initializeFirebaseAdmin();
+  try {
+    await initializeFirebaseAdmin();
+  } catch (error) {
+    console.error('Failed to initialize Firebase Admin in verifySession:', error);
+    return null;
+  }
+
   // If in build, return null to avoid errors
   if (process.env.IS_BUILD) {
     return null;
   }
+
   try {
     const decodedClaims = await admin.auth().verifySessionCookie(session, true);
     return decodedClaims;
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Session verification failed:', {
+      error: error.message,
+      code: error.code,
+      hasFirebaseConfig: !!process.env.FIREBASE_CONFIG,
+      hasFirebaseWebappConfig: !!process.env.FIREBASE_WEBAPP_CONFIG,
+    });
     return null;
   }
 }
