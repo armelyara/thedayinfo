@@ -22,33 +22,39 @@ export async function initializeFirebaseAdmin() {
   console.log('Initialisation Firebase Admin...');
 
   try {
-    admin.initializeApp(process.env as AppOptions);
-    console.log('Firebase admin initialisé avec les credentials de l\'environnement.');
-  } catch (error) {
-    console.error('Échec de l\'initialisation par défaut, tentative avec les variables explicites...');
+    // On Firebase App Hosting, credentials are automatically provided
+    // via FIREBASE_CONFIG environment variable
+    if (process.env.FIREBASE_CONFIG) {
+      console.log('Using Firebase App Hosting automatic credentials');
+      admin.initializeApp();
+    } else {
+      // For local development, use explicit credentials
+      const projectId = process.env.FIREBASE_PROJECT_ID;
+      const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+      if (!projectId || !clientEmail || !privateKey) {
+        console.error(`Firebase Admin credentials manquantes:
+          PROJECT_ID: ${!!projectId}
+          CLIENT_EMAIL: ${!!clientEmail}
+          PRIVATE_KEY: ${!!privateKey}
+        `);
+        throw new Error('Firebase Admin credentials manquantes.');
+      }
 
-    if (!projectId || !clientEmail || !privateKey) {
-      console.error(`Firebase Admin credentials manquantes:
-        PROJECT_ID: ${!!projectId}
-        CLIENT_EMAIL: ${!!clientEmail}
-        PRIVATE_KEY: ${!!privateKey}
-      `);
-      throw new Error('Firebase Admin credentials manquantes.');
-    }
-
-    admin.initializeApp({
-      credential: admin.credential.cert({
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail,
+          privateKey,
+        }),
         projectId,
-        clientEmail,
-        privateKey,
-      }),
-      projectId,
-    });
-    console.log('Firebase admin initialisé avec les variables d\'environnement explicites.');
+      });
+      console.log('Firebase admin initialisé avec les variables d\'environnement explicites.');
+    }
+  } catch (error) {
+    console.error('Échec de l\'initialisation Firebase Admin:', error);
+    throw error;
   }
 
   adminInitialized = true;
