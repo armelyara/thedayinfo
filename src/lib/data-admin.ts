@@ -6,7 +6,7 @@ import type { Article, ArticleImage, Draft, Profile, Subscriber, Project } from 
 import { sendNewsletterNotification } from './newsletter-service';
 
 // Utiliser une fonction pour garantir l'initialisation avant d'obtenir la DB
-async function getDb() {
+export async function getDb() {
     await initializeFirebaseAdmin();
     return getAdminFirestore();
 }
