@@ -164,12 +164,16 @@ export default function AdvancedStatsPage() {
                       content={<ChartTooltipContent />}
                     />
                     <Bar dataKey="views" layout="vertical" radius={4}>
-                      {categoryViews.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={chartConfig[entry.name as keyof typeof chartConfig]?.color}
-                        />
-                      ))}
+                      {categoryViews.map((entry, index) => {
+                        const config = chartConfig[entry.name as keyof typeof chartConfig];
+                        const color = config && 'color' in config ? config.color : 'hsl(var(--primary))';
+                        return (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={color}
+                          />
+                        );
+                      })}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
