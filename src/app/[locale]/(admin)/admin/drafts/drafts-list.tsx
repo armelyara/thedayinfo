@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { FileEdit, Trash2, Clock, Pencil, Send } from 'lucide-react';
-import { deleteDraftAction, publishDraftNow } from '@/app/[locale]/admin/drafts/action';
+import { deleteDraftAction, publishDraftNow } from './action';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import type { Draft } from '@/lib/data-types';
