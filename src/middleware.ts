@@ -46,10 +46,13 @@ export function middleware(request: NextRequest) {
 
   // 3. Ajout des Headers de Sécurité (CSP)
   // On applique les headers sur la réponse générée par next-intl
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
+  // Build CSP header with stricter policies in production
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com https://apis.google.com;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    script-src 'self' ${isDevelopment ? "'unsafe-eval'" : ''} https://cdnjs.cloudflare.com https://apis.google.com https://accounts.google.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com;
     img-src 'self' blob: data: https: firebasestorage.googleapis.com;
     font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com;
     object-src 'none';
@@ -57,16 +60,14 @@ export function middleware(request: NextRequest) {
     form-action 'self';
     frame-src 'self' https://accounts.google.com https://*.firebaseapp.com;
     frame-ancestors 'none';
-    connect-src 'self' 
-      https://identitytoolkit.googleapis.com 
-      https://securetoken.googleapis.com 
-      https://firebasestorage.googleapis.com 
-      https://firestore.googleapis.com 
+    connect-src 'self'
+      https://identitytoolkit.googleapis.com
+      https://securetoken.googleapis.com
+      https://firebasestorage.googleapis.com
+      https://firestore.googleapis.com
       https://*.googleapis.com
       https://generativelanguage.googleapis.com;
     upgrade-insecure-requests;
-
-
   `.replace(/\s{2,}/g, ' ').trim();
 
   response.headers.set('Content-Security-Policy', cspHeader);

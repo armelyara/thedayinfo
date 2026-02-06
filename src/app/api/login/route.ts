@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createSessionCookie, initializeFirebaseAdmin } from '@/lib/auth';
 import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
+import { LoginSchema, validateSchema } from '@/lib/validation-schemas';
 
 export async function POST(request: Request) {
   try {
@@ -34,14 +35,16 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
-    const { idToken } = body;
-    if (!idToken) {
-      return NextResponse.json({ error: 'Token manquant' }, { status: 400 });
+    // Validate input with Zod
+    const validation = validateSchema(LoginSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: 'Validation échouée', details: validation.errors },
+        { status: 400 }
+      );
     }
 
-    if (typeof idToken !== 'string' || idToken.length < 100) {
-      return NextResponse.json({ error: 'Token invalide' }, { status: 400 });
-    }
+    const { idToken } = validation.data;
 
     if (process.env.NODE_ENV === 'development') {
       console.log('=== API LOGIN START ===');

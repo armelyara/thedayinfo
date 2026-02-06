@@ -39,12 +39,9 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // Build with proper type checking and linting enabled
+  // typescript: { ignoreBuildErrors: true },  // REMOVED - fix type errors instead
+  // eslint: { ignoreDuringBuilds: true },     // REMOVED - fix lint errors instead
   images: {
     remotePatterns: [
       {

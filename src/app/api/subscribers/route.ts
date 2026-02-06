@@ -3,6 +3,7 @@ import { addSubscriber, getSubscribers } from '@/lib/data-admin';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth';
 import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
+import { SubscriberSchema, validateSchema } from '@/lib/validation-schemas';
 
 export async function POST(request: Request) {
   try {
@@ -33,15 +34,17 @@ export async function POST(request: Request) {
     }
     
     const body = await request.json();
-    const { email, name, preferences } = body;
 
-    if (!email) {
+    // Validate input with Zod
+    const validation = validateSchema(SubscriberSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Email requis' },
+        { error: 'Validation échouée', details: validation.errors },
         { status: 400 }
       );
     }
 
+    const { email, name, preferences } = validation.data;
     const subscriber = await addSubscriber(email, name, preferences);
     return NextResponse.json(subscriber, { status: 201 });
   } catch (error) {
