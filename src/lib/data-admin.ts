@@ -7,6 +7,10 @@ import { sendNewsletterNotification } from './newsletter-service';
 
 // Utiliser une fonction pour garantir l'initialisation avant d'obtenir la DB
 export async function getDb() {
+    // During build, Firebase Admin is not initialized - throw error to be caught by callers
+    if (process.env.IS_BUILD) {
+        throw new Error('Firebase Admin is not available during build time');
+    }
     await initializeFirebaseAdmin();
     return getAdminFirestore();
 }

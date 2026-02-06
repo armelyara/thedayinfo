@@ -2,6 +2,9 @@
 import { NextResponse } from 'next/server';
 import { getPublishedArticles } from '@/lib/data-admin'; // ✅ Utiliser data-admin pour les routes API
 
+// Mark as dynamic to prevent static generation during build
+export const dynamic = 'force-dynamic';
+
 // Route publique pour obtenir tous les articles publiés
 export async function GET() {
   try {

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/data-admin';
 
+// Mark as dynamic to prevent static generation during build
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         console.log('🧪 Test endpoint called');

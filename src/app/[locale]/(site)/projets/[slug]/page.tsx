@@ -136,6 +136,12 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
 
 // Générer les pages statiques pour chaque projet
 export async function generateStaticParams() {
+  // Skip static generation during build - Firebase Admin is not available
+  if (process.env.IS_BUILD) {
+    console.log('Skipping static params generation for projects during build');
+    return [];
+  }
+
   try {
     const projects = await getProjects();
     return projects.map((project) => ({
