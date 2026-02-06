@@ -794,21 +794,43 @@ export async function getProjects(): Promise<Project[]> {
 }
 
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
-    const db = await getDb();
-    const docRef = db.collection('projects').doc(slug);
-    const docSnap = await docRef.get();
+    try {
+        console.log('🔍 getProjectBySlug called with slug:', slug);
+        const db = await getDb();
+        console.log('✅ Database connection obtained');
 
-    if (!docSnap.exists) {
-        return null;
+        const docRef = db.collection('projects').doc(slug);
+        console.log('📄 Fetching document:', slug);
+
+        const docSnap = await docRef.get();
+        console.log('✅ Document fetched, exists:', docSnap.exists);
+
+        if (!docSnap.exists) {
+            console.log('❌ Project not found:', slug);
+            return null;
+        }
+
+        const data = docSnap.data()!;
+        console.log('📦 Project data retrieved for:', slug);
+
+        const project = {
+            ...data,
+            slug: docSnap.id,
+            createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+            updatedAt: data.updatedAt?.toDate().toISOString() || new Date().toISOString(),
+        } as Project;
+
+        console.log('✅ Project successfully formatted:', slug);
+        return project;
+    } catch (error: any) {
+        console.error('❌ Error in getProjectBySlug:', {
+            slug,
+            error: error.message,
+            code: error.code,
+            stack: error.stack,
+        });
+        throw error;
     }
-
-    const data = docSnap.data()!;
-    return {
-        ...data,
-        slug: docSnap.id,
-        createdAt: data.createdAt.toDate().toISOString(),
-        updatedAt: data.updatedAt.toDate().toISOString(),
-    } as Project;
 }
 
 export async function deleteProject(slug: string): Promise<boolean> {
