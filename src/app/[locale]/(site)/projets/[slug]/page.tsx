@@ -9,6 +9,7 @@ import { getProjectBySlug, getProjects } from '@/lib/data-admin';
 import type { Project } from '@/lib/data-types';
 import { Github, ExternalLink, Calendar, CheckCircle, Wrench, BookOpen } from 'lucide-react';
 import { SanitizedContent } from '@/components/ui/sanitized-content';
+import { cn } from '@/lib/utils';
 
 const statusConfig = {
   'terminé': { icon: CheckCircle, label: 'Terminé', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
@@ -30,7 +31,19 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
     notFound();
   }
 
-  const StatusIcon = statusConfig[project.status].icon;
+  // Sécurisation du statut (fallback si le statut DB n'est pas dans la config)
+  // On utilise 'maintenance' comme fallback par défaut ou 'en-cours'
+  const statusKey = project.status as keyof typeof statusConfig;
+  const config = statusConfig[statusKey] || {
+    icon: Wrench,
+    label: project.status || 'Inconnu',
+    className: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+  };
+
+  const StatusIcon = config.icon;
+  // Sécurisation de l'image
+  const imageSrc = project.image?.src;
+  const imageAlt = project.image?.alt || project.title;
 
   return (
     <article className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
@@ -41,21 +54,24 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
         <p className="text-xl text-muted-foreground">{project.description}</p>
       </header>
 
-      <div className="relative w-full h-96 mb-8 rounded-lg overflow-hidden shadow-lg">
-        <Image
-          src={project.image.src}
-          alt={project.image.alt}
-          fill
-          priority
-          className="object-cover"
-          data-ai-hint={project.image.aiHint}
-        />
-      </div>
+      {imageSrc && (
+        <div className="relative w-full h-96 mb-8 rounded-lg overflow-hidden shadow-lg">
+          <Image
+            src={imageSrc}
+            alt={imageAlt}
+            fill
+            priority
+            className="object-cover"
+            data-ai-hint={project.image?.aiHint}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="md:col-span-2">
-          <SanitizedContent content={project.fullDescription} />
+          {/* Fallback chaine vide pour éviter le crash */}
+          <SanitizedContent content={project.fullDescription || ''} />
         </div>
 
         {/* Sidebar */}
@@ -66,9 +82,9 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div className="flex items-center gap-2">
-                <StatusIcon className={`h-4 w-4 ${statusConfig[project.status].className.split(' ')[1]}`} />
-                <Badge variant="secondary" className={statusConfig[project.status].className}>
-                  {statusConfig[project.status].label}
+                <StatusIcon className={cn("h-4 w-4", config.className.split(' ').find(c => c.startsWith('text-')))} />
+                <Badge variant="secondary" className={config.className}>
+                  {config.label}
                 </Badge>
               </div>
               <div className="flex items-center gap-2">
@@ -83,9 +99,9 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
               <CardTitle className="text-lg">Technologies</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
-              {project.technologies.map(tech => (
+              {project.technologies?.map(tech => (
                 <Badge key={tech} variant="outline">{tech}</Badge>
-              ))}
+              )) || <span className="text-muted-foreground italic">Aucune techno listée</span>}
             </CardContent>
           </Card>
 
