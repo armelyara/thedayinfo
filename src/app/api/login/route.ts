@@ -62,8 +62,8 @@ export async function POST(request: Request) {
     (await cookies()).set('session', sessionCookie, {
       maxAge: expiresIn,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Only use secure flag in production (requires HTTPS)
-      sameSite: 'lax', // Changed from 'strict' for better compatibility
+      secure: true,
+      sameSite: 'lax',
       path: '/',
     });
 
