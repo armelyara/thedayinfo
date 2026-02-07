@@ -70,8 +70,8 @@ export async function saveProject(
   return {
     ...savedData,
     slug: savedDoc.id,
-    createdAt: savedData.createdAt.toDate().toISOString(),
-    updatedAt: savedData.updatedAt.toDate().toISOString(),
+    createdAt: savedData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+    updatedAt: savedData.updatedAt?.toDate().toISOString() || new Date().toISOString(),
   } as Project;
 }
 
@@ -86,8 +86,8 @@ export async function getProjects(): Promise<Project[]> {
     return {
       ...data,
       slug: doc.id,
-      createdAt: data.createdAt.toDate().toISOString(),
-      updatedAt: data.updatedAt.toDate().toISOString(),
+      createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+      updatedAt: data.updatedAt?.toDate().toISOString() || new Date().toISOString(),
     } as Project;
   });
 }

@@ -20,7 +20,7 @@ export async function getSubscriberByEmail(email: string): Promise<Subscriber | 
   return {
     email: data.email,
     name: data.name || '',
-    subscribedAt: data.subscribedAt.toDate().toISOString(),
+    subscribedAt: data.subscribedAt?.toDate().toISOString() || new Date().toISOString(),
     status: data.status || 'active',
     unsubscribeToken: data.unsubscribeToken,
     preferences: data.preferences,
@@ -85,7 +85,7 @@ export async function getSubscribers(): Promise<Subscriber[]> {
       return {
         email: data.email,
         name: data.name || '',
-        subscribedAt: data.subscribedAt.toDate().toISOString(),
+        subscribedAt: data.subscribedAt?.toDate().toISOString() || new Date().toISOString(),
         status: data.status || 'active',
         preferences: data.preferences,
       };
@@ -113,7 +113,7 @@ export async function getAllSubscribers(): Promise<Subscriber[]> {
         id: doc.id,
         email: data.email,
         name: data.name || '',
-        subscribedAt: data.subscribedAt.toDate().toISOString(),
+        subscribedAt: data.subscribedAt?.toDate().toISOString() || new Date().toISOString(),
         status: data.status,
         unsubscribeToken: data.unsubscribeToken || doc.id,
         preferences: data.preferences,

@@ -307,8 +307,8 @@ export async function getDrafts(): Promise<Draft[]> {
       content: data.content,
       image: data.image,
       scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
-      lastSaved: data.lastSaved.toDate().toISOString(),
-      createdAt: data.createdAt.toDate().toISOString(),
+      lastSaved: data.lastSaved?.toDate().toISOString() || new Date().toISOString(),
+      createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
       status: data.status || 'draft',
       originalArticleSlug: data.originalArticleSlug
     } as Draft;
@@ -333,8 +333,8 @@ export async function getDraft(id: string): Promise<Draft | null> {
     content: data.content,
     image: data.image,
     scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
-    lastSaved: data.lastSaved.toDate().toISOString(),
-    createdAt: data.createdAt.toDate().toISOString(),
+    lastSaved: data.lastSaved?.toDate().toISOString() || new Date().toISOString(),
+    createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
     status: data.status || 'draft',
     originalArticleSlug: data.originalArticleSlug,
   } as Draft;
@@ -387,8 +387,8 @@ export async function getScheduledArticlesToPublish(): Promise<Draft[]> {
         content: data.content,
         image: data.image,
         scheduledFor: data.scheduledFor ? data.scheduledFor.toDate().toISOString() : undefined,
-        lastSaved: data.lastSaved.toDate().toISOString(),
-        createdAt: data.createdAt.toDate().toISOString(),
+        lastSaved: data.lastSaved?.toDate().toISOString() || new Date().toISOString(),
+        createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
         status: data.status || 'draft',
         originalArticleSlug: data.originalArticleSlug
       } as Draft;
