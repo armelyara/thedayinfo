@@ -2,7 +2,7 @@
 'use server';
 
 import { Resend } from 'resend';
-import type { Article, Subscriber } from './data-types';
+import type { Article, Subscriber } from '@/lib/data-types';
 
 /**
  * Envoie une notification par email aux abonnés actifs concernant un nouvel article ou une mise à jour.
