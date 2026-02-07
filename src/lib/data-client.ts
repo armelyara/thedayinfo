@@ -1,23 +1,32 @@
 // src/app/lib/data-client.ts
 import { db } from './firebase-client';
-import { 
-    collection, 
-    getDocs, 
-    doc, 
-    getDoc, 
-    query, 
-    where, 
-    orderBy, 
+import {
+    collection,
+    getDocs,
+    doc,
+    getDoc,
+    query,
+    where,
+    orderBy,
     limit,
     updateDoc,
-    increment, 
-    runTransaction
+    increment,
+    runTransaction,
+    Firestore
 } from 'firebase/firestore';
 import type { Article, Profile, Project } from './data-types';
 
+// Helper to ensure db is initialized
+function getFirestoreDb(): Firestore {
+    if (!db) {
+        throw new Error('Firestore not initialized');
+    }
+    return db;
+}
+
 export async function getPublishedArticles(): Promise<Article[] | { error: string; message: string; }> {
     try {
-        const articlesCollection = collection(db, 'articles');
+        const articlesCollection = collection(getFirestoreDb(), 'articles');
         const q = query(
             articlesCollection,
             where('status', '==', 'published'),
@@ -59,7 +68,7 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
     try {
-        const docRef = doc(db, 'articles', slug);
+        const docRef = doc(getFirestoreDb(), 'articles', slug);
 
         // Fetch the article without incrementing views
         // View tracking is now handled client-side by ViewTracker component
@@ -104,7 +113,7 @@ export async function getArticlesByCategory(categorySlug: string, categories: { 
         const category = categories.find(c => c.slug === categorySlug);
         if (!category) return [];
 
-        const articlesCollection = collection(db, 'articles');
+        const articlesCollection = collection(getFirestoreDb(), 'articles');
         const q = query(
             articlesCollection,
             where('category', '==', category.name),
@@ -158,9 +167,9 @@ export async function searchArticles(queryText: string): Promise<Article[]> {
 
 export async function incrementViews(slug: string): Promise<Article | null> {
     try {
-        const docRef = doc(db, 'articles', slug);
+        const docRef = doc(getFirestoreDb(), 'articles', slug);
         
-        await runTransaction(db, async (transaction) => {
+        await runTransaction(getFirestoreDb(), async (transaction) => {
             const docSnap = await transaction.get(docRef);
             if (!docSnap.exists()) {
                 throw new Error("Document does not exist!");
@@ -247,7 +256,7 @@ export async function incrementViews(slug: string): Promise<Article | null> {
 
 export async function getProfile(): Promise<Profile | null> {
     try {
-        const docRef = doc(db, 'site-config', 'profile');
+        const docRef = doc(getFirestoreDb(), 'site-config', 'profile');
         const docSnap = await getDoc(docRef);
         
         if (!docSnap.exists()) {
@@ -268,7 +277,7 @@ export async function getProfile(): Promise<Profile | null> {
 // Récupérer tous les projets, triés par date de création
 export async function getProjects(): Promise<Project[]> {
     try {
-        const projectsCollection = collection(db, 'projects');
+        const projectsCollection = collection(getFirestoreDb(), 'projects');
         const q = query(projectsCollection, orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
         
@@ -294,7 +303,7 @@ export async function getProjects(): Promise<Project[]> {
 // Récupérer un projet spécifique par son slug
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
     try {
-        const docRef = doc(db, 'projects', slug);
+        const docRef = doc(getFirestoreDb(), 'projects', slug);
         const docSnap = await getDoc(docRef);
         
         if (!docSnap.exists()) {
