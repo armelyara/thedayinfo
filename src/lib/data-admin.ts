@@ -1,19 +1,29 @@
 'use server';
 
-import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
-import { initializeFirebaseAdmin } from './auth';
+import { Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
 import type { Article, ArticleImage, Draft, Profile, Subscriber, Project } from './data-types';
 import { sendNewsletterNotification } from './newsletter-service';
+import { getDb } from './data/db';
+import { getAllSubscribers } from './data/subscribers';
 
-// Utiliser une fonction pour garantir l'initialisation avant d'obtenir la DB
-export async function getDb() {
-    // During build, Firebase Admin is not initialized - throw error to be caught by callers
-    if (process.env.IS_BUILD) {
-        throw new Error('Firebase Admin is not available during build time');
-    }
-    await initializeFirebaseAdmin();
-    return getAdminFirestore();
-}
+// Re-export data modules
+export {
+  getSubscriberByEmail,
+  addSubscriber,
+  getSubscribers,
+  getAllSubscribers,
+  deleteSubscriber,
+  updateSubscriberStatus,
+} from './data/subscribers';
+
+export { getProfile, updateProfile } from './data/profile';
+
+export {
+  saveProject,
+  getProjects,
+  getProjectBySlug,
+  deleteProject,
+} from './data/projects';
 
 
 /**
@@ -121,26 +131,6 @@ async function publishArticle(
     }
 
     return resultArticle;
-}
-
-export async function getSubscriberByEmail(email: string): Promise<Subscriber | null> {
-    const db = await getDb();
-    const q = db.collection('subscribers').where('email', '==', email.toLowerCase());
-    const snapshot = await q.get();
-
-    if (snapshot.empty) {
-        return null;
-    }
-
-    const data = snapshot.docs[0].data();
-    return {
-        email: data.email,
-        name: data.name || '',
-        subscribedAt: data.subscribedAt.toDate().toISOString(),
-        status: data.status || 'active',
-        unsubscribeToken: data.unsubscribeToken,
-        preferences: data.preferences
-    };
 }
 
 
@@ -560,290 +550,4 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
     }
 }
 
-export async function getProfile(): Promise<Profile | null> {
-    try {
-        const db = await getDb();
-        const docRef = db.collection('site-config').doc('profile');
-        const doc = await docRef.get();
-
-        if (!doc.exists) {
-            return null;
-        }
-
-        return doc.data() as Profile;
-    } catch (error) {
-        console.error('Error getting profile:', error);
-        return null;
-    }
-}
-
-export async function updateProfile(data: Partial<Profile>): Promise<Profile> {
-    const db = await getDb();
-    const docRef = db.collection('site-config').doc('profile');
-
-    await docRef.set(data, { merge: true });
-
-    const updatedDoc = await docRef.get();
-    return updatedDoc.data() as Profile;
-}
-
-export async function addSubscriber(email: string, name?: string, preferences?: any): Promise<Subscriber> {
-    const db = await getDb();
-    const subscribersCollection = db.collection('subscribers');
-
-    const querySnapshot = await subscribersCollection.where('email', '==', email.toLowerCase()).limit(1).get();
-    if (!querySnapshot.empty) {
-        throw new Error("Cette adresse email est déjà abonnée.");
-    }
-
-    const docRef = subscribersCollection.doc(); // Let Firestore generate ID
-
-    // Générer un token unique pour le désabonnement
-    const crypto = require('crypto');
-    const unsubscribeToken = crypto.randomBytes(32).toString('hex');
-
-    const subscriberData = {
-        email: email.toLowerCase(),
-        name: name || '',
-        subscribedAt: AdminTimestamp.now(),
-        status: 'active' as const,
-        unsubscribeToken: unsubscribeToken, // ← Ajouter le token
-        preferences: preferences || {}
-    };
-
-    await docRef.set(subscriberData);
-
-    return {
-        ...subscriberData,
-        subscribedAt: subscriberData.subscribedAt.toDate().toISOString(),
-    };
-}
-
-export async function getSubscribers(): Promise<Subscriber[]> {
-    try {
-        const db = await getDb();
-        const subscribersCollection = db.collection('subscribers');
-        const snapshot = await subscribersCollection.orderBy('subscribedAt', 'desc').get();
-        console.log(`[data-admin] [getSubscribers] Found ${snapshot.size} total subscribers.`);
-
-        return snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                email: data.email,
-                name: data.name || '',
-                subscribedAt: data.subscribedAt.toDate().toISOString(),
-                status: data.status || 'active',
-                preferences: data.preferences
-            };
-        });
-    } catch (e) {
-        console.error('[data-admin] [getSubscribers] Failed to fetch subscribers.', e);
-        throw e;
-    }
-}
-
-// ⬇️⬇️ C'EST ICI LA NOUVELLE FONCTION POUR LE CRON ⬇️⬇️
-export async function getAllSubscribers(): Promise<Subscriber[]> {
-    try {
-        const db = await getDb();
-        // On filtre pour ne garder que les abonnés "actifs"
-        // Attention : Assurez-vous d'avoir un index composite si vous ajoutez un orderBy plus tard
-        const subscribersCollection = db.collection('subscribers');
-        const q = subscribersCollection.where('status', '==', 'active');
-
-        const snapshot = await q.get();
-
-        return snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                email: data.email,
-                name: data.name || '',
-                subscribedAt: data.subscribedAt.toDate().toISOString(),
-                status: data.status,
-                // C'est ce champ qui est vital pour le lien de désabonnement
-                unsubscribeToken: data.unsubscribeToken || doc.id,
-                preferences: data.preferences
-            } as Subscriber;
-        });
-    } catch (error) {
-        console.error("Erreur lors de la récupération des abonnés (getAllSubscribers):", error);
-        return [];
-    }
-}
-// ⬆️⬆️ FIN DE L'AJOUT ⬆️⬆️
-
-export async function deleteSubscriber(email: string): Promise<boolean> {
-    const db = await getDb();
-    const q = db.collection('subscribers').where('email', '==', email.toLowerCase());
-    const snapshot = await q.get();
-
-    if (snapshot.empty) {
-        console.warn(`Subscriber with email ${email} not found for deletion.`);
-        return false;
-    }
-
-    try {
-        const docRef = snapshot.docs[0].ref;
-        await docRef.delete();
-        return true;
-    } catch (error) {
-        console.error("Error deleting subscriber:", error);
-        return false;
-    }
-}
-
-export async function updateSubscriberStatus(email: string, status: 'active' | 'inactive' | 'unsubscribed'): Promise<boolean> {
-    const db = await getDb();
-    const q = db.collection('subscribers').where('email', '==', email.toLowerCase());
-    const snapshot = await q.get();
-
-    if (snapshot.empty) {
-        console.warn(`Subscriber with email ${email} not found for status update.`);
-        return false;
-    }
-
-    try {
-        const docRef = snapshot.docs[0].ref;
-        await docRef.update({ status });
-        return true;
-    } catch (error) {
-        console.error("Error updating subscriber status:", error);
-        return false;
-    }
-}
-
-// Ajouter cette fonction complète dans src/lib/data-admin.ts
-
-export async function saveProject(
-    projectData: Omit<Project, 'slug' | 'createdAt' | 'updatedAt'>,
-    existingSlug?: string
-): Promise<Project> {
-    const db = await getDb();
-    const projectsCollection = db.collection('projects');
-    const now = new Date();
-    let slug: string;
-
-    if (existingSlug) {
-        // Mise à jour d'un projet existant
-        slug = existingSlug;
-        const projectRef = projectsCollection.doc(slug);
-
-        // Vérifier que le projet existe
-        const existingDoc = await projectRef.get();
-        if (!existingDoc.exists) {
-            throw new Error(`Projet avec slug "${slug}" non trouvé pour mise à jour.`);
-        }
-
-        await projectRef.update({
-            ...projectData,
-            updatedAt: AdminTimestamp.fromDate(now),
-        });
-    } else {
-        // Création d'un nouveau projet
-        const baseSlug = projectData.title
-            .toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^\w-]+/g, '');
-
-        slug = baseSlug;
-        let counter = 1;
-
-        // Vérifier l'unicité du slug
-        while (true) {
-            const docSnapshot = await projectsCollection.doc(slug).get();
-            if (!docSnapshot.exists) break;
-            slug = `${baseSlug}-${counter}`;
-            counter++;
-        }
-
-        // Créer le nouveau projet
-        await projectsCollection.doc(slug).set({
-            ...projectData,
-            slug: slug,
-            createdAt: AdminTimestamp.fromDate(now),
-            updatedAt: AdminTimestamp.fromDate(now),
-        });
-    }
-
-    // Récupérer le projet sauvegardé
-    const savedDoc = await projectsCollection.doc(slug).get();
-
-    if (!savedDoc.exists) {
-        throw new Error('Erreur lors de la sauvegarde du projet.');
-    }
-
-    const savedData = savedDoc.data()!;
-
-    return {
-        ...savedData,
-        slug: savedDoc.id,
-        createdAt: savedData.createdAt.toDate().toISOString(),
-        updatedAt: savedData.updatedAt.toDate().toISOString(),
-    } as Project;
-}
-
-export async function getProjects(): Promise<Project[]> {
-    const db = await getDb();
-    const snapshot = await db.collection('projects').orderBy('createdAt', 'desc').get();
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            ...data,
-            slug: doc.id,
-            createdAt: data.createdAt.toDate().toISOString(),
-            updatedAt: data.updatedAt.toDate().toISOString(),
-        } as Project;
-    });
-}
-
-export async function getProjectBySlug(slug: string): Promise<Project | null> {
-    try {
-        console.log('🔍 getProjectBySlug called with slug:', slug);
-        const db = await getDb();
-        console.log('✅ Database connection obtained');
-
-        const docRef = db.collection('projects').doc(slug);
-        console.log('📄 Fetching document:', slug);
-
-        const docSnap = await docRef.get();
-        console.log('✅ Document fetched, exists:', docSnap.exists);
-
-        if (!docSnap.exists) {
-            console.log('❌ Project not found:', slug);
-            return null;
-        }
-
-        const data = docSnap.data()!;
-        console.log('📦 Project data retrieved for:', slug);
-
-        const project = {
-            ...data,
-            slug: docSnap.id,
-            createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
-            updatedAt: data.updatedAt?.toDate().toISOString() || new Date().toISOString(),
-        } as Project;
-
-        console.log('✅ Project successfully formatted:', slug);
-        return project;
-    } catch (error: any) {
-        console.error('❌ Error in getProjectBySlug:', {
-            slug,
-            error: error.message,
-            code: error.code,
-            stack: error.stack,
-        });
-        throw error;
-    }
-}
-
-export async function deleteProject(slug: string): Promise<boolean> {
-    const db = await getDb();
-    try {
-        await db.collection('projects').doc(slug).delete();
-        return true;
-    } catch (error) {
-        console.error('Error deleting project:', error);
-        return false;
-    }
-}
+// Profile, Subscribers, and Projects functions now in lib/data/ modules
