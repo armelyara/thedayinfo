@@ -4,6 +4,8 @@ import { getAdminArticles } from '@/lib/data-admin';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const sessionCookie = (await cookies()).get('session')?.value;
   if (!sessionCookie) {

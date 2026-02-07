@@ -5,6 +5,8 @@ import { verifySession } from '@/lib/auth';
 import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
 import { SubscriberSchema, validateSchema } from '@/lib/validation-schemas';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     // Rate limiting : 3 abonnements par heure

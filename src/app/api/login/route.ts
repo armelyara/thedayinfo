@@ -4,6 +4,8 @@ import { createSessionCookie, initializeFirebaseAdmin } from '@/lib/auth';
 import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
 import { LoginSchema, validateSchema } from '@/lib/validation-schemas';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     // 1. Extraire l'IP du client

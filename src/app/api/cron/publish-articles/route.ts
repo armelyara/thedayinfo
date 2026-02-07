@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  getScheduledArticlesToPublish, 
-  publishScheduledArticle, 
-  getAllSubscribers 
+import {
+  getScheduledArticlesToPublish,
+  publishScheduledArticle,
+  getAllSubscribers
 } from '@/lib/data-admin';
 import { sendNewsletterNotification } from '@/lib/newsletter-service';
 import { revalidatePath } from 'next/cache';
-import type { Subscriber } from '@/lib/data-types'; 
+import type { Subscriber } from '@/lib/data-types';
+
+export const dynamic = 'force-dynamic';
 
 async function handler(request: NextRequest) {
   const cronSecret = request.headers.get('x-cron-secret');

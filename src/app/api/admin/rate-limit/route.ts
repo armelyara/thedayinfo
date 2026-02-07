@@ -1,11 +1,13 @@
 // src/app/api/admin/rate-limit/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySession } from '@/lib/auth';
-import { 
-  getRateLimitStats, 
-  resetRateLimitFirestore, 
-  banIdentifier 
+import {
+  getRateLimitStats,
+  resetRateLimitFirestore,
+  banIdentifier
 } from '@/lib/rate-limit-firestore';
+
+export const dynamic = 'force-dynamic';
 
 async function checkAuth(request: NextRequest) {
   const sessionCookie = request.cookies.get('session')?.value;

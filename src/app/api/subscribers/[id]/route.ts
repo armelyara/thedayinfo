@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { updateSubscriberStatus, deleteSubscriber, getSubscriberByEmail } from '@/lib/data-admin';
 import { verifySession } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 async function checkAuth(request: NextRequest) {
   const sessionCookie = request.cookies.get('session')?.value;
   if (!sessionCookie) return null;

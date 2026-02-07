@@ -5,6 +5,8 @@ import type { Comment } from '@/lib/data-types';
 import { z } from 'zod';
 import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
 
+export const dynamic = 'force-dynamic';
+
 type RouteParams = {
   params: { slug: string }
 }

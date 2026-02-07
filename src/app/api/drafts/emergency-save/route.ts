@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { saveDraftAction } from '@/lib/data-admin';
 import { DraftSchema } from '@/lib/validation-schemas';
 
+export const dynamic = 'force-dynamic';
+
 // Schéma de validation (basé sur l'erreur reçue)
 const draftSchema = z.object({
     title: z.string(),

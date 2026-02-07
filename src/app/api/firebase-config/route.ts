@@ -1,6 +1,8 @@
 // src/app/api/firebase-config/route.ts
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   // On Firebase App Hosting, use FIREBASE_WEBAPP_CONFIG
   // On local dev, use NEXT_PUBLIC_* variables
