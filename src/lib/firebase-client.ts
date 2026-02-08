@@ -46,7 +46,7 @@ if (isValidConfig) {
   try {
     // Singleton : On réutilise l'app si elle existe déjà
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-    db = getFirestore(app);
+    db = getFirestore(app, 'named');
     auth = getAuth(app);
     storage = getStorage(app);
   } catch (e) {

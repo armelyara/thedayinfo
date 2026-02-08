@@ -2,6 +2,7 @@
 'use server';
 
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { getApp } from 'firebase-admin/app';
 import { initializeFirebaseAdmin } from './auth';
 
 /**
@@ -18,9 +19,9 @@ export async function checkRateLimitFirestore(
 ): Promise<{ allowed: boolean; retryAfter: number }> {
   try {
     await initializeFirebaseAdmin();
-    const db = getFirestore();
+    const db = getFirestore(getApp(), 'named');
     const rateLimitRef = db.collection('rateLimits').doc(identifier);
-    
+
     const now = Timestamp.now();
 
     // Transaction pour garantir la cohérence
@@ -43,13 +44,13 @@ export async function checkRateLimitFirestore(
       // Si la limite est atteinte
       if (data.count >= limit) {
         const retryAfter = Math.ceil((data.resetTime.toMillis() - Date.now()) / 1000);
-        
+
         // Enregistrer la tentative bloquée
         transaction.update(rateLimitRef, {
           lastAttempt: now,
           blockedAttempts: (data.blockedAttempts || 0) + 1
         });
-        
+
         return { allowed: false, retryAfter };
       }
 
@@ -77,7 +78,7 @@ export async function checkRateLimitFirestore(
 export async function resetRateLimitFirestore(identifier: string): Promise<void> {
   try {
     await initializeFirebaseAdmin();
-    const db = getFirestore();
+    const db = getFirestore(getApp(), 'named');
     await db.collection('rateLimits').doc(identifier).delete();
   } catch (error) {
     console.error('Erreur reset rate limit:', error);
@@ -90,13 +91,13 @@ export async function resetRateLimitFirestore(identifier: string): Promise<void>
 export async function getRateLimitStats(identifier: string): Promise<any> {
   try {
     await initializeFirebaseAdmin();
-    const db = getFirestore();
+    const db = getFirestore(getApp(), 'named');
     const doc = await db.collection('rateLimits').doc(identifier).get();
-    
+
     if (!doc.exists) {
       return null;
     }
-    
+
     const data = doc.data()!;
     return {
       count: data.count,
@@ -119,8 +120,8 @@ export async function banIdentifier(
 ): Promise<void> {
   try {
     await initializeFirebaseAdmin();
-    const db = getFirestore();
-    
+    const db = getFirestore(getApp(), 'named');
+
     await db.collection('rateLimits').doc(identifier).set({
       count: 999999,
       resetTime: Timestamp.fromMillis(Date.now() + durationMs),
@@ -128,7 +129,7 @@ export async function banIdentifier(
       banned: true,
       bannedAt: Timestamp.now()
     });
-    
+
     console.log(`✅ ${identifier} banni pour ${durationMs / 1000 / 60} minutes`);
   } catch (error) {
     console.error('Erreur bannissement:', error);

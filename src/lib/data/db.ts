@@ -1,6 +1,7 @@
 'use server';
 
 import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
+import { getApp } from 'firebase-admin/app';
 import { initializeFirebaseAdmin } from '../auth';
 
 /**
@@ -19,5 +20,5 @@ export async function getDb() {
     throw new Error('Firebase Admin is not available during build time');
   }
   await initializeFirebaseAdmin();
-  return getAdminFirestore();
+  return getAdminFirestore(getApp(), 'named'); // Use specific database
 }
