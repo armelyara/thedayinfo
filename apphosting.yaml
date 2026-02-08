@@ -1,4 +1,6 @@
 buildConfig:
+  cpu: 2
+  memoryMiB: 4096
   env:
     - variable: IS_BUILD
       value: "true"
