@@ -11,7 +11,7 @@ try {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
-  // output: 'standalone', // Required for Firebase App Hosting (Temporarily disabled for build debugging)
+  output: 'standalone', // Required for Firebase App Hosting
 
   // Extract Firebase client config from FIREBASE_WEBAPP_CONFIG for client-side use
   env: (() => {
