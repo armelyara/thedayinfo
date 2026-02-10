@@ -30,8 +30,11 @@
       ]
     }
   ],
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  }
+  "firestore": [
+    {
+      "target": "named",
+      "source": "firestore.rules",
+      "indexes": "firestore.indexes.json"
+    }
+  ]
 }
