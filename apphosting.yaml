@@ -1,36 +1,5 @@
-buildConfig:
-  cpu: 4
-  memoryMiB: 8192
-  env:
-    - variable: IS_BUILD
-      value: "true"
-      availability:
-        - BUILD
-    - variable: CACHE_BUSTER
-      value: "2026-02-08-1" # Force cache invalidation
-      availability:
-        - BUILD
-
-runConfig:
-  cpu: 1
-  memoryMiB: 512
-  minInstances: 0
-  maxInstances: 4
-
 env:
   - variable: CRON_SECRET_TOKEN
     secret: CRON_SECRET_TOKEN
-    availability:
-      - RUNTIME
   - variable: RESEND_API_KEY
     secret: RESEND_API_KEY
-    availability:
-      - RUNTIME
-  - variable: GOOGLE_GENAI_API_KEY
-    secret: GOOGLE_GENAI_API_KEY
-    availability:
-      - RUNTIME
-  - variable: FIREBASE_SERVICE_ACCOUNT
-    secret: FIREBASE_SERVICE_ACCOUNT
-    availability:
-      - RUNTIME
