@@ -12,7 +12,7 @@ export function middleware(request: NextRequest) {
   // Cela gère les redirections / -> /fr, etc.
   const response = intlMiddleware(request);
 
-  // 2. Vérification de l'authentification
+  // 2. Auth checking
   // Note: We only check if cookie exists here. Actual verification happens in pages/API routes.
   // This is because middleware runs in Edge Runtime which doesn't support Firebase Admin.
   const sessionCookie = request.cookies.get('session')?.value;
