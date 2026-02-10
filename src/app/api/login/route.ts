@@ -91,16 +91,12 @@ export async function POST(request: Request) {
       console.error('Firebase Auth Error:', error.code);
     }
 
-    const errorMessage = process.env.NODE_ENV === 'production'
-      ? 'Échec de l\'authentification'
-      : `Session failed: ${error.message}`;
+    const errorMessage = error.message || 'Échec de l\'authentification';
 
     return NextResponse.json({
       error: errorMessage,
-      ...(process.env.NODE_ENV === 'development' && {
-        code: error.code,
-        details: error.message
-      })
+      code: error.code,
+      details: error.message
     }, { status: 401 });
   }
 }
