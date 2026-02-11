@@ -4,6 +4,9 @@ import { getProjects } from '@/lib/data-admin';
 import { getTranslations } from 'next-intl/server';
 import { FolderGit2 } from 'lucide-react';
 
+// Force dynamic rendering to fetch fresh project data
+export const dynamic = 'force-dynamic';
+
 export default async function ProjectsPage() {
   const projects = await getProjects();
   const t = await getTranslations('ProjectsPage');

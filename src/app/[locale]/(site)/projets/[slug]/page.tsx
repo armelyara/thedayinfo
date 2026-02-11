@@ -11,6 +11,9 @@ import { Github, ExternalLink, Calendar, CheckCircle, Wrench, BookOpen } from 'l
 import { SanitizedContent } from '@/components/ui/sanitized-content';
 import { cn } from '@/lib/utils';
 
+// Force dynamic rendering since we skip static generation during build
+export const dynamic = 'force-dynamic';
+
 const statusConfig = {
   'terminé': { icon: CheckCircle, label: 'Terminé', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
   'en-cours': { icon: Wrench, label: 'En cours', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
