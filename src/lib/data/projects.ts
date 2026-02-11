@@ -114,6 +114,10 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
 
     const data = docSnap.data()!;
     console.log('📦 Project data retrieved for:', slug);
+    console.log('🔍 Data keys:', Object.keys(data));
+    console.log('🔍 Image data:', JSON.stringify(data.image));
+    console.log('🔍 Status:', data.status);
+    console.log('🔍 Technologies:', JSON.stringify(data.technologies));
 
     const project = {
       ...data,
@@ -122,9 +126,15 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
       updatedAt: data.updatedAt?.toDate().toISOString() || new Date().toISOString(),
     } as Project;
 
+    console.log('✅ Project object created successfully');
+    console.log('🔍 Project serialization test:', JSON.stringify(project).substring(0, 200));
+
     return project;
   } catch (error) {
     console.error('❌ Error in getProjectBySlug:', error);
+    console.error('❌ Error name:', (error as Error).name);
+    console.error('❌ Error message:', (error as Error).message);
+    console.error('❌ Error stack:', (error as Error).stack);
     return null;
   }
 }

@@ -21,13 +21,27 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
   let project;
 
   try {
+    console.log('🎯 ProjectDetailPage: Starting to load project:', params.slug);
     project = await getProjectBySlug(params.slug);
+    console.log('🎯 ProjectDetailPage: Project loaded:', project ? 'SUCCESS' : 'NULL');
+
+    if (project) {
+      console.log('🎯 ProjectDetailPage: Project title:', project.title);
+      console.log('🎯 ProjectDetailPage: Project status:', project.status);
+      console.log('🎯 ProjectDetailPage: Project image:', JSON.stringify(project.image));
+    }
   } catch (error) {
-    console.error('Error loading project:', error);
+    console.error('🎯 ProjectDetailPage: Error loading project:', error);
+    console.error('🎯 ProjectDetailPage: Error details:', {
+      name: (error as Error).name,
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
     notFound();
   }
 
   if (!project) {
+    console.log('🎯 ProjectDetailPage: Project not found, calling notFound()');
     notFound();
   }
 
