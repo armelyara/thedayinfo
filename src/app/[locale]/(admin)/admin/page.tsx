@@ -17,7 +17,9 @@ import {
   UserCircle,
   BarChart3,
   Trash2,
-  FolderGit2
+  FolderGit2,
+  Link2,
+  Check
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -61,6 +63,7 @@ export default function AdminDashboard() {
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [articleToDelete, setArticleToDelete] = useState<Article | null>(null);
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -169,6 +172,30 @@ export default function AdminDashboard() {
 
     setIsDeleteDialogOpen(false);
     setArticleToDelete(null);
+  };
+
+  const handleCopyLink = async (article: Article, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    const baseUrl = window.location.origin;
+    const articleUrl = `${baseUrl}/blog/${article.slug}`;
+
+    try {
+      await navigator.clipboard.writeText(articleUrl);
+      setCopiedSlug(article.slug);
+      toast({
+        title: 'Lien copié !',
+        description: 'Le lien de l\'article a été copié dans le presse-papiers.',
+      });
+
+      // Reset copied state after 2 seconds
+      setTimeout(() => setCopiedSlug(null), 2000);
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible de copier le lien.',
+      });
+    }
   };
 
 
@@ -352,34 +379,57 @@ export default function AdminDashboard() {
               {articles.slice(0, 5).map((article) => (
                 <div
                   key={article.slug}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="relative group"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium">{article.title}</h3>
-                      <Badge variant={article.status === 'published' ? 'default' : 'secondary'}>
-                        {article.status === 'published' ? 'Publié' : article.status === 'scheduled' ? 'Programmé' : 'Brouillon'}
-                      </Badge>
+                  <Link
+                    href={article.status === 'published' ? `/blog/${article.slug}` : `/admin/edit/${article.slug}`}
+                    className="block"
+                  >
+                    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-medium">{article.title}</h3>
+                          <Badge variant={article.status === 'published' ? 'default' : 'secondary'}>
+                            {article.status === 'published' ? 'Publié' : article.status === 'scheduled' ? 'Programmé' : 'Brouillon'}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <span>Par {article.author}</span>
+                          <span className="mx-2">•</span>
+                          <span>{article.category}</span>
+                          <span className="mx-2">•</span>
+                          <span>{format(new Date(article.publishedAt), 'dd/MM/yyyy', { locale: fr })}</span>
+                        </div>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            {article.views.toLocaleString('fr-FR')} vues
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      <span>Par {article.author}</span>
-                      <span className="mx-2">•</span>
-                      <span>{article.category}</span>
-                      <span className="mx-2">•</span>
-                      <span>{format(new Date(article.publishedAt), 'dd/MM/yyyy', { locale: fr })}</span>
-                    </div>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Eye className="w-3 h-3" />
-                        {article.views.toLocaleString('fr-FR')} vues
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
+                  </Link>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 z-10">
+                    {article.status === 'published' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => handleCopyLink(article, e)}
+                        className="relative"
+                      >
+                        {copiedSlug === article.slug ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Link2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         setSelectedArticle(article);
                         setIsCommentsModalOpen(true);
                       }}
@@ -387,12 +437,12 @@ export default function AdminDashboard() {
                       <MessageCircle className="w-4 h-4" />
                       {article.comments?.length || 0}
                     </Button>
-                    <Link href={`/admin/stats/${article.slug}`}>
+                    <Link href={`/admin/stats/${article.slug}`} onClick={(e) => e.stopPropagation()}>
                       <Button variant="outline" size="sm">
                         <TrendingUp className="w-4 h-4" />
                       </Button>
                     </Link>
-                    <Link href={`/admin/edit/${article.slug}`}>
+                    <Link href={`/admin/edit/${article.slug}`} onClick={(e) => e.stopPropagation()}>
                       <Button variant="outline" size="sm">
                         Modifier
                       </Button>
@@ -400,7 +450,11 @@ export default function AdminDashboard() {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleDeleteClick(article)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDeleteClick(article);
+                      }}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
