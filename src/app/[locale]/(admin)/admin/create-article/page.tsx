@@ -93,7 +93,6 @@ export default function CreateArticlePage() {
       setHasUnsavedChanges(false);
     } catch (error) {
       console.error('Auto-save failed:', error);
-      // Optionally show a toast on error
     } finally {
       setIsSaving(false);
     }
@@ -101,20 +100,16 @@ export default function CreateArticlePage() {
 
   useAutoSave(watchedValues, onSave, { delay: 30000 });
 
-  // ✅ FIXED: Restore last editing session on mount
   useEffect(() => {
     const restoreLastSession = async () => {
       try {
-        // 1. Check if there's a current editing session
         const sessionDraftId = localStorage.getItem('current_editing_draft_id');
 
         if (sessionDraftId) {
-          // Try to load this draft from the server
           const { getDraft } = await import('./action');
           const draft = await getDraft(sessionDraftId);
 
           if (draft) {
-            // Restore the draft data
             form.reset({
               title: draft.title || '',
               author: draft.author || 'Armel Yara',
