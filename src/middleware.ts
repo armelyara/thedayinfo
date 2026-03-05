@@ -22,7 +22,7 @@ export function middleware(request: NextRequest) {
   const isAdminRoute = new RegExp(`^(/(${localesPattern}))?/admin`).test(pathname);
   const isLoginPage = new RegExp(`^(/(${localesPattern}))?/login`).test(pathname);
 
-  // Déterminer la locale actuelle pour les redirections
+  // Determine current locale for redirections
   const currentLocale = routing.locales.find(l => pathname.startsWith(`/${l}`)) || routing.defaultLocale;
 
 
