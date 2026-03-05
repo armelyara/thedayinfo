@@ -3,25 +3,21 @@ import type { NextRequest } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './routing';
 
-// Initialisation du middleware next-intl
+// middleware next-intl
 const intlMiddleware = createMiddleware(routing);
 
 
 export function middleware(request: NextRequest) {
-  // 1. Exécuter le middleware d'internationalisation en premier
-  // Cela gère les redirections / -> /fr, etc.
+  // Running middleware next-intl
   const response = intlMiddleware(request);
 
-  // 2. Auth checking
-  // Note: We only check if cookie exists here. Actual verification happens in pages/API routes.
-  // This is because middleware runs in Edge Runtime which doesn't support Firebase Admin.
+  // Auth checking
   const sessionCookie = request.cookies.get('session')?.value;
   const isAuthenticated = !!sessionCookie;
 
   const { pathname } = request.nextUrl;
 
-  // Regex pour détecter les routes admin, peu importe la locale (/fr/admin ou /admin)
-  // On échappe les locales pour la regex
+  //  Regex for admin routes
   const localesPattern = routing.locales.join('|');
   const isAdminRoute = new RegExp(`^(/(${localesPattern}))?/admin`).test(pathname);
   const isLoginPage = new RegExp(`^(/(${localesPattern}))?/login`).test(pathname);
