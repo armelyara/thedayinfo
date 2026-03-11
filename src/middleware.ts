@@ -36,7 +36,6 @@ export function middleware(request: NextRequest) {
   const isDevelopment = process.env.NODE_ENV === 'development';
 
   // Build CSP header with stricter policies in production
-  // Note: 'unsafe-inline' in script-src is required for Next.js hydration
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-inline' ${isDevelopment ? "'unsafe-eval'" : ''} https://cdnjs.cloudflare.com https://apis.google.com https://accounts.google.com;
@@ -73,6 +72,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Matcher standard pour next-intl
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico|logo.png).*)']
 };
