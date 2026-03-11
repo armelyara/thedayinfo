@@ -8,40 +8,31 @@ const intlMiddleware = createMiddleware(routing);
 
 
 export function middleware(request: NextRequest) {
-  // Running middleware next-intl
   const response = intlMiddleware(request);
-
-  // Auth checking
   const sessionCookie = request.cookies.get('session')?.value;
   const isAuthenticated = !!sessionCookie;
 
   const { pathname } = request.nextUrl;
 
-  //  Regex for admin routes
   const localesPattern = routing.locales.join('|');
   const isAdminRoute = new RegExp(`^(/(${localesPattern}))?/admin`).test(pathname);
   const isLoginPage = new RegExp(`^(/(${localesPattern}))?/login`).test(pathname);
-
-  // Determine current locale for redirections
   const currentLocale = routing.locales.find(l => pathname.startsWith(`/${l}`)) || routing.defaultLocale;
 
 
-  // CAS 1: Tentative d'accès Admin sans être connecté -> Login
+  // CASE 1: Attempt to access Admin without being logged in Login
   if (isAdminRoute && !isAuthenticated) {
     const loginUrl = new URL(`/${currentLocale}/login`, request.url);
-    // On garde l'URL d'origine pour rediriger après le login
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // CAS 2: Tentative d'accès Login alors que déjà connecté -> Admin
-  // Note: If session is invalid, user will be redirected back to login by the admin page
+  // CASE 2: Attempt to access Login while already logged in Admin
   if (isLoginPage && isAuthenticated) {
     return NextResponse.redirect(new URL(`/${currentLocale}/admin`, request.url));
   }
 
-  // 3. Ajout des Headers de Sécurité (CSP)
-  // On applique les headers sur la réponse générée par next-intl
+  // Adding Security Headers (CSP)
   const isDevelopment = process.env.NODE_ENV === 'development';
 
   // Build CSP header with stricter policies in production
