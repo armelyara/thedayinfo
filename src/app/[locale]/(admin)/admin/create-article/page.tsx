@@ -46,7 +46,7 @@ export default function CreateArticlePage() {
   const router = useRouter();
   const [lastSaved, setLastSaved] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true); // Start with true
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
   const [currentDraftId, setCurrentDraftId] = useState<string>();
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
 
@@ -64,7 +64,6 @@ export default function CreateArticlePage() {
   const scheduledDate = form.watch('scheduledFor');
 
   const onSave = useCallback(async (data: FormData) => {
-    // Only auto-save if there's a title
     if (!data.title) return;
 
     setIsSaving(true);
@@ -85,7 +84,6 @@ export default function CreateArticlePage() {
 
       if (!currentDraftId) {
         setCurrentDraftId(savedDraft.id);
-        // Store the session draft ID so we can resume it later
         localStorage.setItem('current_editing_draft_id', savedDraft.id);
       }
 
@@ -124,20 +122,18 @@ export default function CreateArticlePage() {
             setHasUnsavedChanges(false);
 
             toast({
-              title: '✅ Session restaurée',
+              title: 'Session restaurée',
               description: 'Vous pouvez continuer votre article là où vous vous êtes arrêté.',
             });
 
-            return; // Exit early, we found the session
+            return;
           }
         }
 
-        // 2. If no session draft, check for localStorage backups
         const allBackupKeys = Object.keys(localStorage)
           .filter(key => key.startsWith('draft_backup_'));
 
         if (allBackupKeys.length > 0) {
-          // Find the most recent backup
           let mostRecentBackup: any = null;
           let mostRecentKey = '';
           let mostRecentTimestamp = 0;
@@ -163,7 +159,7 @@ export default function CreateArticlePage() {
 
           if (isRecent && mostRecentBackup) {
             const shouldRestore = window.confirm(
-              '⚠️ Un brouillon non sauvegardé a été trouvé. Voulez-vous le restaurer ?'
+              'Un brouillon non sauvegardé a été trouvé. Voulez-vous le restaurer ?'
             );
 
             if (shouldRestore) {
@@ -181,7 +177,7 @@ export default function CreateArticlePage() {
               }
 
               toast({
-                title: '✅ Brouillon restauré',
+                title: 'Brouillon restauré',
                 description: 'Votre contenu non sauvegardé a été récupéré.',
               });
             }
@@ -203,7 +199,6 @@ export default function CreateArticlePage() {
     setShowPublishConfirm(false);
 
     let isValid = true;
-    // For publish or schedule, run full validation
     if (actionType === 'publish' || actionType === 'schedule') {
       isValid = await form.trigger();
     }
@@ -245,18 +240,15 @@ export default function CreateArticlePage() {
       if (result.status === 'draft') {
         toast({ title: 'Brouillon sauvegardé', description: 'Votre article a été sauvegardé en tant que brouillon.' });
         setCurrentDraftId(result.id);
-        // Clear the session since the draft is explicitly saved
         localStorage.removeItem('current_editing_draft_id');
         router.push('/admin/drafts');
       } else if (result.status === 'scheduled') {
         toast({ title: 'Article programmé', description: 'Votre article a été programmé avec succès.' });
         setCurrentDraftId(result.id);
-        // Clear the session since the article is scheduled
         localStorage.removeItem('current_editing_draft_id');
         router.push('/admin/drafts');
       } else if (result.status === 'published' && 'slug' in result) {
         toast({ title: 'Article publié !', description: 'Votre article est maintenant en ligne.' });
-        // Clear the session since the article is published
         localStorage.removeItem('current_editing_draft_id');
         router.push(`/article/${result.slug}`);
       }
