@@ -7,9 +7,9 @@ import { getDb } from './db';
 import { getAllSubscribers } from './subscribers';
 
 /**
- * Publie un article, soit en créant un nouveau, soit en mettant à jour un existant.
- * Garantit AUCUN doublon.
- * ENVOIE DES EMAILS pour les nouveaux articles ET les modifications.
+ * Publishes an article — either creating a new one or updating an existing one.
+ * Guarantees NO duplicates.
+ * SENDS EMAILS for both new articles AND updates.
  */
 async function publishArticle(
   articleData: Omit<Article, 'slug' | 'publishedAt' | 'status' | 'views' | 'comments' | 'viewHistory'> & { scheduledFor?: string | null },
@@ -21,11 +21,17 @@ async function publishArticle(
   const isUpdate = !!existingSlug;
   const now = new Date();
   let slug: string;
-  let finalData: any;
+  // Internal write payload: publishedAt is still a Timestamp at write time, not yet a string
+  type FirestoreArticlePayload = Omit<Article, 'publishedAt' | 'slug'> & {
+    publishedAt: ReturnType<typeof AdminTimestamp.fromDate>;
+    slug: string;
+    scheduledFor?: string | null;
+  };
+  let finalData: FirestoreArticlePayload;
 
   if (isUpdate) {
     // =============================================================
-    // MODE MISE À JOUR
+    // UPDATE MODE
     // =============================================================
     slug = existingSlug!;
 
@@ -37,33 +43,33 @@ async function publishArticle(
 
     // Construction explicite des données pour éviter les erreurs de fusion
     finalData = {
-      // 1. On prend les NOUVELLES données de contenu
+      // 1. Use the NEW content data
       title: articleData.title,
       author: articleData.author,
       category: articleData.category,
       content: articleData.content,
       image: articleData.image,
 
-      // 2. On met à jour la date de publication, car c'est une RE-PUBLICATION
+      // 2. Update published date since this is a RE-PUBLICATION
       publishedAt: AdminTimestamp.fromDate(now),
       status: 'published',
 
-      // 3. On préserve les données historiques de l'ancien article
+      // 3. Preserve historical data from the existing article
       views: existingData.views || 0,
       comments: existingData.comments || [],
       viewHistory: existingData.viewHistory || [],
 
-      // 4. On garde le slug original
+      // 4. Keep the original slug
       slug: slug,
     };
 
   } else {
     // =============================================================
-    // MODE CRÉATION
+    // CREATE MODE
     // =============================================================
     slug = articleData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 
-    // Logique anti-doublon pour la création
+    // Anti-duplicate logic for creation
     let counter = 1;
     let originalSlug = slug;
     while (true) {
@@ -84,30 +90,28 @@ async function publishArticle(
     };
   }
 
-  // Supprimer le champ 'scheduledFor' qui n'a plus lieu d'être dans un article publié
-  delete finalData.scheduledFor;
+  // Remove the 'scheduledFor' field from a published article
+  delete (finalData as Record<string, unknown>).scheduledFor;
 
-  // Sauvegarder les données finales dans le document
+  // Save the final data to the document
   await articlesCollection.doc(slug).set(finalData);
 
-  // Pas besoin de re-lire le document, on a déjà les données finales
+  // No need to re-read the document — we already have the final data
   const resultArticle: Article = {
     ...finalData,
-    publishedAt: finalData.publishedAt.toDate().toISOString(),
+    publishedAt: (finalData.publishedAt as ReturnType<typeof AdminTimestamp.fromDate>).toDate().toISOString(),
   };
 
-  // CORRECTION : Envoyer des emails pour TOUS les articles (nouveaux ET modifiés)
+  // SEND EMAILS for ALL articles (new ones AND updates)
   try {
     console.log(`[publishArticle] Getting subscribers for newsletter...`);
-    // Note: Ici on utilise getSubscribers, mais pour le CRON on utilisera getAllSubscribers
-    // Idéalement, uniformisez pour utiliser getAllSubscribers partout si vous avez besoin du token.
     const subscribers = await getAllSubscribers();
     console.log(`[publishArticle] Found ${subscribers.length} subscribers. Sending notification...`);
     await sendNewsletterNotification(resultArticle, subscribers, isUpdate);
-    console.log(`[publishArticle] Newsletter sent for ${isUpdate ? 'modification' : 'création'} of article "${resultArticle.title}"`);
+    console.log(`[publishArticle] Newsletter sent for ${isUpdate ? 'update' : 'creation'} of article "${resultArticle.title}"`);
   } catch (error) {
     console.error(`[publishArticle] Failed to send newsletter:`, error);
-    // Ne pas bloquer la publication si l'envoi d'email échoue, mais logguer l'erreur
+    // Don't block publication if email sending fails, but log the error
   }
 
   return resultArticle;
@@ -115,7 +119,7 @@ async function publishArticle(
 
 
 /**
- * Crée ou met à jour un brouillon/article programmé.
+ * Creates or updates a draft or scheduled article.
  */
 async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft> {
   const db = await getDb();
@@ -143,13 +147,13 @@ async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft>
           : draftData.scheduledFor;
 
         if (isNaN(scheduledDate.getTime())) {
-          throw new Error('Date de programmation invalide');
+          throw new Error('Invalid scheduled date');
         }
 
         scheduledForTimestamp = AdminTimestamp.fromMillis(scheduledDate.getTime());
       } catch (error) {
-        console.error('Erreur lors de la conversion de scheduledFor:', error);
-        throw new Error('Format de date invalide pour la programmation');
+        console.error('Error parsing scheduledFor date:', error);
+        throw new Error('Invalid date format for scheduling');
       }
     }
 
@@ -169,14 +173,14 @@ async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft>
       originalArticleSlug: draftData.originalArticleSlug || null,
     };
 
-    // Sauvegarder avec merge pour éviter d'écraser les données existantes
+    // Save with merge to avoid overwriting existing data
     await draftsCollection.doc(id).set(dataToSave, { merge: true });
 
-    // ✅ Récupérer les données sauvegardées pour vérification
+    // Retrieve saved data to verify
     const savedDoc = await draftsCollection.doc(id).get();
 
     if (!savedDoc.exists) {
-      throw new Error('Le brouillon n\'a pas pu être sauvegardé correctement');
+      throw new Error('Draft could not be saved correctly');
     }
 
     const resultData = savedDoc.data()!;
@@ -197,12 +201,12 @@ async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft>
   } catch (error) {
     console.error('Erreur dans saveAsDraftOrScheduled:', error);
 
-    // ✅ Re-throw avec un message plus explicite
+    // Re-throw with a more explicit message
     if (error instanceof Error) {
-      throw new Error(`Échec de la sauvegarde du brouillon: ${error.message}`);
+      throw new Error(`Failed to save draft: ${error.message}`);
     }
 
-    throw new Error('Échec de la sauvegarde du brouillon: erreur inconnue');
+    throw new Error('Failed to save draft: unknown error');
   }
 }
 
@@ -268,10 +272,9 @@ export async function saveArticleAction(articleData: {
     // On récupère le slug de l'article original qui doit être passé par le frontend.
     let originalArticleSlugToSave: string | undefined | null = articleData.slug;
 
-    // GARDE-FOU : Si on met à jour un brouillon existant (on a un ID)
-    // mais que le frontend n'envoie pas de slug, on vérifie si le brouillon
-    // en base de données ne possédait pas déjà ce slug.
-    // Cela évite d'effacer le lien accidentellement.
+    // SAFETY GUARD: If updating an existing draft (we have an ID)
+    // but the frontend doesn't send a slug, check if the draft in the database
+    // already had this slug. This prevents accidentally erasing the link.
     if (articleData.id && !originalArticleSlugToSave) {
       const existingDraft = await getDraft(articleData.id);
       if (existingDraft?.originalArticleSlug) {

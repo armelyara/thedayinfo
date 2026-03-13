@@ -14,7 +14,8 @@ import {
     runTransaction,
     Firestore
 } from 'firebase/firestore';
-import type { Article, Profile, Project } from './data-types';
+import type { Article, Profile, Project, ViewHistory } from './data-types';
+import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 // Helper to ensure db is initialized
 function getFirestoreDb(): Firestore {
@@ -22,6 +23,24 @@ function getFirestoreDb(): Firestore {
         throw new Error('Firestore not initialized');
     }
     return db;
+}
+
+// Shared mapper: converts a Firestore document snapshot to an Article object
+function mapArticle(doc: QueryDocumentSnapshot<DocumentData>): Article {
+    const data = doc.data();
+    return {
+        slug: doc.id,
+        title: data.title,
+        author: data.author,
+        category: data.category,
+        publishedAt: data.publishedAt.toDate().toISOString(),
+        status: data.status,
+        image: data.image,
+        content: data.content,
+        views: data.views || 0,
+        comments: data.comments || [],
+        viewHistory: data.viewHistory || [],
+    };
 }
 
 export async function getPublishedArticles(): Promise<Article[] | { error: string; message: string; }> {
@@ -34,22 +53,7 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
         );
         const snapshot = await getDocs(q);
         
-        return snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                slug: doc.id,
-                title: data.title,
-                author: data.author,
-                category: data.category,
-                publishedAt: data.publishedAt.toDate().toISOString(),
-                status: data.status,
-                image: data.image,
-                content: data.content,
-                views: data.views || 0,
-                comments: data.comments || [],
-                viewHistory: data.viewHistory || [],
-            } as Article;
-        });
+        return snapshot.docs.map(mapArticle);
     } catch (error: any) {
         if (error.code === 'failed-precondition' && error.message.includes('index')) {
             return {
@@ -88,19 +92,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
             }
         }
         
-        return {
-            slug: docSnap.id,
-            title: data.title,
-            author: data.author,
-            category: data.category,
-            publishedAt: data.publishedAt.toDate().toISOString(),
-            status: data.status,
-            image: data.image,
-            content: data.content,
-            views: data.views || 0,
-            comments: data.comments || [],
-            viewHistory: data.viewHistory || [],
-        } as Article;
+        return mapArticle(docSnap);
     } catch (error) {
         console.error('Error getting article by slug:', error);
         return null;
@@ -122,22 +114,7 @@ export async function getArticlesByCategory(categorySlug: string, categories: { 
         );
         const snapshot = await getDocs(q);
         
-        return snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                slug: doc.id,
-                title: data.title,
-                author: data.author,
-                category: data.category,
-                publishedAt: data.publishedAt.toDate().toISOString(),
-                status: data.status,
-                image: data.image,
-                content: data.content,
-                views: data.views || 0,
-                comments: data.comments || [],
-                viewHistory: data.viewHistory || [],
-            } as Article;
-        });
+        return snapshot.docs.map(mapArticle);
     } catch (error) {
         console.error('Error getting articles by category:', error);
         return [];
@@ -235,19 +212,7 @@ export async function incrementViews(slug: string): Promise<Article | null> {
             }
         }
         
-        return {
-            slug: updatedDoc.id,
-            title: data.title,
-            author: data.author,
-            category: data.category,
-            publishedAt: data.publishedAt.toDate().toISOString(),
-            status: data.status,
-            image: data.image,
-            content: data.content,
-            views: data.views || 0,
-            comments: data.comments || [],
-            viewHistory: data.viewHistory || [],
-        } as Article;
+        return mapArticle(updatedDoc);
     } catch (error) {
         console.error('Error incrementing views:', error);
         return null;

@@ -4,25 +4,14 @@
 import { z } from 'zod';
 import { saveArticleAction as saveArticleAdmin, getDraft as getDraftAdmin, getArticleBySlug as getArticleAdmin } from '@/lib/data-admin';
 import { revalidatePath } from 'next/cache';
+import { DraftSchema } from '@/lib/validation-schemas';
 import type { Article, Draft } from '@/lib/data-types';
 
-const formSchema = z.object({
-  title: z.string().min(1, 'Le titre est requis.'),
-  author: z.string().min(1, "L'auteur est requis."),
-  category: z.string().min(1, 'La catégorie est requise.'),
-  content: z.string().min(1, 'Le contenu est requis.'),
-  image: z.object({
-    src: z.string().url().or(z.string().startsWith('data:image')),
-    alt: z.string(),
-  }),
-  scheduledFor: z.string().optional().nullable(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof DraftSchema>;
 
 export async function updateItemAction(
   idOrSlug: string,
-  values: any,
+  values: FormValues,
   actionType: 'draft' | 'publish' | 'schedule',
   isDraft: boolean,
   originalArticleSlug?: string
@@ -39,6 +28,7 @@ export async function updateItemAction(
 
     const result = await saveArticleAdmin({
       ...values,
+      scheduledFor: values.scheduledFor ?? undefined,
       actionType: actionType,
       id: isDraft ? idOrSlug : undefined,
       slug: slugPourModification,

@@ -92,7 +92,7 @@ export const DraftSchema = z.object({
   content: z
     .string()
     .min(1, 'Le contenu est requis'),
-  image: ArticleImageSchema.optional(),
+  image: ArticleImageSchema,
   scheduledFor: z
     .string()
     .datetime('Date de publication invalide')
@@ -121,3 +121,25 @@ export function validateSchema<T>(
     return { success: false, errors: ['Validation échouée'] };
   }
 }
+
+// ============================================================================
+// Project Schemas
+// ============================================================================
+
+export const ProjectSchema = z.object({
+  title: z.string().min(1),
+  description: z.string(),
+  fullDescription: z.string(),
+  image: z.object({
+    src: z.string(),
+    alt: z.string(),
+  }),
+  technologies: z.array(z.string()),
+  status: z.enum(['en-cours', 'terminé', 'maintenance']),
+  startDate: z.string(),
+  endDate: z.string().optional(),
+  githubUrl: z.string().optional(),
+  demoUrl: z.string().optional(),
+  blogArticleSlug: z.string().optional(),
+});
+

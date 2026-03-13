@@ -1,7 +1,34 @@
 'use server';
 
-import type { Article } from '../data-types';
+import type { Article, Comment, ViewHistory } from '../data-types';
 import { getDb } from './db';
+import type { DocumentData, DocumentSnapshot } from 'firebase-admin/firestore';
+
+// Shared mapper: converts a Firestore admin document snapshot to an Article object
+// Accepts both QueryDocumentSnapshot (from queries) and DocumentSnapshot (from .get())
+function mapArticle(doc: DocumentSnapshot<DocumentData>): Article {
+  const data = doc.data()!;
+  return {
+    slug: doc.id,
+    title: data.title,
+    author: data.author,
+    category: data.category,
+    publishedAt: data.publishedAt?.toDate().toISOString() || new Date().toISOString(),
+    status: data.status,
+    image: data.image,
+    content: data.content,
+    views: data.views || 0,
+    comments: data.comments || [],
+    viewHistory: data.viewHistory
+      ? data.viewHistory.map((vh: ViewHistory & { date: { toDate?: () => Date } }) => ({
+          ...vh,
+          date: vh.date && typeof (vh.date as any).toDate === 'function'
+            ? (vh.date as any).toDate().toISOString()
+            : vh.date,
+        }))
+      : [],
+  };
+}
 
 /**
  * Delete an article by slug
@@ -27,28 +54,13 @@ export async function getAdminArticles(): Promise<Article[]> {
   const q = articlesCollection.orderBy('publishedAt', 'desc');
   const snapshot = await q.get();
 
-  return snapshot.docs.map((doc): Article => {
-    const data = doc.data();
-    return {
-      slug: doc.id,
-      title: data.title,
-      author: data.author,
-      category: data.category,
-      publishedAt: data.publishedAt?.toDate().toISOString() || new Date().toISOString(),
-      status: 'published',
-      image: data.image,
-      content: data.content,
-      views: data.views || 0,
-      comments: data.comments || [],
-      viewHistory: data.viewHistory ? data.viewHistory.map((vh: any) => ({ ...vh, date: vh.date.toDate ? vh.date.toDate().toISOString() : vh.date })) : [],
-    } as Article;
-  });
+  return snapshot.docs.map(mapArticle);
 }
 
 /**
  * Update comments for an article
  */
-export async function updateArticleComments(slug: string, comments: any[]): Promise<boolean> {
+export async function updateArticleComments(slug: string, comments: Comment[]): Promise<boolean> {
   const db = await getDb();
   const docRef = db.collection('articles').doc(slug);
 
@@ -73,20 +85,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     return null;
   }
 
-  const data = doc.data()!;
-  return {
-    slug: doc.id,
-    title: data.title,
-    author: data.author,
-    category: data.category,
-    publishedAt: data.publishedAt?.toDate().toISOString() || new Date().toISOString(),
-    status: data.status,
-    image: data.image,
-    content: data.content,
-    views: data.views || 0,
-    comments: data.comments || [],
-    viewHistory: data.viewHistory || [],
-  } as Article;
+  return mapArticle(doc);
 }
 
 /**
@@ -102,22 +101,7 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
 
     const snapshot = await q.get();
 
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        slug: doc.id,
-        title: data.title,
-        author: data.author,
-        category: data.category,
-        publishedAt: data.publishedAt?.toDate().toISOString() || new Date().toISOString(),
-        status: data.status,
-        image: data.image,
-        content: data.content,
-        views: data.views || 0,
-        comments: data.comments || [],
-        viewHistory: data.viewHistory || [],
-      } as Article;
-    });
+    return snapshot.docs.map(mapArticle);
   } catch (e: any) {
     if (e.code === 'FAILED_PRECONDITION' && e.message.includes('index')) {
       return {
