@@ -80,8 +80,6 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
   });
 
   const scheduledDate = form.watch('scheduledFor');
-
-  // État de chargement pour les boutons
   const { isSubmitting } = form.formState;
 
   async function handleAction(actionType: 'draft' | 'publish' | 'schedule') {
@@ -101,14 +99,13 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
 
 
     try {
-      // Cast 'scheduledFor' to a format suitable for the action
       const submissionValues = {
         ...values,
         scheduledFor: values.scheduledFor ? values.scheduledFor.toISOString() : undefined,
       };
 
       const result = await updateItemAction(idOrSlug, submissionValues, actionType, isDraft, originalArticleSlug);
-      
+
       let successMessage = '';
       let redirectUrl = '/admin';
 
@@ -154,7 +151,7 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="author"
@@ -168,7 +165,7 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="category"
@@ -196,7 +193,7 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="image"
@@ -262,25 +259,25 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
                       className="w-[120px]"
                       defaultValue={field.value ? format(field.value, 'HH:mm') : ''}
                       onChange={(e) => {
-                          if (!field.value) return;
-                          const time = e.target.value.split(':');
-                          const hours = parseInt(time[0], 10);
-                          const minutes = parseInt(time[1], 10);
-                          const newDate = setMinutes(setHours(field.value, hours), minutes);
-                          field.onChange(newDate);
+                        if (!field.value) return;
+                        const time = e.target.value.split(':');
+                        const hours = parseInt(time[0], 10);
+                        const minutes = parseInt(time[1], 10);
+                        const newDate = setMinutes(setHours(field.value, hours), minutes);
+                        field.onChange(newDate);
                       }}
                     />
                   )}
                 </div>
-                 <FormDescription>
-                      Si une date est définie, l'article sera sauvegardé comme brouillon programmé.
-                  </FormDescription>
+                <FormDescription>
+                  Si une date est définie, l'article sera sauvegardé comme brouillon programmé.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             );
           }}
         />
-        
+
         <FormField
           control={form.control}
           name="content"
@@ -299,29 +296,29 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
             </FormItem>
           )}
         />
-        
+
         <div className="flex gap-4 items-center">
           <Button variant="outline" onClick={() => handleAction('draft')} disabled={isSubmitting}>
-              <Save className="h-4 w-4 mr-2" />
-              {isSubmitting ? 'Sauvegarde...' : 'Sauvegarder en brouillon'}
+            <Save className="h-4 w-4 mr-2" />
+            {isSubmitting ? 'Sauvegarde...' : 'Sauvegarder en brouillon'}
           </Button>
 
           {scheduledDate ? (
-              <Button onClick={() => handleAction('schedule')} className="bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
-                  <Clock className="h-4 w-4 mr-2" />
-                  {isSubmitting ? 'Mise à jour...' : 'Mettre à jour la programmation'}
-              </Button>
+            <Button onClick={() => handleAction('schedule')} className="bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+              <Clock className="h-4 w-4 mr-2" />
+              {isSubmitting ? 'Mise à jour...' : 'Mettre à jour la programmation'}
+            </Button>
           ) : (
             <>
               {/* Le bouton principal : Met à jour si publié, Publie si brouillon */}
               <Button onClick={() => handleAction('publish')} disabled={isSubmitting}>
-                  <Send className="h-4 w-4 mr-2" />
-                  {isSubmitting ? 'Publication...' : (isDraft ? "Publier Maintenant" : "Mettre à jour et Publier")}
+                <Send className="h-4 w-4 mr-2" />
+                {isSubmitting ? 'Publication...' : (isDraft ? "Publier Maintenant" : "Mettre à jour et Publier")}
               </Button>
             </>
           )}
 
-           <Button type="button" variant="ghost" onClick={() => router.back()} disabled={isSubmitting}>
+          <Button type="button" variant="ghost" onClick={() => router.back()} disabled={isSubmitting}>
             Annuler
           </Button>
         </div>

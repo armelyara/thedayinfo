@@ -50,25 +50,22 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
     const handlePublish = async (id: string) => {
         if (!confirm("Voulez-vous vraiment publier ce brouillon maintenant ?")) return;
 
-        console.log("Début publication pour ID:", id); // Log de debug
+        console.log("Début publication pour ID:", id);
         setPublishingId(id);
 
         try {
             const result = await publishDraftNow(id);
-            console.log("Résultat publication:", result); // Log de debug
+            console.log("Résultat publication:", result);
 
             if (result.success) {
-                // 1. Mise à jour immédiate de l'UI (Optimistic UI)
-                // On retire l'article de la liste des brouillons car il est publié
                 setDrafts(prev => prev.filter(d => d.id !== id));
 
                 toast({
                     title: 'Succès',
                     description: result.message,
-                    className: "bg-green-50 border-green-200", // Petit style vert
+                    className: "bg-green-50 border-green-200",
                 });
 
-                // 2. Rafraîchissement des données serveur en arrière-plan
                 router.refresh();
             } else {
                 toast({
@@ -93,7 +90,6 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
         router.push(`/admin/edit/${id}`);
     };
 
-    // Helper robuste pour la date
     const renderScheduledDate = (date: string | Date | undefined | null) => {
         if (!date) return null;
         try {

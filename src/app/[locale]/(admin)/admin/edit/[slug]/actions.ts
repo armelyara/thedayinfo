@@ -28,14 +28,12 @@ export async function updateItemAction(
   originalArticleSlug?: string
 ) {
   try {
-    // SI C'EST UN ARTICLE DÉJÀ PUBLIÉ, ON GARDE SON SLUG EXISTANT
+    // If the article is published, we keep its existing slug
     let slugPourModification: string | undefined;
-    
+
     if (!isDraft) {
-      // Article publié : on utilise son slug existant
       slugPourModification = idOrSlug;
     } else if (originalArticleSlug) {
-      // Brouillon lié à un article : on utilise le slug original
       slugPourModification = originalArticleSlug;
     }
 
@@ -43,12 +41,12 @@ export async function updateItemAction(
       ...values,
       actionType: actionType,
       id: isDraft ? idOrSlug : undefined,
-      slug: slugPourModification, // ← C'EST ÇA QUI RÉSOUT LE PROBLÈME
+      slug: slugPourModification,
     });
 
     revalidatePath('/admin/articles');
     revalidatePath('/admin/drafts');
-    
+
     if (actionType === 'publish' && 'slug' in result) {
       revalidatePath(`/article/${result.slug}`);
     }
@@ -61,11 +59,10 @@ export async function updateItemAction(
 }
 
 export async function getArticleAction(slug: string): Promise<Article | null> {
-    return getArticleAdmin(slug);
+  return getArticleAdmin(slug);
 }
 
 export async function getDraftAction(id: string): Promise<Draft | null> {
-    return getDraftAdmin(id);
+  return getDraftAdmin(id);
 }
 
-    
