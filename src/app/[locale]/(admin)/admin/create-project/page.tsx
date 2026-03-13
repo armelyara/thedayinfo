@@ -1,4 +1,3 @@
-// src/app/admin/create-project/page.tsx
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,7 +37,7 @@ type FormData = z.infer<typeof formSchema>;
 export default function CreateProjectPage() {
   const { toast } = useToast();
   const router = useRouter();
-  
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -64,7 +63,7 @@ export default function CreateProjectPage() {
       };
 
       const result = await saveProjectAction(projectData);
-      
+
       toast({
         title: 'Projet sauvegardé !',
         description: `Le projet "${result.title}" a été ajouté avec succès.`,
@@ -84,8 +83,8 @@ export default function CreateProjectPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8">
-        <Link 
-          href="/admin" 
+        <Link
+          href="/admin"
           className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4 transition-colors"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -100,7 +99,7 @@ export default function CreateProjectPage() {
           </div>
         </div>
       </header>
-      
+
       <main>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -117,7 +116,7 @@ export default function CreateProjectPage() {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="image"
@@ -136,7 +135,7 @@ export default function CreateProjectPage() {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -151,7 +150,7 @@ export default function CreateProjectPage() {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="fullDescription"
@@ -161,7 +160,7 @@ export default function CreateProjectPage() {
                   <FormControl>
                     <Textarea placeholder="Décrivez votre projet en détail ici..." {...field} rows={10} />
                   </FormControl>
-                   <FormDescription>Cette description apparaîtra sur la page de détail du projet. Vous pouvez utiliser du HTML simple.</FormDescription>
+                  <FormDescription>Cette description apparaîtra sur la page de détail du projet. Vous pouvez utiliser du HTML simple.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -232,34 +231,34 @@ export default function CreateProjectPage() {
                 )}
               />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <FormField
+              <FormField
                 control={form.control}
                 name="githubUrl"
                 render={({ field }) => (
-                    <FormItem>
+                  <FormItem>
                     <FormLabel>URL GitHub (optionnel)</FormLabel>
                     <FormControl>
-                        <Input placeholder="https://github.com/user/repo" {...field} />
+                      <Input placeholder="https://github.com/user/repo" {...field} />
                     </FormControl>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
-                <FormField
+              />
+              <FormField
                 control={form.control}
                 name="demoUrl"
                 render={({ field }) => (
-                    <FormItem>
+                  <FormItem>
                     <FormLabel>URL de la démo (optionnel)</FormLabel>
                     <FormControl>
-                        <Input placeholder="https://mon-projet.com" {...field} />
+                      <Input placeholder="https://mon-projet.com" {...field} />
                     </FormControl>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
+              />
             </div>
 
             <FormField
@@ -280,13 +279,13 @@ export default function CreateProjectPage() {
             />
 
             <div className="flex gap-4">
-                <Button 
-                  type="submit"
-                  disabled={form.formState.isSubmitting}
-                >
-                    <Save className="h-4 w-4 mr-2" />
-                    {form.formState.isSubmitting ? 'Sauvegarde...' : 'Sauvegarder le Projet'}
-                </Button>
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {form.formState.isSubmitting ? 'Sauvegarde...' : 'Sauvegarder le Projet'}
+              </Button>
             </div>
 
           </form>

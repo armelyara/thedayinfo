@@ -26,17 +26,12 @@ const projectSchema = z.object({
 type ProjectData = Omit<Project, 'slug' | 'createdAt' | 'updatedAt'>;
 
 export async function saveProjectAction(data: ProjectData): Promise<Project> {
-  // Validation avec Zod côté serveur pour la sécurité
   const validatedData = projectSchema.parse(data);
-
   try {
     const savedProject = await saveProject(validatedData);
-
-    // Revalidation des chemins pour que les nouvelles données apparaissent
     revalidatePath('/projets');
-    revalidatePath('/'); // La page d'accueil affiche les projets phares
+    revalidatePath('/');
     revalidatePath('/admin/projects');
-    
     return savedProject;
   } catch (error) {
     console.error('Error saving project:', error);
