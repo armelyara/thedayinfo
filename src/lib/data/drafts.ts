@@ -5,6 +5,7 @@ import type { Article, ArticleImage, Draft } from '../data-types';
 import { sendNewsletterNotification } from '../newsletter-service';
 import { getDb } from './db';
 import { getAllSubscribers } from './subscribers';
+import { translateArticleFlow } from '@/ai/flows/translate-article';
 
 /**
  * Publishes an article — either creating a new one or updating an existing one.
@@ -112,6 +113,26 @@ async function publishArticle(
   } catch (error) {
     console.error(`[publishArticle] Failed to send newsletter:`, error);
     // Don't block publication if email sending fails, but log the error
+  }
+
+  // AUTO-TRANSLATE: Translate French content to English (non-blocking)
+  // The article is already published at this point — translation failure will not roll it back.
+  try {
+    console.log(`[publishArticle] Starting auto-translation for article "${resultArticle.title}"...`);
+    const translation = await translateArticleFlow({
+      title: resultArticle.title,
+      content: resultArticle.content,
+    });
+    await articlesCollection.doc(slug).update({
+      title_en: translation.title_en,
+      content_en: translation.content_en,
+    });
+    resultArticle.title_en = translation.title_en;
+    resultArticle.content_en = translation.content_en;
+    console.log(`[publishArticle] Auto-translation complete for article "${resultArticle.title}"`);
+  } catch (error) {
+    console.error(`[publishArticle] Auto-translation failed for article "${resultArticle.title}". Article is still published in French.`, error);
+    // Non-blocking: article is published successfully, English version will be missing until next publish
   }
 
   return resultArticle;

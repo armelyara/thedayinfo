@@ -40,6 +40,9 @@ function mapArticle(doc: QueryDocumentSnapshot<DocumentData>): Article {
         views: data.views || 0,
         comments: data.comments || [],
         viewHistory: data.viewHistory || [],
+        // Translation fields (optional — populated after auto-translation on publish)
+        title_en: data.title_en,
+        content_en: data.content_en,
     };
 }
 

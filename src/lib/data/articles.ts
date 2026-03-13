@@ -27,6 +27,9 @@ function mapArticle(doc: DocumentSnapshot<DocumentData>): Article {
             : vh.date,
         }))
       : [],
+    // Translation fields (optional — populated after auto-translation on publish)
+    title_en: data.title_en,
+    content_en: data.content_en,
   };
 }
 
