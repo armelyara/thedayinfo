@@ -5,5 +5,3 @@ env:
     secret: RESEND_API_KEY
   - variable: FIREBASE_SERVICE_ACCOUNT
     secret: FIREBASE_SERVICE_ACCOUNT
-  - variable: GEMINI_API_KEY
-    secret: GEMINI_API_KEY
