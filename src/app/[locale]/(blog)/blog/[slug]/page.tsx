@@ -78,14 +78,20 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       </header>
 
       <div className="relative w-full h-96 mb-8 rounded-lg overflow-hidden shadow-lg">
-        <Image
-          src={article.image.src}
-          alt={article.image.alt}
-          fill
-          priority
-          className="object-cover"
-          data-ai-hint={article.image.aiHint}
-        />
+        {article.image?.src ? (
+          <Image
+            src={article.image.src}
+            alt={article.image.alt || article.title}
+            fill
+            priority
+            className="object-cover"
+            data-ai-hint={article.image.aiHint}
+          />
+        ) : (
+          <div className="w-full h-full bg-muted flex items-center justify-center">
+            <span className="text-muted-foreground">Illustration non disponible</span>
+          </div>
+        )}
       </div>
 
       <SanitizedContent content={displayContent} className="mb-12" />

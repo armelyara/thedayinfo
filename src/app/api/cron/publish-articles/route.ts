@@ -4,6 +4,7 @@ import {
   publishScheduledArticle,
   getAllSubscribers
 } from '@/lib/data-admin';
+import { verifySession } from '@/lib/auth';
 import { sendNewsletterNotification } from '@/lib/newsletter-service';
 import { revalidatePath } from 'next/cache';
 import type { Subscriber } from '@/lib/data-types';
@@ -12,10 +13,23 @@ export const dynamic = 'force-dynamic';
 
 async function handler(request: NextRequest) {
   const cronSecret = request.headers.get('x-cron-secret');
+  const isInternal = request.headers.get('x-internal-request') === 'true';
   const expectedSecret = process.env.CRON_SECRET_TOKEN;
   
-  if (cronSecret !== expectedSecret) {
-    console.error('Invalid cron secret');
+  let isAuthorized = false;
+
+  if (cronSecret === expectedSecret) {
+    isAuthorized = true;
+  } else if (isInternal) {
+    const sessionCookie = request.cookies.get('session');
+    if (sessionCookie) {
+      const decodedUser = await verifySession(sessionCookie.value).catch(() => null);
+      if (decodedUser) isAuthorized = true;
+    }
+  }
+
+  if (!isAuthorized) {
+    console.error('Unauthorized cron access attempt');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
