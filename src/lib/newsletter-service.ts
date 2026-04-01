@@ -4,6 +4,15 @@
 import { Resend } from 'resend';
 import type { Article, Subscriber } from '@/lib/data-types';
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 /**
  * Envoie une notification par email aux abonnés actifs concernant un nouvel article ou une mise à jour.
  * @param article L'objet article concerné.
@@ -18,6 +27,10 @@ export async function sendNewsletterNotification(
   if (!process.env.RESEND_API_KEY) {
     console.warn("RESEND_API_KEY non configurée. Impossible d'envoyer la newsletter.");
     return;
+  }
+
+  if (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_SITE_URL) {
+    throw new Error("NEXT_PUBLIC_SITE_URL est requise en production pour les liens newsletter.");
   }
 
   // Initialize Resend at runtime, not at module load time
@@ -47,13 +60,16 @@ export async function sendNewsletterNotification(
       // Lien de désabonnement unique avec le token du subscriber
       const unsubscribeUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/unsubscribe?email=${encodeURIComponent(subscriber.email)}&token=${subscriber.unsubscribeToken}`;
 
+      const safeTitle = escapeHtml(article.title);
+      const safeAuthor = escapeHtml(article.author);
+
       const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${subject}</title>
+          <title>${escapeHtml(subject)}</title>
           <style>
               body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
               .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0; }
@@ -72,9 +88,9 @@ export async function sendNewsletterNotification(
           
           <div class="content">
               <div class="article-card">
-                  <h2 style="margin-top: 0; color: #333;">${article.title}</h2>
+                  <h2 style="margin-top: 0; color: #333;">${safeTitle}</h2>
                   <p style="color: #666; margin: 10px 0;">
-                      ${isUpdate ? '📝 Article mis à jour' : '✨ Nouvel article'} par <strong>${article.author}</strong>
+                      ${isUpdate ? '📝 Article mis à jour' : '✨ Nouvel article'} par <strong>${safeAuthor}</strong>
                   </p>
                   <p style="color: #555; line-height: 1.8;">
                       ${isUpdate 

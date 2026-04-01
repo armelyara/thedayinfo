@@ -31,7 +31,10 @@ export async function checkRateLimitFirestore(
 
       // Si pas de données ou fenêtre expirée
       if (!data || data.resetTime.toMillis() < Date.now()) {
-        // Créer une nouvelle entrée
+        // Supprimer l'ancien document si expiré, puis créer une nouvelle entrée
+        if (doc.exists) {
+          transaction.delete(rateLimitRef);
+        }
         transaction.set(rateLimitRef, {
           count: 1,
           resetTime: Timestamp.fromMillis(Date.now() + windowMs),
@@ -67,8 +70,8 @@ export async function checkRateLimitFirestore(
 
   } catch (error) {
     console.error('Erreur rate limiting Firestore:', error);
-    // En cas d'erreur, on autorise par défaut pour ne pas bloquer le service
-    return { allowed: true, retryAfter: 0 };
+    // En cas d'erreur, on bloque par défaut pour éviter les abus
+    return { allowed: false, retryAfter: 300 };
   }
 }
 

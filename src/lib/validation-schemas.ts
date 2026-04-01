@@ -58,7 +58,10 @@ export const CommentSchema = z.object({
     .min(1, 'Le commentaire ne peut pas être vide')
     .max(1000, 'Le commentaire est trop long (max 1000 caractères)')
     .trim(),
-  avatar: z.string(),
+  avatar: z.string().refine(
+    val => val === '' || val.startsWith('https://'),
+    { message: 'Avatar doit être une URL HTTPS valide ou vide' }
+  ),
   email: z.string().email('Email invalide').toLowerCase().trim(),
   parentId: z.number().nullable().optional(),
   likes: z.number().optional(),
@@ -69,7 +72,10 @@ export const CommentSchema = z.object({
 // ============================================================================
 
 export const ArticleImageSchema = z.object({
-  src: z.string().url('URL d\'image invalide'),
+  src: z.string().url('URL d\'image invalide').refine(
+    val => val.startsWith('https://'),
+    { message: 'L\'URL de l\'image doit utiliser le protocole HTTPS' }
+  ),
   alt: z.string().min(1, 'Le texte alternatif est requis'),
   aiHint: z.string().optional(),
 });

@@ -1,44 +1,30 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
+import { verifySession } from '@/lib/auth';
 import { initializeFirebaseAdmin } from '@/lib/auth';
 import admin from 'firebase-admin';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
-    let initError = null;
-
-    try {
-        // Try to initialize Firebase Admin
+export async function GET(request: NextRequest) {
+  const session = request.cookies.get('session')?.value;
+  if (session) {
+    const decoded = await verifySession(session);
+    if (decoded) {
+      let initError = null;
+      try {
         await initializeFirebaseAdmin();
-    } catch (error: any) {
-        initError = {
-            message: error.message,
-            code: error.code,
-            stack: error.stack,
-        };
-    }
+      } catch (error: any) {
+        initError = { message: error.message };
+      }
 
-    try {
-        const health = {
-            status: initError ? 'error' : 'ok',
-            timestamp: new Date().toISOString(),
-            firebase: {
-                adminInitialized: admin.apps.length > 0,
-                hasFirebaseConfig: !!process.env.FIREBASE_CONFIG,
-                hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
-                hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
-                hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
-                nodeEnv: process.env.NODE_ENV,
-            },
-            initError,
-        };
-
-        return NextResponse.json(health);
-    } catch (error: any) {
-        return NextResponse.json({
-            status: 'error',
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-        }, { status: 500 });
+      return NextResponse.json({
+        status: initError ? 'error' : 'ok',
+        firebase: {
+          adminInitialized: admin.apps.length > 0,
+        },
+      });
     }
+  }
+
+  return NextResponse.json({ status: 'ok' });
 }

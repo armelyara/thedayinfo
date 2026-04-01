@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       maxAge: expiresIn,
       httpOnly: true,
       secure: true,
-      sameSite: 'lax',
+      sameSite: 'strict',
       path: '/',
     });
 
@@ -91,12 +91,8 @@ export async function POST(request: Request) {
       console.error('Firebase Auth Error:', error.code);
     }
 
-    const errorMessage = error.message || 'Échec de l\'authentification';
-
     return NextResponse.json({
-      error: errorMessage,
-      code: error.code,
-      details: error.message
+      error: 'Authentification échouée'
     }, { status: 401 });
   }
 }

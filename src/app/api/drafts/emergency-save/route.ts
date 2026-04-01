@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { saveDraftAction } from '@/lib/data-admin';
 import { DraftSchema } from '@/lib/validation-schemas';
+import { verifySession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,15 @@ const draftSchema = z.object({
 
 export async function POST(req: NextRequest) {
     try {
+        const session = req.cookies.get('session')?.value;
+        if (!session) {
+            return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        }
+        const decoded = await verifySession(session);
+        if (!decoded) {
+            return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        }
+
         const body = await req.json();
 
         // Validation des données

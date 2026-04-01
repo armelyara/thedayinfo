@@ -1,6 +1,7 @@
 // src/app/api/articles/[slug]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getArticleBySlug } from '@/lib/data-client';
+import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,8 +17,28 @@ export async function GET(
       );
     }
 
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+
+    const rateLimitResult = await checkRateLimitFirestore(
+      `article-view:${ip}`,
+      30,
+      60 * 1000
+    );
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Trop de requêtes. Veuillez réessayer dans un instant.' },
+        {
+          status: 429,
+          headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+        }
+      );
+    }
+
     const article = await getArticleBySlug(params.slug);
-    
+
     if (!article) {
       return NextResponse.json(
         { error: 'Article non trouvé' },

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       console.warn('Session verification failed');
     }
 
-    return NextResponse.json({ authenticated, decodedToken });
+    return NextResponse.json({ authenticated });
   } catch (error: any) {
     console.error('Auth check error:', error);
     return NextResponse.json({
