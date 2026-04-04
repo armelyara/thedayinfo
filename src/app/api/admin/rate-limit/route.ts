@@ -1,6 +1,6 @@
 // src/app/api/admin/rate-limit/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySession } from '@/lib/auth';
+import { getSessionUser } from '@/lib/auth';
 import {
   getRateLimitStats,
   resetRateLimitFirestore,
@@ -9,15 +9,9 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-async function checkAuth(request: NextRequest) {
-  const sessionCookie = request.cookies.get('session')?.value;
-  if (!sessionCookie) return null;
-  return await verifySession(sessionCookie);
-}
-
 // GET /api/admin/rate-limit?identifier=login:192.168.1.1
 export async function GET(request: NextRequest) {
-  const decodedClaims = await checkAuth(request);
+  const decodedClaims = await getSessionUser(request);
   if (!decodedClaims) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
@@ -40,7 +34,7 @@ export async function GET(request: NextRequest) {
 
 // DELETE /api/admin/rate-limit?identifier=login:192.168.1.1
 export async function DELETE(request: NextRequest) {
-  const decodedClaims = await checkAuth(request);
+  const decodedClaims = await getSessionUser(request);
   if (!decodedClaims) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
@@ -59,7 +53,7 @@ export async function DELETE(request: NextRequest) {
 
 // POST /api/admin/rate-limit/ban
 export async function POST(request: NextRequest) {
-  const decodedClaims = await checkAuth(request);
+  const decodedClaims = await getSessionUser(request);
   if (!decodedClaims) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }

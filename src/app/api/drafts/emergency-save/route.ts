@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { saveDraftAction } from '@/lib/data-admin';
-import { DraftSchema } from '@/lib/validation-schemas';
 import { verifySession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';

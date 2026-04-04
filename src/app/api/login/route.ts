@@ -48,17 +48,7 @@ export async function POST(request: Request) {
 
     const { idToken } = validation.data;
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('=== API LOGIN START ===');
-      console.log('IP:', ip);
-      console.log('Initializing Firebase Admin...');
-    }
-
     await initializeFirebaseAdmin();
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Firebase Admin initialized, creating session cookie...');
-    }
 
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 jours
 
@@ -71,10 +61,6 @@ export async function POST(request: Request) {
       sameSite: 'strict',
       path: '/',
     });
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Session créée avec succès');
-    }
 
     return NextResponse.json({ success: true });
 

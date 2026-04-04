@@ -1,6 +1,8 @@
 // src/components/admin/admin-comments-modal.tsx
 'use client';
 
+const ADMIN_AUTHOR_NAME = 'Armel Yara';
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -62,7 +64,7 @@ function CommentItem({
     try {
       const reply: Comment = {
         id: Date.now(),
-        author: 'Armel Yara',
+        author: ADMIN_AUTHOR_NAME,
         text: replyText.trim(),
         avatar: authorAvatarUrl,
         email: '',
@@ -148,7 +150,7 @@ function CommentItem({
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-semibold text-sm">{comment.author}</span>
-              {comment.author === 'Armel Yara' && (
+              {comment.author === ADMIN_AUTHOR_NAME && (
                 <Badge variant="default" className="text-xs bg-blue-500">Auteur</Badge>
               )}
             </div>
@@ -263,7 +265,7 @@ export function AdminCommentsModal({
     try {
       const newComment: Comment = {
         id: Date.now(),
-        author: 'Armel Yara',
+        author: ADMIN_AUTHOR_NAME,
         text: globalComment.trim(),
         avatar: authorAvatarUrl,
         email: '',

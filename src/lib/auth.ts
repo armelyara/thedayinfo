@@ -1,5 +1,6 @@
 'use server';
 import admin, { AppOptions } from 'firebase-admin';
+import type { NextRequest } from 'next/server';
 
 let adminInitialized = false;
 
@@ -128,6 +129,12 @@ export async function verifySession(session: string) {
     });
     return null;
   }
+}
+
+export async function getSessionUser(request: NextRequest) {
+  const session = request.cookies.get('session')?.value;
+  if (!session) return null;
+  return await verifySession(session);
 }
 
 export async function createSessionCookie(idToken: string, options: { expiresIn: number }) {

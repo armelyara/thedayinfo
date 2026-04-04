@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateSubscriberStatus, deleteSubscriber, getSubscriberByEmail } from '@/lib/data-admin';
-import { verifySession } from '@/lib/auth';
+import { getSessionUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
-
-async function checkAuth(request: NextRequest) {
-  const sessionCookie = request.cookies.get('session')?.value;
-  if (!sessionCookie) return null;
-  return await verifySession(sessionCookie);
-}
 
 export async function PATCH(
   request: NextRequest,
@@ -62,7 +56,7 @@ export async function PATCH(
     }
 
     // ✅ Pour toute autre action (réactivation), exiger l'authentification admin
-    const decodedClaims = await checkAuth(request);
+    const decodedClaims = await getSessionUser(request);
     if (!decodedClaims) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
@@ -82,7 +76,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const decodedClaims = await checkAuth(request);
+  const decodedClaims = await getSessionUser(request);
   if (!decodedClaims) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }

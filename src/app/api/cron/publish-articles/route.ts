@@ -43,40 +43,32 @@ async function handler(request: NextRequest) {
       });
     }
 
-
     let subscribers: Subscriber[] = [];
-try {
-  subscribers = await getAllSubscribers();
-} catch (subError) {
-  console.error('Erreur récupération abonnés:', subError);
-  
-}
+    try {
+      subscribers = await getAllSubscribers();
+    } catch (subError) {
+      console.error('Erreur récupération abonnés:', subError);
+    }
 
     const publicationResults = [];
 
-    
     for (const draft of draftsToPublish) {
       try {
-        
         const publishedArticle = await publishScheduledArticle(draft);
-        
-       
+
         let newsletterResult = { successful: 0, failed: 0 };
-        
-        if (subscribers && subscribers.length > 0) {
+
+        if (subscribers.length > 0) {
           try {
-            console.log(`Tentative envoi newsletter pour : ${publishedArticle.title}`);
             const result = await sendNewsletterNotification(publishedArticle, subscribers);
             if (result) {
               newsletterResult = result;
             }
           } catch (emailError) {
-            console.error(`Erreur critique envoi newsletter pour ${draft.id}:`, emailError);
-            
+            console.error(`Erreur envoi newsletter pour ${draft.id}:`, emailError);
           }
         }
 
-        
         publicationResults.push({
           draftId: draft.id,
           status: 'success',
