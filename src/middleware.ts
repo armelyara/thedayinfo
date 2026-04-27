@@ -7,37 +7,9 @@ import { routing } from './routing';
 const intlMiddleware = createMiddleware(routing);
 
 
-export function middleware(request: NextRequest) {
-  const response = intlMiddleware(request);
-  const sessionCookie = request.cookies.get('session')?.value;
-  const isAuthenticated = !!sessionCookie;
-
-  const { pathname } = request.nextUrl;
-
-  const localesPattern = routing.locales.join('|');
-  const isAdminRoute = new RegExp(`^(/(${localesPattern}))?/admin`).test(pathname);
-  const isLoginPage = new RegExp(`^(/(${localesPattern}))?/login`).test(pathname);
-  const currentLocale = routing.locales.find(l => pathname.startsWith(`/${l}`)) || routing.defaultLocale;
-
-
-  // CASE 1: Attempt to access Admin without being logged in Login
-  if (isAdminRoute && !isAuthenticated) {
-    const prefix = currentLocale === routing.defaultLocale ? '' : `/${currentLocale}`;
-    const loginUrl = new URL(`${prefix}/login`, request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // CASE 2: Attempt to access Login while already logged in Admin
-  if (isLoginPage && isAuthenticated) {
-    const prefix = currentLocale === routing.defaultLocale ? '' : `/${currentLocale}`;
-    return NextResponse.redirect(new URL(`${prefix}/admin`, request.url));
-  }
-
-  // Adding Security Headers (CSP)
+function applySecurityHeaders(response: NextResponse) {
   const isDevelopment = process.env.NODE_ENV === 'development';
 
-  // Build CSP header with stricter policies in production
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-inline' ${isDevelopment ? "'unsafe-eval'" : ''} https://cdnjs.cloudflare.com https://apis.google.com https://accounts.google.com;
@@ -71,6 +43,42 @@ export function middleware(request: NextRequest) {
   }
 
   return response;
+}
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // API routes: skip next-intl entirely (it would otherwise rewrite/redirect
+  // /api/* paths and break POST bodies). Apply security headers only.
+  if (pathname.startsWith('/api')) {
+    return applySecurityHeaders(NextResponse.next());
+  }
+
+  const response = intlMiddleware(request);
+  const sessionCookie = request.cookies.get('session')?.value;
+  const isAuthenticated = !!sessionCookie;
+
+  const localesPattern = routing.locales.join('|');
+  const isAdminRoute = new RegExp(`^(/(${localesPattern}))?/admin`).test(pathname);
+  const isLoginPage = new RegExp(`^(/(${localesPattern}))?/login`).test(pathname);
+  const currentLocale = routing.locales.find(l => pathname.startsWith(`/${l}`)) || routing.defaultLocale;
+
+
+  // CASE 1: Attempt to access Admin without being logged in Login
+  if (isAdminRoute && !isAuthenticated) {
+    const prefix = currentLocale === routing.defaultLocale ? '' : `/${currentLocale}`;
+    const loginUrl = new URL(`${prefix}/login`, request.url);
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // CASE 2: Attempt to access Login while already logged in Admin
+  if (isLoginPage && isAuthenticated) {
+    const prefix = currentLocale === routing.defaultLocale ? '' : `/${currentLocale}`;
+    return NextResponse.redirect(new URL(`${prefix}/admin`, request.url));
+  }
+
+  return applySecurityHeaders(response);
 }
 
 export const config = {
