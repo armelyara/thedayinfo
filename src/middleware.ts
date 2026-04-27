@@ -22,14 +22,16 @@ export function middleware(request: NextRequest) {
 
   // CASE 1: Attempt to access Admin without being logged in Login
   if (isAdminRoute && !isAuthenticated) {
-    const loginUrl = new URL(`/${currentLocale}/login`, request.url);
+    const prefix = currentLocale === routing.defaultLocale ? '' : `/${currentLocale}`;
+    const loginUrl = new URL(`${prefix}/login`, request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   // CASE 2: Attempt to access Login while already logged in Admin
   if (isLoginPage && isAuthenticated) {
-    return NextResponse.redirect(new URL(`/${currentLocale}/admin`, request.url));
+    const prefix = currentLocale === routing.defaultLocale ? '' : `/${currentLocale}`;
+    return NextResponse.redirect(new URL(`${prefix}/admin`, request.url));
   }
 
   // Adding Security Headers (CSP)
