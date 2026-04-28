@@ -86,6 +86,38 @@ const nextConfig = {
     ]
   },
 
+  // CORS headers for shared animation libraries served from /public.
+  // Sandboxed iframes (srcdoc) have an opaque "null" origin, so when Babel
+  // standalone fetches `<script type="text/babel" src="...">` it counts as
+  // cross-origin and the browser requires Access-Control-Allow-Origin.
+  // We match top-level files only (single path segment) to avoid touching
+  // anything Next.js serves under /_next/.
+  async headers() {
+    return [
+      {
+        source: '/:file.jsx',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Cache-Control', value: 'public, max-age=3600, must-revalidate' },
+        ],
+      },
+      {
+        source: '/:file.js',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Cache-Control', value: 'public, max-age=3600, must-revalidate' },
+        ],
+      },
+      {
+        source: '/:file.css',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Cache-Control', value: 'public, max-age=3600, must-revalidate' },
+        ],
+      },
+    ];
+  },
+
   webpack: (config, { isServer, webpack }) => {
     // Enable WebAssembly
     config.experiments = { ...config.experiments, asyncWebAssembly: true };

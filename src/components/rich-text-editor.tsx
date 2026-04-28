@@ -191,33 +191,32 @@ const COLOR_PALETTE = [
 // Embed HTML normalizer
 //
 // Lets the user paste their multi-file animation pattern (HTML scene + a
-// reference to a shared `animations.jsx` library) directly. We rewrite
-// references to the shared lib so they resolve through the parent document's
+// reference to a shared `animations.jsx` or any other relative .jsx/.js/.css
+// library) directly. We rewrite ANY relative reference to a top-level file
+// into a root-relative path so it resolves through the parent document's
 // origin from inside the sandboxed iframe srcdoc:
 //
-//   <script src="animations.jsx">          → <script src="/animations.jsx">
-//   <script src="./animations.jsx">        → <script src="/animations.jsx">
+//   <script src="animations.jsx">     → <script src="/animations.jsx">
+//   <script src="./scene-utils.js">   → <script src="/scene-utils.js">
+//   <link href="theme.css">           → <link href="/theme.css">
 //
-// The library lives at /animations.jsx (Next.js public/ folder) on every
-// environment (localhost, prod), and per the HTML spec a srcdoc iframe
-// resolves root-relative paths against its parent document's URL — so the
-// same stored HTML works in the editor preview, in admin, and on the public
-// article page.
+// To add a new shared lib: drop the file in /public, push, and any animation
+// that references it works automatically. No code edit in this component.
+//
+// Per the HTML spec, a srcdoc iframe resolves root-relative paths against
+// its parent document's URL, so the same stored HTML works in the editor
+// preview, in admin, and on the public article page.
+//
+// CORS headers for those files are configured in next.config.js — without
+// them Babel standalone (which fetches src= scripts via XHR from the iframe's
+// opaque "null" origin) would be blocked by the browser.
 // =============================================================================
-const SHARED_LIB_FILES = ['animations.jsx'];
+const RELATIVE_ASSET_RE =
+  /(\b(?:src|href)\s*=\s*["'])(?!https?:|\/\/|\/|data:|blob:|#)(?:\.\/)?([\w\-]+\.(?:jsx?|css))(["'])/gi;
 
 function normalizeEmbedHtml(input: string): string {
   if (!input) return '';
-  let out = input;
-  for (const file of SHARED_LIB_FILES) {
-    // Match src="animations.jsx", src='./animations.jsx', etc. but not absolute
-    const re = new RegExp(
-      `(\\bsrc\\s*=\\s*["'])(?:\\.\\/)?(${file.replace(/\./g, '\\.')})(["'])`,
-      'gi'
-    );
-    out = out.replace(re, `$1/$2$3`);
-  }
-  return out;
+  return input.replace(RELATIVE_ASSET_RE, '$1/$2$3');
 }
 
 interface RichTextEditorProps {
@@ -900,26 +899,28 @@ export function RichTextEditor({
 
       {/* Embed dialog */}
       <Dialog open={embedOpen} onOpenChange={setEmbedOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[92vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 pt-6 pb-3 border-b">
             <DialogTitle>Insérer une animation HTML / JS</DialogTitle>
             <DialogDescription>
               Collez le code HTML complet généré par Claude design. Il sera intégré dans une iframe sandboxée — isolée du reste de l'article.
-              Les références à <code className="px-1 py-0.5 rounded bg-muted text-xs">animations.jsx</code> sont automatiquement reroutées vers la librairie hébergée à <code className="px-1 py-0.5 rounded bg-muted text-xs">/animations.jsx</code>.
+              Toute référence relative à <code className="px-1 py-0.5 rounded bg-muted text-xs">.jsx</code>, <code className="px-1 py-0.5 rounded bg-muted text-xs">.js</code> ou <code className="px-1 py-0.5 rounded bg-muted text-xs">.css</code> est automatiquement réécrite vers <code className="px-1 py-0.5 rounded bg-muted text-xs">/&lt;fichier&gt;</code> (déposez la lib correspondante dans <code className="px-1 py-0.5 rounded bg-muted text-xs">public/</code>).
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <Label>Code HTML / JS complet</Label>
+
+          {/* Scrollable middle */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
+            <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+              <div>
+                <Label>Code HTML complet</Label>
                 <Textarea
                   value={embedCode}
                   onChange={(e) => setEmbedCode(e.target.value)}
-                  placeholder={`<!DOCTYPE html>\n<html>\n  <body>\n    <canvas id="c"></canvas>\n    <script>/* … */</script>\n  </body>\n</html>`}
-                  className="font-mono text-xs min-h-[280px]"
+                  placeholder={`<!DOCTYPE html>\n<html>\n  <body>\n    <div id="root"></div>\n    <script type="text/babel" src="animations.jsx"></script>\n    <script type="text/babel">/* scene */</script>\n  </body>\n</html>`}
+                  className="font-mono text-xs min-h-[220px] resize-y"
                 />
               </div>
-              <div>
+              <div className="w-28">
                 <Label>Hauteur (px)</Label>
                 <Input
                   type="number"
@@ -931,14 +932,14 @@ export function RichTextEditor({
             </div>
             {embedCode && (
               <div>
-                <Label className="text-xs text-muted-foreground">Aperçu</Label>
+                <Label className="text-xs text-muted-foreground">Aperçu (sandboxé)</Label>
                 <iframe
                   srcDoc={normalizedPreview}
                   sandbox="allow-scripts"
                   loading="lazy"
                   style={{
                     width: '100%',
-                    height: `${parseInt(embedHeight || '500', 10) || 500}px`,
+                    height: `${Math.min(parseInt(embedHeight || '500', 10) || 500, 600)}px`,
                     border: '1px solid hsl(var(--border))',
                     borderRadius: 8,
                   }}
@@ -946,7 +947,9 @@ export function RichTextEditor({
               </div>
             )}
           </div>
-          <DialogFooter>
+
+          {/* Sticky footer */}
+          <DialogFooter className="px-6 py-4 border-t bg-background">
             <Button variant="outline" onClick={() => setEmbedOpen(false)}>
               Annuler
             </Button>
