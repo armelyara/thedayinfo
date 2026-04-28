@@ -187,6 +187,39 @@ const COLOR_PALETTE = [
   '#A61C00', '#CC0000', '#E69138', '#F1C232', '#6AA84F', '#45818E', '#3C78D8', '#3D85C6', '#674EA7', '#A64D79',
 ];
 
+// =============================================================================
+// Embed HTML normalizer
+//
+// Lets the user paste their multi-file animation pattern (HTML scene + a
+// reference to a shared `animations.jsx` library) directly. We rewrite
+// references to the shared lib so they resolve through the parent document's
+// origin from inside the sandboxed iframe srcdoc:
+//
+//   <script src="animations.jsx">          → <script src="/animations.jsx">
+//   <script src="./animations.jsx">        → <script src="/animations.jsx">
+//
+// The library lives at /animations.jsx (Next.js public/ folder) on every
+// environment (localhost, prod), and per the HTML spec a srcdoc iframe
+// resolves root-relative paths against its parent document's URL — so the
+// same stored HTML works in the editor preview, in admin, and on the public
+// article page.
+// =============================================================================
+const SHARED_LIB_FILES = ['animations.jsx'];
+
+function normalizeEmbedHtml(input: string): string {
+  if (!input) return '';
+  let out = input;
+  for (const file of SHARED_LIB_FILES) {
+    // Match src="animations.jsx", src='./animations.jsx', etc. but not absolute
+    const re = new RegExp(
+      `(\\bsrc\\s*=\\s*["'])(?:\\.\\/)?(${file.replace(/\./g, '\\.')})(["'])`,
+      'gi'
+    );
+    out = out.replace(re, `$1/$2$3`);
+  }
+  return out;
+}
+
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -774,7 +807,7 @@ export function RichTextEditor({
   };
 
   const applyEmbed = () => {
-    const code = embedCode.trim();
+    const code = normalizeEmbedHtml(embedCode.trim());
     if (!code) return;
     if (code.length > 500_000) {
       toast({ variant: 'destructive', title: 'Trop volumineux', description: 'Animation > 500 KB. Hébergez-la séparément.' });
@@ -792,6 +825,10 @@ export function RichTextEditor({
     setEmbedOpen(false);
     setEmbedCode('');
   };
+
+  // Live-normalized version of the pasted code, used for the preview iframe so
+  // what the user sees in the dialog is exactly what gets stored.
+  const normalizedPreview = embedCode ? normalizeEmbedHtml(embedCode) : '';
 
   const wordCount = editor.storage.characterCount?.words?.() ?? 0;
   const charCount = editor.storage.characterCount?.characters?.() ?? 0;
@@ -867,7 +904,8 @@ export function RichTextEditor({
           <DialogHeader>
             <DialogTitle>Insérer une animation HTML / JS</DialogTitle>
             <DialogDescription>
-              Collez le code complet (HTML + CSS + JS) généré par Claude design. Il sera intégré dans une iframe sandboxée — isolée du reste de l'article.
+              Collez le code HTML complet généré par Claude design. Il sera intégré dans une iframe sandboxée — isolée du reste de l'article.
+              Les références à <code className="px-1 py-0.5 rounded bg-muted text-xs">animations.jsx</code> sont automatiquement reroutées vers la librairie hébergée à <code className="px-1 py-0.5 rounded bg-muted text-xs">/animations.jsx</code>.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -895,7 +933,7 @@ export function RichTextEditor({
               <div>
                 <Label className="text-xs text-muted-foreground">Aperçu</Label>
                 <iframe
-                  srcDoc={embedCode}
+                  srcDoc={normalizedPreview}
                   sandbox="allow-scripts"
                   loading="lazy"
                   style={{
