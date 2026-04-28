@@ -1,10 +1,28 @@
 'use client';
 
-import { useRef, useCallback, useEffect, useState } from 'react';
+import { useEditor, EditorContent, Extension, Node, mergeAttributes } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import { Color } from '@tiptap/extension-color';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { FontFamily } from '@tiptap/extension-font-family';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { Placeholder } from '@tiptap/extension-placeholder';
+import { CharacterCount } from '@tiptap/extension-character-count';
+import { Highlight } from '@tiptap/extension-highlight';
+import { Typography } from '@tiptap/extension-typography';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { Link as TiptapLink } from '@tiptap/extension-link';
+import { Underline as TiptapUnderline } from '@tiptap/extension-underline';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider'; 
-import { 
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -25,33 +43,149 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
-  Bold,
-  Italic,
-  Underline,
-  List,
-  ListOrdered,
-  Link,
-  Image as ImageIcon,
-  Type,
-  Undo,
-  Redo,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Upload,
-  Palette,
-  CaseUpper,
-  CaseLower,
-  Maximize2,
-  ScanEye
+  Bold, Italic, Underline, Strikethrough, List, ListOrdered, Link as LinkIcon,
+  Image as ImageIcon, Undo, Redo, AlignLeft, AlignCenter, AlignRight, AlignJustify,
+  Palette, Quote, Code, Code2, Heading1, Heading2, Heading3, Sparkles, Table as TableIcon,
+  Highlighter, Minus, Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebaseClient } from '@/lib/firebase-client';
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { Label } from './ui/label';
+import type { Editor } from '@tiptap/react';
+
+// =============================================================================
+// Custom extension: font size as a textStyle attribute (pt unit)
+// =============================================================================
+const FontSize = Extension.create({
+  name: 'fontSize',
+  addOptions() {
+    return { types: ['textStyle'] };
+  },
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: (el: HTMLElement) =>
+              el.style.fontSize ? el.style.fontSize.replace(/['"]/g, '') : null,
+            renderHTML: (attrs: { fontSize?: string | null }) =>
+              attrs.fontSize ? { style: `font-size: ${attrs.fontSize}` } : {},
+          },
+        },
+      },
+    ];
+  },
+  addCommands() {
+    return {
+      setFontSize:
+        (size: string) =>
+        ({ chain }: any) =>
+          chain().setMark('textStyle', { fontSize: size }).run(),
+      unsetFontSize:
+        () =>
+        ({ chain }: any) =>
+          chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run(),
+    } as any;
+  },
+});
+
+// =============================================================================
+// Custom Node: HtmlEmbed (sandboxed iframe with srcdoc) — for HTML+JS animations
+// =============================================================================
+const HtmlEmbed = Node.create({
+  name: 'htmlEmbed',
+  group: 'block',
+  atom: true,
+  selectable: true,
+  draggable: true,
+  addAttributes() {
+    return {
+      srcdoc: { default: '' },
+      height: { default: '500px' },
+    };
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'iframe[srcdoc]',
+        getAttrs: (el: HTMLElement) => ({
+          srcdoc: (el as HTMLIFrameElement).getAttribute('srcdoc') || '',
+          height:
+            (el as HTMLIFrameElement).style.height ||
+            (el as HTMLIFrameElement).getAttribute('height') ||
+            '500px',
+        }),
+      },
+    ];
+  },
+  renderHTML({ HTMLAttributes }) {
+    const { srcdoc, height } = HTMLAttributes as { srcdoc: string; height: string };
+    return [
+      'iframe',
+      mergeAttributes({
+        srcdoc,
+        sandbox: 'allow-scripts',
+        loading: 'lazy',
+        style: `width: 100%; height: ${height}; border: 0; border-radius: 8px; display: block; margin: 1rem 0;`,
+        class: 'tiptap-html-embed',
+      }),
+    ];
+  },
+});
+
+// =============================================================================
+// Custom Image extension with upload-tracking and style attrs
+// =============================================================================
+const ResizableImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      'data-upload-id': { default: null, rendered: true },
+      style: {
+        default: 'max-width: 100%; height: auto; border-radius: 8px;',
+        parseHTML: (el: HTMLElement) => el.getAttribute('style'),
+        renderHTML: (attrs: { style?: string }) =>
+          attrs.style ? { style: attrs.style } : {},
+      },
+      width: { default: null },
+    };
+  },
+});
+
+// =============================================================================
+// Helpers
+// =============================================================================
+const FONT_FAMILIES = [
+  { label: 'Système', value: '' },
+  { label: 'Arial', value: 'Arial, sans-serif' },
+  { label: 'Helvetica', value: 'Helvetica, sans-serif' },
+  { label: 'Verdana', value: 'Verdana, sans-serif' },
+  { label: 'Tahoma', value: 'Tahoma, sans-serif' },
+  { label: 'Trebuchet MS', value: '"Trebuchet MS", sans-serif' },
+  { label: 'Georgia', value: 'Georgia, serif' },
+  { label: 'Times New Roman', value: '"Times New Roman", serif' },
+  { label: 'Garamond', value: 'Garamond, serif' },
+  { label: 'Palatino', value: '"Palatino Linotype", serif' },
+  { label: 'Courier New', value: '"Courier New", monospace' },
+  { label: 'Consolas', value: 'Consolas, monospace' },
+  { label: 'Monaco', value: 'Monaco, monospace' },
+  { label: 'Comic Sans', value: '"Comic Sans MS", cursive' },
+  { label: 'Impact', value: 'Impact, sans-serif' },
+];
+
+const FONT_SIZES = ['8pt', '9pt', '10pt', '11pt', '12pt', '14pt', '16pt', '18pt', '20pt', '24pt', '28pt', '32pt', '36pt', '48pt', '60pt', '72pt'];
+
+const COLOR_PALETTE = [
+  '#000000', '#434343', '#666666', '#999999', '#B7B7B7', '#CCCCCC', '#D9D9D9', '#EFEFEF', '#F3F3F3', '#FFFFFF',
+  '#980000', '#FF0000', '#FF9900', '#FFFF00', '#00FF00', '#00FFFF', '#4A86E8', '#0000FF', '#9900FF', '#FF00FF',
+  '#E6B8AF', '#F4CCCC', '#FCE5CD', '#FFF2CC', '#D9EAD3', '#D0E0E3', '#C9DAF8', '#CFE2F3', '#D9D2E9', '#EAD1DC',
+  '#A61C00', '#CC0000', '#E69138', '#F1C232', '#6AA84F', '#45818E', '#3C78D8', '#3D85C6', '#674EA7', '#A64D79',
+];
 
 interface RichTextEditorProps {
   value: string;
@@ -61,513 +195,727 @@ interface RichTextEditorProps {
   height?: number;
 }
 
-// Simple color picker component
-const ColorPicker = ({ command }: { command: 'foreColor' | 'backColor' }) => {
-  const colors = [
-    '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF',
-    '#808080', '#C0C0C0', '#800000', '#008000', '#000080', '#808000', '#800080', '#008080'
-  ];
+// =============================================================================
+// Toolbar
+// =============================================================================
+function Toolbar({
+  editor,
+  onPickImage,
+  onInsertEmbed,
+  onInsertLink,
+}: {
+  editor: Editor;
+  onPickImage: () => void;
+  onInsertEmbed: () => void;
+  onInsertLink: () => void;
+}) {
+  const setColor = (color: string) => editor.chain().focus().setColor(color).run();
+  const setHighlight = (color: string) => editor.chain().focus().toggleHighlight({ color }).run();
+  const insertTable = () =>
+    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
 
-  const handleColorChange = (color: string) => {
-    document.execCommand(command, false, color);
-  };
+  // Detect current font family / size for the Select value
+  const currentFamily = (editor.getAttributes('textStyle') as any)?.fontFamily || '';
+  const currentSize = (editor.getAttributes('textStyle') as any)?.fontSize || '';
+
+  const Btn = ({
+    onClick,
+    active,
+    label,
+    children,
+  }: {
+    onClick: () => void;
+    active?: boolean;
+    label: string;
+    children: React.ReactNode;
+  }) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant={active ? 'secondary' : 'ghost'}
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={onClick}
+        >
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{label}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+
+  const Sep = () => <div className="w-px h-6 bg-border mx-1" />;
 
   return (
-    <div className="grid grid-cols-8 gap-1 p-2">
-      {colors.map(color => (
-        <button
-          key={color}
-          type="button"
-          className="h-6 w-6 rounded-sm border"
-          style={{ backgroundColor: color }}
-          onClick={() => handleColorChange(color)}
-          aria-label={`Set color to ${color}`}
-        />
-      ))}
+    <div className="sticky top-0 z-10 border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
+      {/* Font family */}
+      <Select
+        value={currentFamily}
+        onValueChange={(v) => {
+          if (v === '') editor.chain().focus().unsetFontFamily().run();
+          else editor.chain().focus().setFontFamily(v).run();
+        }}
+      >
+        <SelectTrigger className="h-8 w-36 bg-background text-sm">
+          <SelectValue placeholder="Police" />
+        </SelectTrigger>
+        <SelectContent>
+          {FONT_FAMILIES.map((f) => (
+            <SelectItem key={f.label} value={f.value || '__default__'}>
+              <span style={{ fontFamily: f.value || undefined }}>{f.label}</span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Font size */}
+      <Select
+        value={currentSize}
+        onValueChange={(v) => {
+          if (v === '__default__') (editor.chain().focus() as any).unsetFontSize().run();
+          else (editor.chain().focus() as any).setFontSize(v).run();
+        }}
+      >
+        <SelectTrigger className="h-8 w-24 bg-background text-sm">
+          <SelectValue placeholder="Taille" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__default__">Auto</SelectItem>
+          {FONT_SIZES.map((s) => (
+            <SelectItem key={s} value={s}>
+              {s}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Sep />
+
+      {/* Headings */}
+      <Btn
+        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        active={editor.isActive('heading', { level: 1 })}
+        label="Titre 1"
+      >
+        <Heading1 className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        active={editor.isActive('heading', { level: 2 })}
+        label="Titre 2"
+      >
+        <Heading2 className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        active={editor.isActive('heading', { level: 3 })}
+        label="Titre 3"
+      >
+        <Heading3 className="h-4 w-4" />
+      </Btn>
+
+      <Sep />
+
+      {/* Inline formatting */}
+      <Btn
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        active={editor.isActive('bold')}
+        label="Gras (Ctrl+B)"
+      >
+        <Bold className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        active={editor.isActive('italic')}
+        label="Italique (Ctrl+I)"
+      >
+        <Italic className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleUnderline().run()}
+        active={editor.isActive('underline')}
+        label="Souligné (Ctrl+U)"
+      >
+        <Underline className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleStrike().run()}
+        active={editor.isActive('strike')}
+        label="Barré"
+      >
+        <Strikethrough className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleCode().run()}
+        active={editor.isActive('code')}
+        label="Code inline"
+      >
+        <Code className="h-4 w-4" />
+      </Btn>
+
+      <Sep />
+
+      {/* Color picker */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" title="Couleur du texte">
+            <Palette className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-3">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Couleur du texte</p>
+          <div className="grid grid-cols-10 gap-1">
+            {COLOR_PALETTE.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className="h-5 w-5 rounded-sm border border-muted-foreground/20 hover:scale-110 transition-transform"
+                style={{ backgroundColor: c }}
+                onClick={() => setColor(c)}
+                aria-label={c}
+              />
+            ))}
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <Label className="text-xs">Personnalisé :</Label>
+            <input
+              type="color"
+              onChange={(e) => setColor(e.target.value)}
+              className="h-7 w-14 cursor-pointer rounded border"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => editor.chain().focus().unsetColor().run()}
+            >
+              Réinitialiser
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Highlight */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" title="Surligner">
+            <Highlighter className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-3">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Couleur de surlignage</p>
+          <div className="grid grid-cols-10 gap-1">
+            {COLOR_PALETTE.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className="h-5 w-5 rounded-sm border border-muted-foreground/20 hover:scale-110 transition-transform"
+                style={{ backgroundColor: c }}
+                onClick={() => setHighlight(c)}
+                aria-label={c}
+              />
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-xs h-7 mt-2 w-full"
+            onClick={() => editor.chain().focus().unsetHighlight().run()}
+          >
+            Retirer le surlignage
+          </Button>
+        </PopoverContent>
+      </Popover>
+
+      <Sep />
+
+      {/* Alignment */}
+      <Btn
+        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+        active={editor.isActive({ textAlign: 'left' })}
+        label="Aligner à gauche"
+      >
+        <AlignLeft className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+        active={editor.isActive({ textAlign: 'center' })}
+        label="Centrer"
+      >
+        <AlignCenter className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+        active={editor.isActive({ textAlign: 'right' })}
+        label="Aligner à droite"
+      >
+        <AlignRight className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+        active={editor.isActive({ textAlign: 'justify' })}
+        label="Justifier"
+      >
+        <AlignJustify className="h-4 w-4" />
+      </Btn>
+
+      <Sep />
+
+      {/* Lists & blocks */}
+      <Btn
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        active={editor.isActive('bulletList')}
+        label="Liste à puces"
+      >
+        <List className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        active={editor.isActive('orderedList')}
+        label="Liste numérotée"
+      >
+        <ListOrdered className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        active={editor.isActive('blockquote')}
+        label="Citation"
+      >
+        <Quote className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+        active={editor.isActive('codeBlock')}
+        label="Bloc de code"
+      >
+        <Code2 className="h-4 w-4" />
+      </Btn>
+      <Btn onClick={() => editor.chain().focus().setHorizontalRule().run()} label="Séparateur horizontal">
+        <Minus className="h-4 w-4" />
+      </Btn>
+
+      <Sep />
+
+      {/* Link / Image / Embed / Table */}
+      <Btn onClick={onInsertLink} active={editor.isActive('link')} label="Insérer un lien">
+        <LinkIcon className="h-4 w-4" />
+      </Btn>
+      <Btn onClick={onPickImage} label="Insérer une image (ou glisser-déposer)">
+        <ImageIcon className="h-4 w-4" />
+      </Btn>
+      <Btn onClick={onInsertEmbed} label="Insérer une animation HTML/JS">
+        <Sparkles className="h-4 w-4" />
+      </Btn>
+      <Btn onClick={insertTable} label="Insérer un tableau">
+        <TableIcon className="h-4 w-4" />
+      </Btn>
+
+      <Sep />
+
+      <Btn onClick={() => editor.chain().focus().undo().run()} label="Annuler (Ctrl+Z)">
+        <Undo className="h-4 w-4" />
+      </Btn>
+      <Btn onClick={() => editor.chain().focus().redo().run()} label="Refaire (Ctrl+Y)">
+        <Redo className="h-4 w-4" />
+      </Btn>
     </div>
   );
-};
+}
 
+// =============================================================================
+// Main editor
+// =============================================================================
 export function RichTextEditor({
   value,
   onChange,
-  placeholder = 'Écrivez votre contenu ici...',
+  placeholder = 'Écrivez votre contenu ici…',
   className,
-  height = 300
+  height = 500,
 }: RichTextEditorProps) {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
-  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [storage, setStorage] = useState<any>(null);
+  const [linkOpen, setLinkOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
-  
-  // Image states
-  const [imageUrl, setImageUrl] = useState('');
-  const [imageAlt, setImageAlt] = useState('');
-  const [imageWidth, setImageWidth] = useState([100]); // Pourcentage (1-100)
-  const [imageAlign, setImageAlign] = useState<'left' | 'center' | 'right'>('center');
-  const [imageRendering, setImageRendering] = useState<'auto' | 'pixelated'>('auto'); // Nouveau state pour le rendu
-  
-  const [savedSelection, setSavedSelection] = useState<Range | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-  
-  const [storage, setStorage] = useState<any>(null);
+  const [embedOpen, setEmbedOpen] = useState(false);
+  const [embedCode, setEmbedCode] = useState('');
+  const [embedHeight, setEmbedHeight] = useState('500');
 
   useEffect(() => {
-    const initFirebase = async () => {
-      const app = await initializeFirebaseClient();
-      setStorage(getStorage(app));
+    let cancelled = false;
+    initializeFirebaseClient().then((app) => {
+      if (!cancelled) setStorage(getStorage(app));
+    });
+    return () => {
+      cancelled = true;
     };
-    initFirebase();
   }, []);
 
-
-  useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== value) {
-      const isEditorFocused = document.activeElement === editorRef.current || 
-        editorRef.current?.contains(document.activeElement);
-      
-      if (!isEditorFocused) {
-        editorRef.current.innerHTML = value;
+  const uploadImageFile = useCallback(
+    async (file: File): Promise<string | null> => {
+      if (!file.type.startsWith('image/')) {
+        toast({ variant: 'destructive', title: 'Fichier invalide', description: 'Seules les images sont acceptées.' });
+        return null;
       }
-    }
-  }, [value]);
-
-  const saveSelection = () => {
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      // Vérifier si la sélection est dans l'éditeur
-      if (editorRef.current && editorRef.current.contains(range.commonAncestorContainer)) {
-          setSavedSelection(range.cloneRange());
+      if (file.size > 10 * 1024 * 1024) {
+        toast({ variant: 'destructive', title: 'Fichier trop volumineux', description: 'Maximum 10 MB.' });
+        return null;
       }
-    }
-  };
-
-  const restoreSelection = useCallback(() => {
-    if (savedSelection) {
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(savedSelection);
-    } else if (editorRef.current) {
-        editorRef.current.focus();
-        // Si pas de sélection, on place à la fin par défaut
-        const range = document.createRange();
-        range.selectNodeContents(editorRef.current);
-        range.collapse(false);
-        const selection = window.getSelection();
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-    }
-  }, [savedSelection]);
-
-  const execCommand = useCallback((command: string, value?: string) => {
-    if (!editorRef.current) return;
-    editorRef.current.focus();
-    document.execCommand(command, false, value);
-    const html = editorRef.current.innerHTML;
-    onChange(html);
-  }, [onChange]);
-
-  const changeCase = (caseType: 'upper' | 'lower') => {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-    
-    // Vérification de sécurité pour ne pas modifier hors de l'éditeur
-    const range = selection.getRangeAt(0);
-    if (!editorRef.current?.contains(range.commonAncestorContainer)) return;
-
-    const selectedText = range.toString();
-    if (selectedText) {
-      const newText = caseType === 'upper' ? selectedText.toUpperCase() : selectedText.toLowerCase();
-      document.execCommand('insertText', false, newText);
-      onChange(editorRef.current.innerHTML);
-    }
-  };
-
-  const handleContentChange = useCallback(() => {
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
-    }
-  }, [onChange]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      switch (e.key) {
-        case 'b': e.preventDefault(); execCommand('bold'); break;
-        case 'i': e.preventDefault(); execCommand('italic'); break;
-        case 'u': e.preventDefault(); execCommand('underline'); break;
-        case 'z': if (!e.shiftKey) { e.preventDefault(); execCommand('undo'); } break;
-        case 'y': e.preventDefault(); execCommand('redo'); break;
+      if (!storage) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Stockage non initialisé.' });
+        return null;
       }
-    }
-  }, [execCommand]);
-
-  const insertLink = () => {
-    saveSelection();
-    const selection = window.getSelection();
-    const selectedText = selection?.toString() || '';
-    setLinkText(selectedText);
-    setLinkUrl('');
-    setIsLinkDialogOpen(true);
-  };
-
-  const handleInsertLink = () => {
-    setIsLinkDialogOpen(false);
-    setTimeout(() => {
-        restoreSelection();
-        if (linkUrl) {
-            const html = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${linkText || linkUrl}</a>`;
-            document.execCommand('insertHTML', false, html);
-            handleContentChange();
-        }
-        setLinkUrl('');
-        setLinkText('');
-        setSavedSelection(null);
-    }, 10);
-  };
-  
-  // Nouvelle fonction d'insertion avec styles précis et gestion du flou
-  const insertImageWithStyle = () => {
-    setIsImageDialogOpen(false);
-    
-    setTimeout(() => {
-        restoreSelection();
-        if (imageUrl && imageAlt) {
-            let style = `width: ${imageWidth[0]}%; height: auto; border-radius: 8px;`;
-            
-            // Gestion de l'alignement
-            if (imageAlign === 'center') {
-                style += ' display: block; margin: 20px auto;';
-            } else if (imageAlign === 'left') {
-                style += ' float: left; margin: 0 20px 10px 0;';
-            } else if (imageAlign === 'right') {
-                style += ' float: right; margin: 0 0 10px 20px;';
-            }
-
-            // Gestion du flou (image-rendering)
-            if (imageRendering === 'pixelated') {
-                // 'pixelated' empêche le lissage flou lors du redimensionnement
-                style += ' image-rendering: pixelated;';
-            } else {
-                style += ' image-rendering: auto;';
-            }
-
-            const html = `<img src="${imageUrl}" alt="${imageAlt}" style="${style}" />`;
-            
-            document.execCommand('insertHTML', false, html);
-            handleContentChange();
-        }
-        // Reset
-        setImageUrl('');
-        setImageAlt('');
-        setImageWidth([100]);
-        setImageAlign('center');
-        setImageRendering('auto');
-    }, 10);
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    saveSelection();
-
-    if (!file.type.startsWith('image/')) {
-        toast({ variant: 'destructive', title: 'Fichier invalide', description: 'Veuillez sélectionner un fichier image.' });
-        return;
-    }
-    if (file.size > 10 * 1024 * 1024) { 
-        toast({ variant: 'destructive', title: 'Fichier trop volumineux', description: 'L\'image ne doit pas dépasser 10MB.' });
-        return;
-    }
-
-    if (!storage) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Le service de stockage n\'est pas initialisé.' });
-      return;
-    }
-
-    toast({ title: 'Téléversement en cours...', description: 'Veuillez patienter...' });
-
-    try {
-        const imagePath = `article-images/${Date.now()}_${file.name}`;
-        const imageStorageRef = storageRef(storage, imagePath);
-        const uploadTask = uploadBytesResumable(imageStorageRef, file);
-
-        uploadTask.on('state_changed',
-          (snapshot) => {},
-          (error) => {
-            console.error("Image upload failed:", error);
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de téléverser l\'image.' });
+      const path = `article-images/${Date.now()}_${file.name.replace(/[^\w.-]/g, '_')}`;
+      const sref = storageRef(storage, path);
+      const task = uploadBytesResumable(sref, file);
+      return new Promise<string | null>((resolve) => {
+        task.on(
+          'state_changed',
+          undefined,
+          (err) => {
+            console.error('Upload failed:', err);
+            toast({ variant: 'destructive', title: 'Échec', description: 'Téléversement de l\'image échoué.' });
+            resolve(null);
           },
-          () => {
-            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-              setImageUrl(downloadURL);
-              setImageAlt(file.name.split('.')[0]);
-              setImageWidth([100]);
-              setImageAlign('center');
-              setImageRendering('auto'); // Reset rendu
-              setIsImageDialogOpen(true);
-              
-              toast({ title: 'Image prête', description: 'Vous pouvez maintenant ajuster la taille et l\'insérer.' });
-            });
+          async () => {
+            const url = await getDownloadURL(task.snapshot.ref);
+            resolve(url);
           }
         );
-    } catch (error) {
-        console.error("Image upload failed:", error);
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de téléverser l\'image.' });
+      });
+    },
+    [storage, toast]
+  );
+
+  // Insert image with placeholder, upload in background, then swap src
+  const insertImageWithUpload = useCallback(
+    (file: File, editor: Editor) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const dataUrl = e.target?.result as string;
+        const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        editor
+          .chain()
+          .focus()
+          .setImage({ src: dataUrl, alt: file.name } as any)
+          .run();
+        // Tag the just-inserted image with our upload id
+        editor.state.doc.descendants((node, pos) => {
+          if (node.type.name === 'image' && node.attrs.src === dataUrl && !node.attrs['data-upload-id']) {
+            const tr = editor.view.state.tr.setNodeMarkup(pos, undefined, {
+              ...node.attrs,
+              'data-upload-id': uploadId,
+            });
+            editor.view.dispatch(tr);
+            return false;
+          }
+        });
+
+        toast({ title: 'Téléversement en cours…' });
+        const url = await uploadImageFile(file);
+        if (!url) return;
+        // Replace src by uploaded URL
+        editor.state.doc.descendants((node, pos) => {
+          if (node.type.name === 'image' && node.attrs['data-upload-id'] === uploadId) {
+            const tr = editor.view.state.tr.setNodeMarkup(pos, undefined, {
+              ...node.attrs,
+              src: url,
+              'data-upload-id': null,
+            });
+            editor.view.dispatch(tr);
+            return false;
+          }
+        });
+        toast({ title: 'Image téléversée' });
+      };
+      reader.readAsDataURL(file);
+    },
+    [uploadImageFile, toast]
+  );
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3, 4] },
+      }),
+      TiptapUnderline,
+      TiptapLink.configure({
+        openOnClick: false,
+        autolink: true,
+        HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
+      }),
+      TextStyle,
+      Color,
+      FontFamily,
+      FontSize,
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Placeholder.configure({ placeholder, showOnlyWhenEditable: true, showOnlyCurrent: true }),
+      CharacterCount,
+      Typography,
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      ResizableImage.configure({ allowBase64: true, inline: false }),
+      HtmlEmbed,
+    ],
+    content: value || '',
+    onUpdate({ editor }) {
+      onChange(editor.getHTML());
+    },
+    editorProps: {
+      attributes: {
+        class:
+          'tiptap-content prose prose-sm md:prose-base max-w-none dark:prose-invert focus:outline-none px-4 py-3',
+      },
+      handlePaste(view, event) {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        for (const item of Array.from(items)) {
+          if (item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            if (file && editor) {
+              event.preventDefault();
+              insertImageWithUpload(file, editor);
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      handleDrop(view, event, _slice, moved) {
+        if (moved) return false;
+        const files = (event as DragEvent).dataTransfer?.files;
+        if (!files || files.length === 0) return false;
+        const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
+        if (imageFiles.length === 0) return false;
+        event.preventDefault();
+        if (editor) {
+          imageFiles.forEach((f) => insertImageWithUpload(f, editor));
+        }
+        return true;
+      },
+    },
+  });
+
+  // Sync external `value` changes (e.g. autosave reset, locale switch)
+  useEffect(() => {
+    if (!editor) return;
+    if (editor.isFocused) return; // avoid clobbering active typing
+    const current = editor.getHTML();
+    if (value && value !== current) {
+      editor.commands.setContent(value, { emitUpdate: false });
+    } else if (!value && current && current !== '<p></p>') {
+      editor.commands.clearContent();
     }
-    
+  }, [value, editor]);
+
+  if (!editor) {
+    return (
+      <div
+        className={cn('border rounded-lg flex items-center justify-center text-muted-foreground', className)}
+        style={{ height }}
+      >
+        Chargement de l'éditeur…
+      </div>
+    );
+  }
+
+  const onPickImage = () => fileInputRef.current?.click();
+
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && editor) insertImageWithUpload(file, editor);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const onInsertLink = () => {
+    const sel = editor.state.selection;
+    const selectedText = editor.state.doc.textBetween(sel.from, sel.to, ' ');
+    setLinkText(selectedText || '');
+    const existing = editor.getAttributes('link')?.href || '';
+    setLinkUrl(existing);
+    setLinkOpen(true);
+  };
+
+  const applyLink = () => {
+    if (!linkUrl) return;
+    if (linkText && editor.state.selection.empty) {
+      editor
+        .chain()
+        .focus()
+        .insertContent(`<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${linkText}</a>`)
+        .run();
+    } else {
+      editor.chain().focus().extendMarkRange('link').setLink({ href: linkUrl }).run();
+    }
+    setLinkOpen(false);
+    setLinkUrl('');
+    setLinkText('');
+  };
+
+  const removeLink = () => {
+    editor.chain().focus().unsetLink().run();
+    setLinkOpen(false);
+  };
+
+  const onInsertEmbed = () => {
+    setEmbedCode('');
+    setEmbedHeight('500');
+    setEmbedOpen(true);
+  };
+
+  const applyEmbed = () => {
+    const code = embedCode.trim();
+    if (!code) return;
+    if (code.length > 500_000) {
+      toast({ variant: 'destructive', title: 'Trop volumineux', description: 'Animation > 500 KB. Hébergez-la séparément.' });
+      return;
+    }
+    const h = `${parseInt(embedHeight || '500', 10) || 500}px`;
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: 'htmlEmbed',
+        attrs: { srcdoc: code, height: h },
+      })
+      .run();
+    setEmbedOpen(false);
+    setEmbedCode('');
+  };
+
+  const wordCount = editor.storage.characterCount?.words?.() ?? 0;
+  const charCount = editor.storage.characterCount?.characters?.() ?? 0;
 
   return (
     <TooltipProvider>
-      <div className={cn('border rounded-lg flex flex-col', className)} style={{ height: height ? 'auto' : undefined }}>
-        {/* Barre d'outils */}
-        <div className="sticky top-0 z-10 border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
-          {/* ... (Sections Polices et Couleurs inchangées) ... */}
-          <div className="flex items-center gap-1">
-            <Select onValueChange={(value) => execCommand('fontName', value)}>
-              <SelectTrigger className="h-8 w-32 bg-background">
-                <SelectValue placeholder="Police" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Arial, sans-serif">Arial</SelectItem>
-                <SelectItem value="Georgia, serif">Georgia</SelectItem>
-                <SelectItem value="'Times New Roman', serif">Times</SelectItem>
-                <SelectItem value="'Courier New', monospace">Courier</SelectItem>
-                <SelectItem value="Helvetica, sans-serif">Helvetica</SelectItem>
-                <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select onValueChange={(value) => execCommand('fontSize', value)}>
-              <SelectTrigger className="h-8 w-16 bg-background">
-                <SelectValue placeholder="Taille" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Petite</SelectItem>
-                <SelectItem value="3">Normale</SelectItem>
-                <SelectItem value="5">Grande</SelectItem>
-                <SelectItem value="7">Titre</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-  
-          <div className="w-px h-6 bg-border mx-1" />
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0"><Palette className="h-4 w-4" /></Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <div className="p-2">
-                <p className="text-xs font-medium text-muted-foreground p-1">Couleur du texte</p>
-                <ColorPicker command="foreColor" />
-                <p className="text-xs font-medium text-muted-foreground p-1 mt-2">Couleur de fond</p>
-                <ColorPicker command="backColor" />
-              </div>
-            </PopoverContent>
-          </Popover>
-  
-          <div className="w-px h-6 bg-border mx-1" />
-  
-          {/* Formatage de base */}
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('bold')} className="h-8 w-8 p-0"><Bold className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Gras (Ctrl+B)</p></TooltipContent></Tooltip>
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('italic')} className="h-8 w-8 p-0"><Italic className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Italique (Ctrl+I)</p></TooltipContent></Tooltip>
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('underline')} className="h-8 w-8 p-0"><Underline className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Souligné (Ctrl+U)</p></TooltipContent></Tooltip>
-          
-          <div className="w-px h-6 bg-border mx-1" />
-  
-          {/* Alignement */}
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('justifyLeft')} className="h-8 w-8 p-0"><AlignLeft className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Aligner à gauche</p></TooltipContent></Tooltip>
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('justifyCenter')} className="h-8 w-8 p-0"><AlignCenter className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Centrer</p></TooltipContent></Tooltip>
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('justifyRight')} className="h-8 w-8 p-0"><AlignRight className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Aligner à droite</p></TooltipContent></Tooltip>
-  
-          <div className="w-px h-6 bg-border mx-1" />
+      <div className={cn('border rounded-lg flex flex-col bg-background', className)}>
+        <Toolbar
+          editor={editor}
+          onPickImage={onPickImage}
+          onInsertEmbed={onInsertEmbed}
+          onInsertLink={onInsertLink}
+        />
 
-          {/* Listes */}
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('insertUnorderedList')} className="h-8 w-8 p-0"><List className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Liste à puces</p></TooltipContent></Tooltip>
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('insertOrderedList')} className="h-8 w-8 p-0"><ListOrdered className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Liste numérotée</p></TooltipContent></Tooltip>
-  
-          <div className="w-px h-6 bg-border mx-1" />
-  
-          {/* Liens et images */}
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={insertLink} className="h-8 w-8 p-0"><Link className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Ajouter un lien</p></TooltipContent></Tooltip>
-          
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="h-8 w-8 p-0"><Upload className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Télécharger une image</p></TooltipContent></Tooltip>
-          
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => { saveSelection(); setIsImageDialogOpen(true); }} className="h-8 w-8 p-0"><ImageIcon className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Insérer image par URL</p></TooltipContent></Tooltip>
-  
-          <div className="w-px h-6 bg-border mx-1" />
-  
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('undo')} className="h-8 w-8 p-0"><Undo className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Annuler (Ctrl+Z)</p></TooltipContent></Tooltip>
-          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('redo')} className="h-8 w-8 p-0"><Redo className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Refaire (Ctrl+Y)</p></TooltipContent></Tooltip>
+        <div className="flex-1 overflow-y-auto" style={{ minHeight: height }}>
+          <EditorContent editor={editor} />
         </div>
-  
-        {/* Zone d'édition */}
-        <div className="flex-1 overflow-hidden min-h-[300px]" style={{ height: height }}>
-          <div
-            ref={editorRef}
-            contentEditable
-            className="h-full w-full p-4 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 overflow-y-auto prose prose-sm max-w-none dark:prose-invert"
-            onInput={handleContentChange}
-            onKeyDown={handleKeyDown}
-            onBlur={saveSelection}
-            suppressContentEditableWarning={true}
-            data-placeholder={placeholder}
-            style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-          />
+
+        <div className="border-t px-3 py-1 text-xs text-muted-foreground flex justify-between bg-muted/30">
+          <span>Glissez-déposez une image ou collez-la (Ctrl+V) — upload Firebase automatique</span>
+          <span>
+            {wordCount} mots · {charCount} caractères
+          </span>
         </div>
-  
-        {/* Input file caché */}
+
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          onChange={handleImageUpload}
           className="hidden"
+          onChange={handleFileInput}
         />
       </div>
 
-      {/* Dialog pour les liens */}
-      <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
+      {/* Link dialog */}
+      <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ajouter un lien</DialogTitle>
-            <DialogDescription>Saisissez l'URL et le texte.</DialogDescription>
+            <DialogTitle>Insérer / modifier un lien</DialogTitle>
+            <DialogDescription>L'URL s'ouvrira dans un nouvel onglet.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div><Label>Texte</Label><Input value={linkText} onChange={(e) => setLinkText(e.target.value)} /></div>
-            <div><Label>URL</Label><Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://" /></div>
+          <div className="space-y-3">
+            {editor.state.selection.empty && !editor.isActive('link') && (
+              <div>
+                <Label>Texte du lien</Label>
+                <Input value={linkText} onChange={(e) => setLinkText(e.target.value)} placeholder="Texte affiché" />
+              </div>
+            )}
+            <div>
+              <Label>URL</Label>
+              <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://" />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsLinkDialogOpen(false)}>Annuler</Button>
-            <Button onClick={handleInsertLink} disabled={!linkUrl}>Ajouter</Button>
+            {editor.isActive('link') && (
+              <Button variant="outline" onClick={removeLink}>
+                Retirer le lien
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setLinkOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={applyLink} disabled={!linkUrl}>
+              Appliquer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* NOUVEAU Dialog pour les images avec contrôles précis */}
-      <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
-        <DialogContent className="max-w-md">
+      {/* Embed dialog */}
+      <Dialog open={embedOpen} onOpenChange={setEmbedOpen}>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Propriétés de l'image</DialogTitle>
-            <DialogDescription>Ajustez la taille, la position et la netteté.</DialogDescription>
+            <DialogTitle>Insérer une animation HTML / JS</DialogTitle>
+            <DialogDescription>
+              Collez le code complet (HTML + CSS + JS) généré par Claude design. Il sera intégré dans une iframe sandboxée — isolée du reste de l'article.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6 py-4">
-            {/* URL et ALT */}
-            <div className="space-y-3">
-                <div><Label htmlFor="imgUrl">URL</Label><Input id="imgUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://" /></div>
-                <div><Label htmlFor="imgAlt">Description (Alt)</Label><Input id="imgAlt" value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} placeholder="Description pour l'accessibilité" /></div>
-            </div>
-
-            {/* Contrôle de la taille avec Slider */}
-            <div className="space-y-3">
-                <div className="flex justify-between">
-                    <Label>Largeur de l'image</Label>
-                    <span className="text-sm font-medium text-muted-foreground">{imageWidth[0]}%</span>
-                </div>
-                <Slider 
-                    value={imageWidth} 
-                    onValueChange={setImageWidth} 
-                    max={100} 
-                    min={5} 
-                    step={5} 
-                    className="py-2"
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label>Code HTML / JS complet</Label>
+                <Textarea
+                  value={embedCode}
+                  onChange={(e) => setEmbedCode(e.target.value)}
+                  placeholder={`<!DOCTYPE html>\n<html>\n  <body>\n    <canvas id="c"></canvas>\n    <script>/* … */</script>\n  </body>\n</html>`}
+                  className="font-mono text-xs min-h-[280px]"
                 />
-                <p className="text-xs text-muted-foreground">Faites glisser pour redimensionner.</p>
+              </div>
+              <div>
+                <Label>Hauteur (px)</Label>
+                <Input
+                  type="number"
+                  value={embedHeight}
+                  onChange={(e) => setEmbedHeight(e.target.value)}
+                  placeholder="500"
+                />
+              </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                {/* Contrôle de l'alignement */}
-                <div className="space-y-3">
-                    <Label>Alignement</Label>
-                    <div className="flex gap-1">
-                        <Button 
-                            type="button" 
-                            variant={imageAlign === 'left' ? 'default' : 'outline'} 
-                            size="icon" 
-                            onClick={() => setImageAlign('left')}
-                            title="Gauche"
-                        >
-                            <AlignLeft className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                            type="button" 
-                            variant={imageAlign === 'center' ? 'default' : 'outline'} 
-                            size="icon" 
-                            onClick={() => setImageAlign('center')}
-                            title="Centre"
-                        >
-                            <Maximize2 className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                            type="button" 
-                            variant={imageAlign === 'right' ? 'default' : 'outline'} 
-                            size="icon" 
-                            onClick={() => setImageAlign('right')}
-                            title="Droite"
-                        >
-                            <AlignRight className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Contrôle du rendu (Netteté) */}
-                <div className="space-y-3">
-                    <Label>Rendu (Flou/Net)</Label>
-                    <div className="flex gap-1">
-                        <Button 
-                            type="button" 
-                            variant={imageRendering === 'auto' ? 'default' : 'outline'} 
-                            size="sm" 
-                            onClick={() => setImageRendering('auto')}
-                            className="flex-1 text-xs"
-                        >
-                            Lissé
-                        </Button>
-                        <Button 
-                            type="button" 
-                            variant={imageRendering === 'pixelated' ? 'default' : 'outline'} 
-                            size="sm" 
-                            onClick={() => setImageRendering('pixelated')}
-                            className="flex-1 text-xs"
-                            title="Évite le flou sur les images réduites"
-                        >
-                            <ScanEye className="h-3 w-3 mr-1" />
-                            Net
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Prévisualisation */}
-            {imageUrl && (
-                <div className="border rounded-lg p-4 bg-muted/20 mt-4">
-                    <p className="text-xs text-muted-foreground mb-2">Aperçu :</p>
-                    <div className="bg-white dark:bg-black border border-dashed p-2 relative min-h-[100px] overflow-hidden">
-                        <img 
-                            src={imageUrl} 
-                            alt="Preview" 
-                            style={{
-                                width: `${imageWidth[0]}%`,
-                                display: 'block',
-                                marginLeft: imageAlign === 'right' ? 'auto' : (imageAlign === 'center' ? 'auto' : '0'),
-                                marginRight: imageAlign === 'left' ? 'auto' : (imageAlign === 'center' ? 'auto' : '0'),
-                                imageRendering: imageRendering // Appliquer le rendu en direct
-                            }}
-                            className="border rounded shadow-sm"
-                        />
-                    </div>
-                </div>
+            {embedCode && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Aperçu</Label>
+                <iframe
+                  srcDoc={embedCode}
+                  sandbox="allow-scripts"
+                  loading="lazy"
+                  style={{
+                    width: '100%',
+                    height: `${parseInt(embedHeight || '500', 10) || 500}px`,
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 8,
+                  }}
+                />
+              </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsImageDialogOpen(false)}>Annuler</Button>
-            <Button onClick={insertImageWithStyle} disabled={!imageUrl}>Insérer l'image</Button>
+            <Button variant="outline" onClick={() => setEmbedOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={applyEmbed} disabled={!embedCode.trim()}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Insérer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
