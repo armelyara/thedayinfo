@@ -45,8 +45,20 @@ function applySecurityHeaders(response: NextResponse) {
   return response;
 }
 
+// Top-level static asset paths (e.g. /animations.jsx, /robots.txt,
+// /sitemap.xml) — single segment with a file extension. These live in
+// /public; if next-intl runs on them it tries to map them to a localized
+// page and returns 404.
+const STATIC_ASSET_RE = /^\/[^/]+\.[a-zA-Z0-9]+$/;
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Skip middleware for static assets served from /public. They don't need
+  // CSP headers (they're not pages) and CORS is set in next.config.js.
+  if (STATIC_ASSET_RE.test(pathname)) {
+    return NextResponse.next();
+  }
 
   // API routes: skip next-intl entirely (it would otherwise rewrite/redirect
   // /api/* paths and break POST bodies). Apply security headers only.
