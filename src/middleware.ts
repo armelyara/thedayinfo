@@ -54,12 +54,6 @@ const STATIC_ASSET_RE = /^\/[^/]+\.[a-zA-Z0-9]+$/;
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // FIX: Si l'URL contient le port 8080 (interne à Firebase), on nettoie l'URL
-  if (request.nextUrl.port === '8080') {
-    const newUrl = request.nextUrl.clone();
-    newUrl.port = ''; // Supprime le port
-    return NextResponse.redirect(newUrl, 301);
-  }
   // Skip middleware for static assets served from /public. They don't need
   // CSP headers (they're not pages) and CORS is set in next.config.js.
   if (STATIC_ASSET_RE.test(pathname)) {
