@@ -16,7 +16,6 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { Link as TiptapLink } from '@tiptap/extension-link';
-import { Underline as TiptapUnderline } from '@tiptap/extension-underline';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -676,8 +675,11 @@ export function RichTextEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4] },
+        // StarterKit v3 ships its own Link, but we want a custom config
+        // (openOnClick disabled etc.), so we disable it here and add the
+        // configured one below. Underline is fine with StarterKit defaults.
+        link: false,
       }),
-      TiptapUnderline,
       TiptapLink.configure({
         openOnClick: false,
         autolink: true,
