@@ -22,7 +22,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { SaveStatus } from '@/components/admin/save-status';
 import { saveDraftActionServer, saveArticleAction } from './action';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 import type { Draft, Article } from '@/lib/data-types';
@@ -49,6 +49,11 @@ export default function CreateArticlePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
   const [currentDraftId, setCurrentDraftId] = useState<string>();
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  // Synchronous mirror of currentDraftId — React state updates are async, so two
+  // saves fired before the first response returns would both see id=undefined
+  // and create duplicate drafts. The ref is updated immediately on save success.
+  const currentDraftIdRef = useRef<string | undefined>(undefined);
+  const inFlightRef = useRef(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -65,24 +70,28 @@ export default function CreateArticlePage() {
 
   const onSave = useCallback(async (data: FormData) => {
     if (!data.title) return;
+    if (inFlightRef.current) return;
 
+    inFlightRef.current = true;
     setIsSaving(true);
     setHasUnsavedChanges(true);
     try {
+      const id = currentDraftIdRef.current;
       const draftData: Partial<Draft> = {
-        id: currentDraftId,
+        id,
         title: data.title,
         author: data.author,
         category: data.category,
         content: data.content,
         image: data.image?.src ? { src: data.image.src, alt: data.image.alt } : undefined,
         scheduledFor: data.scheduledFor ? data.scheduledFor.toISOString() : null,
-        createdAt: currentDraftId ? undefined : new Date().toISOString(),
+        createdAt: id ? undefined : new Date().toISOString(),
       };
 
       const savedDraft = await saveDraftActionServer(draftData);
 
-      if (!currentDraftId) {
+      if (!id) {
+        currentDraftIdRef.current = savedDraft.id;
         setCurrentDraftId(savedDraft.id);
         localStorage.setItem('current_editing_draft_id', savedDraft.id);
       }
@@ -93,8 +102,9 @@ export default function CreateArticlePage() {
       console.error('Auto-save failed:', error);
     } finally {
       setIsSaving(false);
+      inFlightRef.current = false;
     }
-  }, [currentDraftId]);
+  }, []);
 
   useAutoSave(watchedValues, onSave, { delay: 30000 });
 
@@ -117,6 +127,7 @@ export default function CreateArticlePage() {
               scheduledFor: draft.scheduledFor ? new Date(draft.scheduledFor) : undefined,
             });
 
+            currentDraftIdRef.current = draft.id;
             setCurrentDraftId(draft.id);
             setLastSaved(draft.lastSaved);
             setHasUnsavedChanges(false);
@@ -173,6 +184,7 @@ export default function CreateArticlePage() {
               });
 
               if (mostRecentBackup.id) {
+                currentDraftIdRef.current = mostRecentBackup.id;
                 setCurrentDraftId(mostRecentBackup.id);
               }
 

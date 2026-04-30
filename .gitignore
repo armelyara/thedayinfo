@@ -14,6 +14,7 @@
 
 # TypeScript build cache
 *.tsbuildinfo
+scripts/cleanup-duplicate-drafts.ts
 
 # Production
 /build
