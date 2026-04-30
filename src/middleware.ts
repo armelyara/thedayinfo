@@ -52,7 +52,20 @@ function applySecurityHeaders(response: NextResponse) {
 const STATIC_ASSET_RE = /^\/[^/]+\.[a-zA-Z0-9]+$/;
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
+  const host = request.headers.get('host') ?? '';
+
+  // ── Canonical domain: redirect www → non-www (301 permanent) ──────────────
+  // Firebase App Hosting only serves the apex domain (thedayinfo.com).
+  // If a user lands on www.thedayinfo.com, Next.js RSC payload fetches fail
+  // because www. isn't wired up. Redirect immediately before any other logic.
+  if (process.env.NODE_ENV === 'production' && host.startsWith('www.')) {
+    const canonicalHost = host.slice(4); // remove 'www.'
+    return NextResponse.redirect(
+      `https://${canonicalHost}${pathname}${search}`,
+      { status: 301 }
+    );
+  }
 
   // Skip middleware for static assets served from /public. They don't need
   // CSP headers (they're not pages) and CORS is set in next.config.js.
