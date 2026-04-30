@@ -213,9 +213,45 @@ const COLOR_PALETTE = [
 const RELATIVE_ASSET_RE =
   /(\b(?:src|href)\s*=\s*["'])(?!https?:|\/\/|\/|data:|blob:|#)(?:\.\/)?([\w\-]+\.(?:jsx?|css))(["'])/gi;
 
+// Tiny error overlay injected at the top of <head> in every embed. Catches
+// load errors (SRI failures, missing assets, CSP blocks) and runtime errors,
+// then renders them as a red banner at the top of the iframe — visible
+// without having to dig into DevTools' isolated iframe console.
+const ERROR_OVERLAY_SCRIPT = `<script>
+(function(){
+  function show(msg){
+    try {
+      if(!document.body){document.addEventListener('DOMContentLoaded',function(){show(msg)});return;}
+      var d=document.createElement('div');
+      d.style.cssText='position:fixed;top:0;left:0;right:0;background:#dc2626;color:#fff;padding:8px 12px;font:12px ui-monospace,monospace;z-index:2147483647;white-space:pre-wrap;border-bottom:1px solid #991b1b;max-height:50%;overflow:auto';
+      d.textContent='⚠️ '+msg;
+      document.body.appendChild(d);
+    } catch(_) {}
+  }
+  window.addEventListener('error',function(e){
+    var src=e.filename||(e.target&&(e.target.src||e.target.href))||'';
+    show((e.message||'Script error')+(src?'\\n'+src:''));
+  },true);
+  window.addEventListener('unhandledrejection',function(e){
+    show('Unhandled promise: '+(e.reason&&e.reason.message||e.reason||'unknown'));
+  });
+})();
+</script>`;
+
 function normalizeEmbedHtml(input: string): string {
   if (!input) return '';
-  return input.replace(RELATIVE_ASSET_RE, '$1/$2$3');
+  let out = input.replace(RELATIVE_ASSET_RE, '$1/$2$3');
+  // Inject the error overlay as the FIRST thing inside <head>, so it's
+  // registered before any external <script> can fail to load. If <head>
+  // is missing, prepend before <body> or at the very start.
+  if (/<head\b[^>]*>/i.test(out)) {
+    out = out.replace(/<head\b([^>]*)>/i, `<head$1>${ERROR_OVERLAY_SCRIPT}`);
+  } else if (/<body\b[^>]*>/i.test(out)) {
+    out = out.replace(/<body\b([^>]*)>/i, `<head>${ERROR_OVERLAY_SCRIPT}</head><body$1>`);
+  } else {
+    out = ERROR_OVERLAY_SCRIPT + out;
+  }
+  return out;
 }
 
 interface RichTextEditorProps {
