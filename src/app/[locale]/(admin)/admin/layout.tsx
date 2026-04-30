@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { initializeFirebaseClient } from '@/lib/firebase-client';
@@ -25,7 +25,7 @@ function LogoutButton() {
         Déconnexion
       </Button>
     </form>
-  )
+  );
 }
 
 export default function AdminLayout({
@@ -35,9 +35,11 @@ export default function AdminLayout({
 }>) {
   const router = useRouter();
   const { toast } = useToast();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [firebaseInitialized, setFirebaseInitialized] = useState(false);
 
+  // Initialize Firebase in the background — does NOT block rendering.
+  // The server-side layout already verified the session cookie,
+  // so we can render the admin UI immediately without waiting.
   useEffect(() => {
     async function init() {
       await initializeFirebaseClient();
@@ -46,127 +48,48 @@ export default function AdminLayout({
     init();
   }, []);
 
-  // ✅ Fonction pour vérifier la session avec retry
-  const checkSession = useCallback(async (retryCount = 0): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/auth-check', {
-        credentials: 'include',
-        cache: 'no-store'
-      });
-
-      if (res.ok) {
-        const { authenticated } = await res.json();
-        return authenticated;
-      }
-
-      // Si 401, la session a expiré
-      if (res.status === 401) {
-        return false;
-      }
-
-      // Pour d'autres erreurs, retry jusqu'à 2 fois
-      if (retryCount < 2) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return checkSession(retryCount + 1);
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Session check error:', error);
-      if (retryCount < 2) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return checkSession(retryCount + 1);
-      }
-      return false;
-    }
-  }, []);
-
-  // ✅ Rafraîchir la session périodiquement (toutes les 5 minutes)
+  // Refresh the session cookie every 5 minutes to prevent mid-session expiry
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!firebaseInitialized) return;
 
     const intervalId = setInterval(async () => {
       const auth = getAuth();
       const user = auth.currentUser;
+      if (!user) return;
 
-      if (user) {
-        try {
-          // Forcer le rafraîchissement du token
-          await user.getIdToken(true);
-
-          // Vérifier la session côté serveur
-          const sessionValid = await checkSession();
-
-          if (!sessionValid) {
-            toast({
-              variant: 'destructive',
-              title: 'Session expirée',
-              description: 'Veuillez vous reconnecter.',
-            });
-            router.push('/login');
-          }
-        } catch (error) {
-          console.error('Failed to refresh token:', error);
-        }
+      try {
+        const idToken = await user.getIdToken(true);
+        await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        });
+      } catch (error) {
+        console.error('Failed to refresh token:', error);
       }
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 5 * 60 * 1000);
 
     return () => clearInterval(intervalId);
-  }, [isAuthenticated, checkSession, router, toast]);
+  }, [firebaseInitialized]);
 
+  // Watch for unexpected Firebase sign-out (e.g., account disabled remotely)
   useEffect(() => {
     if (!firebaseInitialized) return;
 
     const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        setIsAuthenticated(false);
-        router.push('/login');
-        return;
-      }
-
-      // Vérifier la session côté serveur
-      const sessionValid = await checkSession();
-
-      if (sessionValid) {
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
-
-        console.log('Session validation failed, redirecting to login');
-
-        // Clear the invalid session cookie
-        await fetch('/api/logout', { method: 'POST' });
-
         toast({
           variant: 'destructive',
-          title: 'Session invalide',
+          title: 'Session expirée',
           description: 'Veuillez vous reconnecter.',
         });
-
         router.push('/login');
       }
     });
 
     return () => unsubscribe();
-  }, [firebaseInitialized, router, checkSession, toast]);
-
-  if (isAuthenticated === null || !firebaseInitialized) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg">Vérification de l'authentification...</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Si cela prend trop de temps, essayez de vous reconnecter.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
+  }, [firebaseInitialized, router, toast]);
 
   return (
     <Suspense>

@@ -77,17 +77,20 @@ export function middleware(request: NextRequest) {
 
 
   // CASE 1: Attempt to access Admin without being logged in Login
+  // Use a relative Location header so the browser resolves the redirect
+  // against its own origin. Building an absolute URL via `new URL(..., request.url)`
+  // is unsafe on Firebase App Hosting: `request.url` reflects the internal
+  // bind address (0.0.0.0:8080) and would produce a dead Location header.
   if (isAdminRoute && !isAuthenticated) {
     const prefix = currentLocale === routing.defaultLocale ? '' : `/${currentLocale}`;
-    const loginUrl = new URL(`${prefix}/login`, request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    const location = `${prefix}/login?redirect=${encodeURIComponent(pathname)}`;
+    return new NextResponse(null, { status: 307, headers: { Location: location } });
   }
 
   // CASE 2: Attempt to access Login while already logged in Admin
   if (isLoginPage && isAuthenticated) {
     const prefix = currentLocale === routing.defaultLocale ? '' : `/${currentLocale}`;
-    return NextResponse.redirect(new URL(`${prefix}/admin`, request.url));
+    return new NextResponse(null, { status: 307, headers: { Location: `${prefix}/admin` } });
   }
 
   return applySecurityHeaders(response);
