@@ -7,6 +7,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://thedayinfo.com'),
   title: 'The Day Info',
   description: "Résoudre des problèmes par la technologie. Promoteur du dev.",
 };
