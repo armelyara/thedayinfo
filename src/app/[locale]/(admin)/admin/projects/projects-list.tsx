@@ -20,9 +20,9 @@ interface ProjectsListProps {
 }
 
 const statusConfig = {
-  'terminé': { icon: CheckCircle, label: 'Terminé', className: 'bg-green-100 text-green-800' },
-  'en-cours': { icon: Wrench, label: 'En cours', className: 'bg-blue-100 text-blue-800' },
-  'maintenance': { icon: Wrench, label: 'Maintenance', className: 'bg-yellow-100 text-yellow-800' },
+    'terminé': { icon: CheckCircle, label: 'Terminé', className: 'bg-green-100 text-green-800' },
+    'en-cours': { icon: Wrench, label: 'En cours', className: 'bg-blue-100 text-blue-800' },
+    'maintenance': { icon: Wrench, label: 'Maintenance', className: 'bg-yellow-100 text-yellow-800' },
 };
 
 export function ProjectsList({ initialProjects }: ProjectsListProps) {
@@ -82,53 +82,54 @@ export function ProjectsList({ initialProjects }: ProjectsListProps) {
             {projects.map((project) => {
                 const StatusIcon = statusConfig[project.status].icon;
                 return (
-                <Card key={project.slug}>
-                    <CardHeader className="flex flex-row items-start gap-4">
-                        <Image src={project.image.src} alt={project.image.alt} width={120} height={80} className="rounded-md object-cover aspect-video"/>
-                        <div className="flex-1">
-                            <CardTitle className="text-lg">{project.title}</CardTitle>
-                            <CardDescription>{project.description}</CardDescription>
-                             <div className="flex items-center gap-2 mt-2">
-                                <Badge variant="secondary" className={statusConfig[project.status].className}>
-                                    <StatusIcon className="h-3 w-3 mr-1"/>
-                                    {statusConfig[project.status].label}
-                                </Badge>
-                                {project.technologies.map(tech => <Badge key={tech} variant="outline">{tech}</Badge>)}
+                    <Card key={project.slug}>
+                        <CardHeader className="flex flex-row items-start gap-4">
+                            <Image src={project.image.src} alt={project.image.alt} width={120} height={80} className="rounded-md object-cover aspect-video" />
+                            <div className="flex-1">
+                                <CardTitle className="text-lg">{project.title}</CardTitle>
+                                <CardDescription>{project.description}</CardDescription>
+                                <div className="flex items-center gap-2 mt-2">
+                                    <Badge variant="secondary" className={statusConfig[project.status].className}>
+                                        <StatusIcon className="h-3 w-3 mr-1" />
+                                        {statusConfig[project.status].label}
+                                    </Badge>
+                                    {project.technologies.map(tech => <Badge key={tech} variant="outline">{tech}</Badge>)}
+                                </div>
                             </div>
-                        </div>
-                    </CardHeader>
-                    
-                    <CardContent>
-                         <div className="flex items-center justify-between">
-                            <div className="text-xs text-muted-foreground">
-                                <p>Créé le : {format(parseISO(project.createdAt), 'dd/MM/yyyy', { locale: fr })}</p>
-                                <p>Dernière modif. : {format(parseISO(project.updatedAt), 'dd/MM/yyyy', { locale: fr })}</p>
+                        </CardHeader>
+
+                        <CardContent>
+                            <div className="flex items-center justify-between">
+                                <div className="text-xs text-muted-foreground">
+                                    <p>Créé le : {format(parseISO(project.createdAt), 'dd/MM/yyyy', { locale: fr })}</p>
+                                    <p>Dernière modif. : {format(parseISO(project.updatedAt), 'dd/MM/yyyy', { locale: fr })}</p>
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleEdit(project.slug)}
+                                    >
+                                        <Pencil className="h-4 w-4 mr-2" />
+                                        Modifier
+                                    </Button>
+
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        disabled={isDeleting === project.slug}
+                                        onClick={() => handleDelete(project.slug)}
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        {isDeleting === project.slug ? 'Suppression...' : 'Supprimer'}
+                                    </Button>
+                                </div>
                             </div>
-                            
-                            <div className="flex gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleEdit(project.slug)}
-                                >
-                                    <Pencil className="h-4 w-4 mr-2" />
-                                    Modifier
-                                </Button>
-                                
-                                <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    disabled={isDeleting === project.slug}
-                                    onClick={() => handleDelete(project.slug)}
-                                >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    {isDeleting === project.slug ? 'Suppression...' : 'Supprimer'}
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            )})}
+                        </CardContent>
+                    </Card>
+                )
+            })}
         </div>
     );
 }
