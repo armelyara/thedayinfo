@@ -51,29 +51,14 @@ function applySecurityHeaders(response: NextResponse) {
 // page and returns 404.
 const STATIC_ASSET_RE = /^\/[^/]+\.[a-zA-Z0-9]+$/;
 
-// Firebase App Hosting (Cloud Run) binds the container to port 8080
-// internally. Standalone Next.js sometimes leaks this port into URLs derived
-// from `request.url`, producing redirects to https://thedayinfo.com:8080/...
-// that no client can reach. This helper builds redirect targets from the
-// public host header so the leaked port never appears in the Location header.
-function publicRedirect(request: NextRequest, path: string): URL {
-  const xfHost = request.headers.get('x-forwarded-host');
-  const xfProto = request.headers.get('x-forwarded-proto');
-  const host = (xfHost || request.headers.get('host') || request.nextUrl.host).replace(/:\d+$/, '');
-  const proto = xfProto || (process.env.NODE_ENV === 'development' ? 'http' : 'https');
-  return new URL(path, `${proto}://${host}`);
-}
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // If the parsed URL itself carries the leaked internal port, redirect to
-  // the same path without the port so the browser drops the bad URL from
-  // its address bar / cache. 308 preserves the request method.
+  // FIX: Si l'URL contient le port 8080 (interne à Firebase), on nettoie l'URL
   if (request.nextUrl.port === '8080') {
-    const cleanUrl = request.nextUrl.clone();
-    cleanUrl.port = '';
-    return NextResponse.redirect(cleanUrl, 308);
+    const newUrl = request.nextUrl.clone();
+    newUrl.port = ''; // Supprime le port
+    return NextResponse.redirect(newUrl, 301);
   }
   // Skip middleware for static assets served from /public. They don't need
   // CSP headers (they're not pages) and CORS is set in next.config.js.
@@ -100,7 +85,7 @@ export function middleware(request: NextRequest) {
   // CASE 1: Attempt to access Admin without being logged in Login
   if (isAdminRoute && !isAuthenticated) {
     const prefix = currentLocale === routing.defaultLocale ? '' : `/${currentLocale}`;
-    const loginUrl = publicRedirect(request, `${prefix}/login`);
+    const loginUrl = new URL(`${prefix}/login`, request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
@@ -108,7 +93,7 @@ export function middleware(request: NextRequest) {
   // CASE 2: Attempt to access Login while already logged in Admin
   if (isLoginPage && isAuthenticated) {
     const prefix = currentLocale === routing.defaultLocale ? '' : `/${currentLocale}`;
-    return NextResponse.redirect(publicRedirect(request, `${prefix}/admin`));
+    return NextResponse.redirect(new URL(`${prefix}/admin`, request.url));
   }
 
   return applySecurityHeaders(response);
