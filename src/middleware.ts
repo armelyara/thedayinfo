@@ -51,16 +51,40 @@ function applySecurityHeaders(response: NextResponse) {
 // page and returns 404.
 const STATIC_ASSET_RE = /^\/[^/]+\.[a-zA-Z0-9]+$/;
 
-// Firebase App Hosting (Cloud Run) binds the container to port 8080
-// internally. Standalone Next.js sometimes leaks this port into URLs derived
-// from `request.url`, producing redirects to https://thedayinfo.com:8080/...
-// that no client can reach. This helper builds redirect targets from the
-// public host header so the leaked port never appears in the Location header.
+// Firebase App Hosting (Cloud Run) binds the container to port 8080 on
+// 0.0.0.0 internally. Standalone Next.js sometimes leaks this address into
+// URLs derived from `request.url`, producing redirects to
+// https://0.0.0.0:8080/... or https://thedayinfo.com:8080/... that no
+// client can reach. This helper rebuilds redirect targets from the public
+// host header, rejecting any host that is clearly an internal bind address.
+const JUNK_HOST_RE = /^(0\.0\.0\.0|127\.0\.0\.1|::1|169\.254\.)/;
+const PROD_PUBLIC_HOST = process.env.NEXT_PUBLIC_SITE_HOST || 'thedayinfo.com';
+
 function publicRedirect(request: NextRequest, path: string): URL {
-  const xfHost = request.headers.get('x-forwarded-host');
+  const isDev = process.env.NODE_ENV === 'development';
   const xfProto = request.headers.get('x-forwarded-proto');
-  const host = (xfHost || request.headers.get('host') || request.nextUrl.host).replace(/:\d+$/, '');
-  const proto = xfProto || (process.env.NODE_ENV === 'development' ? 'http' : 'https');
+  const proto = xfProto || (isDev ? 'http' : 'https');
+
+  const candidates = [
+    request.headers.get('x-forwarded-host'),
+    request.headers.get('host'),
+    request.nextUrl.host,
+  ];
+
+  let host: string | null = null;
+  for (const c of candidates) {
+    if (!c) continue;
+    const stripped = isDev ? c : c.replace(/:\d+$/, ''); // keep port in dev (3000)
+    if (!JUNK_HOST_RE.test(stripped)) {
+      host = stripped;
+      break;
+    }
+  }
+
+  if (!host) {
+    host = isDev ? 'localhost:3000' : PROD_PUBLIC_HOST;
+  }
+
   return new URL(path, `${proto}://${host}`);
 }
 
