@@ -42,6 +42,14 @@ function applySecurityHeaders(response: NextResponse) {
       'Strict-Transport-Security',
       'max-age=63072000; includeSubDomains; preload'
     );
+
+    // Invalidate any cached Alt-Svc / QUIC entries pointing to the internal
+    // Cloud Run port (:8080). Earlier middleware versions emitted Location
+    // headers with that port; affected browsers can stay stuck on it for up
+    // to 30 days (alt-svc max-age) even after "clear cache" and incognito.
+    // `Alt-Svc: clear` purges the cache surgically without touching cookies
+    // or sessions. Safe to leave in place permanently.
+    response.headers.set('Alt-Svc', 'clear');
   }
 
   return response;
