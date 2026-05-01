@@ -119,3 +119,51 @@ export async function getPublishedArticles(): Promise<Article[] | { error: strin
     };
   }
 }
+
+/**
+ * Get published articles in a specific category
+ */
+export async function getArticlesByCategory(
+  categorySlug: string,
+  categories: { name: string; slug: string }[]
+): Promise<Article[]> {
+  try {
+    const category = categories.find((c) => c.slug === categorySlug);
+    if (!category) return [];
+
+    const db = await getDb();
+    const articlesCollection = db.collection('articles');
+    const q = articlesCollection
+      .where('category', '==', category.name)
+      .where('status', '==', 'published')
+      .orderBy('publishedAt', 'desc');
+
+    const snapshot = await q.get();
+    return snapshot.docs.map(mapArticle);
+  } catch (error) {
+    console.error('Error getting articles by category:', error);
+    return [];
+  }
+}
+
+/**
+ * Search published articles in-memory (substring match across title/content/category/author)
+ */
+export async function searchArticles(queryText: string): Promise<Article[]> {
+  try {
+    const result = await getPublishedArticles();
+    if ('error' in result) return [];
+
+    const lower = queryText.toLowerCase();
+    return result.filter(
+      (a) =>
+        a.title.toLowerCase().includes(lower) ||
+        a.content.toLowerCase().includes(lower) ||
+        a.category.toLowerCase().includes(lower) ||
+        a.author.toLowerCase().includes(lower)
+    );
+  } catch (error) {
+    console.error('Error searching articles:', error);
+    return [];
+  }
+}

@@ -1,6 +1,6 @@
 // src/app/api/articles/[slug]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getArticleBySlug } from '@/lib/data-client';
+import { getArticleBySlug } from '@/lib/data-admin';
 import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
 
 export const dynamic = 'force-dynamic';

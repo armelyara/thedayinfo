@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getArticlesByCategory } from '@/lib/data-client';
+import { getArticlesByCategory } from '@/lib/data-admin';
 import { ArticleCard } from '@/components/article/article-card';
 import { categories } from '@/components/layout/main-layout';
 import type { Article } from '@/lib/data-types';

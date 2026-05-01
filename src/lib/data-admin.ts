@@ -33,4 +33,6 @@ export {
   updateArticleComments,
   getArticleBySlug,
   getPublishedArticles,
+  getArticlesByCategory,
+  searchArticles,
 } from './data/articles';

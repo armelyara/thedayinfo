@@ -1,7 +1,7 @@
 // src/app/actions/author-avatar.ts
 'use server';
 
-import { getProfile } from '@/lib/data-client';
+import { getProfile } from '@/lib/data-admin';
 
 /**
  * Récupère l'URL de l'avatar de l'auteur depuis le profil

@@ -10,6 +10,15 @@ function loginPath(locale: string) {
   return locale === DEFAULT_LOCALE ? '/login' : `/${locale}/login`;
 }
 
+// When verifySession fails we must clear the cookie BEFORE returning to /login.
+// The middleware only checks cookie presence, so leaving a stale cookie traps
+// the user in an /admin ↔ /login loop. Server Components can't call
+// cookieStore.delete() in Next.js 14, so we redirect through a Route Handler
+// that can.
+function clearSessionAndLoginPath(locale: string) {
+  return `/api/auth/clear-session?redirect=${encodeURIComponent(loginPath(locale))}`;
+}
+
 export default async function AdminLayout({
   children,
   params,
@@ -30,18 +39,14 @@ export default async function AdminLayout({
 
     const decoded = await verifySession(session);
     if (!decoded) {
-      // ⚠️ CRITICAL: Delete the stale/expired cookie before redirecting.
-      // Without this, the middleware still sees the cookie, thinks the user
-      // is authenticated, and blocks the login page → infinite redirect loop.
-      cookieStore.delete('session');
-      redirect(loginPath(locale));
+      redirect(clearSessionAndLoginPath(locale));
     }
   } catch (error: any) {
     // Don't swallow redirect errors — Next.js throws them internally
     if (error?.digest?.startsWith('NEXT_REDIRECT')) throw error;
-    // Any other error (e.g., Firebase Admin crash): redirect to login safely
+    // Any other error (e.g., Firebase Admin crash): clear cookie and redirect safely
     console.error('[AdminLayout] Server error, redirecting to login:', error?.message);
-    redirect(loginPath(locale));
+    redirect(clearSessionAndLoginPath(locale));
   }
 
   return <>{children}</>;

@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';

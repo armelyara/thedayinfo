@@ -88,22 +88,26 @@ export function middleware(request: NextRequest) {
   const isLoginPage = new RegExp(`^(/(${localesPattern}))?/login`).test(pathname);
   const currentLocale = routing.locales.find(l => pathname.startsWith(`/${l}`)) || routing.defaultLocale;
 
+  // Build an absolute redirect URL from the public host header (the same
+  // pattern used by the www → non-www redirect above). Next.js's edge adapter
+  // re-parses the Location header through `new NextURL(...)` and throws
+  // "Invalid URL" if we hand it a relative path, which 500s every redirect.
+  // We deliberately avoid `request.url`: on Firebase App Hosting it reflects
+  // the internal bind address (0.0.0.0:8080), producing a dead Location.
+  const protocol = request.nextUrl.protocol; // 'http:' or 'https:'
+  const buildRedirect = (path: string) => `${protocol}//${host}${path}`;
 
-  // CASE 1: Attempt to access Admin without being logged in Login
-  // Use a relative Location header so the browser resolves the redirect
-  // against its own origin. Building an absolute URL via `new URL(..., request.url)`
-  // is unsafe on Firebase App Hosting: `request.url` reflects the internal
-  // bind address (0.0.0.0:8080) and would produce a dead Location header.
+  // CASE 1: Attempt to access Admin without being logged in
   if (isAdminRoute && !isAuthenticated) {
     const prefix = currentLocale === routing.defaultLocale ? '' : `/${currentLocale}`;
-    const location = `${prefix}/login?redirect=${encodeURIComponent(pathname)}`;
-    return new NextResponse(null, { status: 307, headers: { Location: location } });
+    const target = `${prefix}/login?redirect=${encodeURIComponent(pathname)}`;
+    return NextResponse.redirect(buildRedirect(target), { status: 307 });
   }
 
-  // CASE 2: Attempt to access Login while already logged in Admin
+  // CASE 2: Attempt to access Login while already logged in
   if (isLoginPage && isAuthenticated) {
     const prefix = currentLocale === routing.defaultLocale ? '' : `/${currentLocale}`;
-    return new NextResponse(null, { status: 307, headers: { Location: `${prefix}/admin` } });
+    return NextResponse.redirect(buildRedirect(`${prefix}/admin`), { status: 307 });
   }
 
   return applySecurityHeaders(response);
