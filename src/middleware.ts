@@ -6,26 +6,24 @@ import { routing } from './routing';
 const intlMiddleware = createMiddleware(routing);
 
 function applySecurityHeaders(response: NextResponse) {
-  const isDevelopment = process.env.NODE_ENV === 'development';
-
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com https://apis.google.com https://accounts.google.com;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com;
-    img-src 'self' blob: data: https: firebasestorage.googleapis.com;
-    font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com;
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cloudflare.com https://google.com https://google.com;
+    style-src 'self' 'unsafe-inline' https://googleapis.com https://google.com;
+    img-src 'self' blob: data: https: ://googleapis.com;
+    font-src 'self' data: https://cloudflare.com https://gstatic.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
-    frame-src 'self' https://accounts.google.com https://*.firebaseapp.com;
+    frame-src 'self' https://google.com https://*.firebaseapp.com;
     frame-ancestors 'none';
     connect-src 'self'
-      https://identitytoolkit.googleapis.com
-      https://securetoken.googleapis.com
-      https://firebasestorage.googleapis.com
-      https://firestore.googleapis.com
+      https://googleapis.com
+      https://googleapis.com
+      https://://googleapis.com
+      https://googleapis.com
       https://*.googleapis.com
-      https://generativelanguage.googleapis.com;
+      https://googleapis.com;
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, ' ').trim();
 
@@ -38,7 +36,7 @@ function applySecurityHeaders(response: NextResponse) {
 
   if (process.env.NODE_ENV === 'production') {
     response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
-    // Force le navigateur à oublier les ports internes (:8080)
+    // TRÈS IMPORTANT : On force le nettoyage du cache des ports mal mémorisés
     response.headers.set('Alt-Svc', 'clear');
   }
 
@@ -51,27 +49,29 @@ export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const host = request.headers.get('host');
 
-  // --- ÉTAPE 1 : Nettoyage du port 8080 ---
+  // --- ÉTAPE 1 : CORRECTION DU PORT 8080 ---
+  // Si le port 8080 apparaît dans le host, on redirige immédiatement vers l'URL propre
   if (host?.includes(':8080')) {
     const cleanHost = host.replace(':8080', '');
+    // On force l'URL vers https://thedayinfo.com sans le port
     return NextResponse.redirect(`https://${cleanHost}${pathname}${search}`, 301);
   }
 
-  // --- ÉTAPE 2 : Assets statiques ---
+  // --- ÉTAPE 2 : ASSETS STATIQUES ---
   if (STATIC_ASSET_RE.test(pathname)) {
     return NextResponse.next();
   }
 
-  // --- ÉTAPE 3 : API Routes ---
+  // --- ÉTAPE 3 : API ROUTES ---
   if (pathname.startsWith('/api')) {
     return applySecurityHeaders(NextResponse.next());
   }
 
-  // --- ÉTAPE 4 : Internationalisation ---
-  // On décommente ici pour que le dossier [locale] fonctionne
+  // --- ÉTAPE 4 : INTERNATIONALISATION (Dossier [locale]) ---
+  // On RÉACTIVE le middleware pour que les liens internes fonctionnent
   const response = intlMiddleware(request);
 
-  // --- ÉTAPE 5 : Application des headers de sécurité ---
+  // --- ÉTAPE 5 : SÉCURITÉ ---
   return applySecurityHeaders(response);
 }
 
