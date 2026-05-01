@@ -41,7 +41,7 @@ export default async function HomePage() {
               Résoudre des problèmes par la technologie.
             </h1>
             <p className="text-lg text-muted-foreground md:text-xl">
-              Promoteur du dev.
+              Developer Advocate.
             </p>
           </div>
           <div className="mt-8 flex justify-center gap-4">
@@ -66,9 +66,9 @@ export default async function HomePage() {
         <section id="projects" className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
           <div className="container px-4 md:px-6">
             <div className="mb-12 text-center">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Projets Phares</h2>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Projets</h2>
               <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed">
-                Quelques projets récents qui illustrent mon travail.
+                De l'idée à la mise en production.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -94,7 +94,7 @@ export default async function HomePage() {
             <div className="mb-12 text-center">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Derniers articles du blog</h2>
               <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed">
-                Explorez mes dernières pensées et découvertes technologiques.
+                Explorez mes réflexions et découvertes technologiques.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">

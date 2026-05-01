@@ -38,7 +38,7 @@ export function SiteHeader() {
       <div className="container flex h-14 max-w-screen-2xl items-center">
         <Link href="/" className="mr-6 flex items-center space-x-2">
           <LogoIcon width={28} height={28} />
-          <span className="hidden font-bold sm:inline-block">TheDayInfo</span>
+          <span className="hidden font-bold sm:inline-block">The Day Info</span>
         </Link>
         <nav className="flex flex-1 items-center justify-end gap-6 text-sm">
           {navLinks.map((link) => (

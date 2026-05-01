@@ -38,7 +38,7 @@ export default async function AboutPage() {
           {profile.name}
         </h1>
         <p className="text-lg text-muted-foreground mb-8">
-          Créateur de The Day Info
+          The Day Info
         </p>
 
         <SanitizedContent
