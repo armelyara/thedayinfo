@@ -3,9 +3,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { routing } from './routing';
 
-//const intlMiddleware = createMiddleware(routing);
+const intlMiddleware = createMiddleware(routing);
 
 function applySecurityHeaders(response: NextResponse) {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com https://apis.google.com https://accounts.google.com;
@@ -31,54 +33,46 @@ function applySecurityHeaders(response: NextResponse) {
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set(
-    'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=(), interest-cohort=()'
-  );
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
   response.headers.set('X-XSS-Protection', '1; mode=block');
 
   if (process.env.NODE_ENV === 'production') {
-    response.headers.set(
-      'Strict-Transport-Security',
-      'max-age=63072000; includeSubDomains; preload'
-    );
-
-    // Invalidate any cached Alt-Svc / QUIC entries pointing to the internal
-    // Cloud Run port (:8080). Earlier middleware versions emitted Location
-    // headers with that port; affected browsers can stay stuck on it for up
-    // to 30 days (alt-svc max-age) even after "clear cache" and incognito.
-    // `Alt-Svc: clear` purges the cache surgically without touching cookies
-    // or sessions. Safe to leave in place permanently.
+    response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+    // Force le navigateur à oublier les ports internes (:8080)
     response.headers.set('Alt-Svc', 'clear');
   }
 
   return response;
 }
 
-// Top-level static assets in /public (e.g. /animations.jsx, /robots.txt).
-// next-intl would otherwise try to map them to localized pages and 404 them.
 const STATIC_ASSET_RE = /^\/[^/]+\.[a-zA-Z0-9]+$/;
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
+  const host = request.headers.get('host');
 
-  // Static assets: pass through, no headers (they're not pages).
+  // --- ÉTAPE 1 : Nettoyage du port 8080 ---
+  if (host?.includes(':8080')) {
+    const cleanHost = host.replace(':8080', '');
+    return NextResponse.redirect(`https://${cleanHost}${pathname}${search}`, 301);
+  }
+
+  // --- ÉTAPE 2 : Assets statiques ---
   if (STATIC_ASSET_RE.test(pathname)) {
     return NextResponse.next();
   }
 
-  // API routes: skip next-intl entirely (its rewrite/redirect logic breaks
-  // POST bodies and 404s the route). Apply security headers only.
+  // --- ÉTAPE 3 : API Routes ---
   if (pathname.startsWith('/api')) {
     return applySecurityHeaders(NextResponse.next());
   }
 
-  // Page routes: delegate routing/rewrite to next-intl, then layer headers.
-  // Returning intlMiddleware's response (instead of NextResponse.next())
-  // preserves the internal rewrite header that maps `/` → `/fr` so the
-  // [locale] app directory matches.
-  //const response = intlMiddleware(request);
-  //return applySecurityHeaders(response);
+  // --- ÉTAPE 4 : Internationalisation ---
+  // On décommente ici pour que le dossier [locale] fonctionne
+  const response = intlMiddleware(request);
+
+  // --- ÉTAPE 5 : Application des headers de sécurité ---
+  return applySecurityHeaders(response);
 }
 
 export const config = {
