@@ -5,15 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Eye, MessageCircle } from 'lucide-react';
 import type { Article } from '@/lib/data-types';
 
-
-import { useTranslations } from 'next-intl';
-
 type ArticleCardProps = {
   article: Article;
 };
 
 export function ArticleCard({ article }: ArticleCardProps) {
-  const t = useTranslations('Common');
   // Supprimer les balises HTML du contenu pour l'aperçu
   const plainTextContent = article.content.replace(/<[^>]*>?/gm, '');
 
@@ -49,7 +45,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
         <Link href={`/blog/${article.slug}`} className="group w-full">
           <div className="flex items-center justify-between">
             <div className="flex items-center text-sm font-semibold text-primary">
-              {t('readMore')}
+              Lire la suite
               <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
             </div>
             <div className="flex items-center gap-3 text-sm text-muted-foreground">

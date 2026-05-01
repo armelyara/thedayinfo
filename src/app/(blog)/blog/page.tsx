@@ -4,7 +4,6 @@ import { ArticleCard } from '@/components/article/article-card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
 
 export const revalidate = 3600; // Revalidate every hour
 
@@ -43,7 +42,6 @@ const MissingIndexError = ({ message }: { message: string }) => {
 
 export default async function BlogHomePage() {
   const articlesResult = await getPublishedArticles();
-  const t = await getTranslations('BlogPage');
 
   // Type guard pour vérifier si c'est une erreur
   const isErrorResult = (result: any): result is { error: string; message: string } => {
@@ -56,10 +54,10 @@ export default async function BlogHomePage() {
         <div className="container mx-auto px-4 py-8">
           <header className="mb-12 text-center">
             <h1 className="text-4xl font-headline font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-              {t('title')}
+              The Day Info - Le Blog
             </h1>
             <p className="mt-3 text-lg text-muted-foreground sm:text-xl">
-              {t('subtitle')}
+              Votre dose quotidienne d&apos;information, organisée pour les esprits curieux.
             </p>
           </header>
           <main>
@@ -73,13 +71,13 @@ export default async function BlogHomePage() {
       <div className="container mx-auto px-4 py-8">
         <header className="mb-12 text-center">
           <h1 className="text-4xl font-headline font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            {t('title')}
+            The Day Info - Le Blog
           </h1>
         </header>
         <main>
           <Alert variant="destructive">
             <Terminal className="h-4 w-4" />
-            <AlertTitle>{t('loadingError')}</AlertTitle>
+            <AlertTitle>Erreur de chargement</AlertTitle>
             <AlertDescription>{articlesResult.message}</AlertDescription>
           </Alert>
         </main>
@@ -93,10 +91,10 @@ export default async function BlogHomePage() {
     <div className="container mx-auto px-4 py-8">
       <header className="mb-12 text-center">
         <h1 className="text-4xl font-headline font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-          {t('title')}
+          The Day Info - Le Blog
         </h1>
         <p className="mt-3 text-lg text-muted-foreground sm:text-xl">
-          {t('subtitle')}
+          Votre dose quotidienne d&apos;information, organisée pour les esprits curieux.
         </p>
       </header>
 
@@ -109,7 +107,7 @@ export default async function BlogHomePage() {
           </div>
         ) : (
           <div>
-            <p>{t('emptyState')}</p>
+            <p>Aucun article publié pour le moment. Revenez bientôt !</p>
           </div>
         )}
       </main>

@@ -1,29 +1,25 @@
-import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { routing } from './routing';
-
-const intlMiddleware = createMiddleware(routing);
 
 function applySecurityHeaders(response: NextResponse) {
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cloudflare.com https://google.com https://google.com;
-    style-src 'self' 'unsafe-inline' https://googleapis.com https://google.com;
-    img-src 'self' blob: data: https: ://googleapis.com;
-    font-src 'self' data: https://cloudflare.com https://gstatic.com;
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com https://apis.google.com https://accounts.google.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com;
+    img-src 'self' blob: data: https: firebasestorage.googleapis.com;
+    font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
-    frame-src 'self' https://google.com https://*.firebaseapp.com;
+    frame-src 'self' https://accounts.google.com https://*.firebaseapp.com;
     frame-ancestors 'none';
     connect-src 'self'
-      https://googleapis.com
-      https://googleapis.com
-      https://://googleapis.com
-      https://googleapis.com
+      https://identitytoolkit.googleapis.com
+      https://securetoken.googleapis.com
+      https://firebasestorage.googleapis.com
+      https://firestore.googleapis.com
       https://*.googleapis.com
-      https://googleapis.com;
+      https://generativelanguage.googleapis.com;
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, ' ').trim();
 
@@ -36,7 +32,7 @@ function applySecurityHeaders(response: NextResponse) {
 
   if (process.env.NODE_ENV === 'production') {
     response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
-    // TRÈS IMPORTANT : On force le nettoyage du cache des ports mal mémorisés
+    // Force browsers to drop any cached Alt-Svc / QUIC entry pointing to :8080.
     response.headers.set('Alt-Svc', 'clear');
   }
 
@@ -49,30 +45,25 @@ export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const host = request.headers.get('host');
 
-  // --- ÉTAPE 1 : CORRECTION DU PORT 8080 ---
-  // Si le port 8080 apparaît dans le host, on redirige immédiatement vers l'URL propre
+  // Defensive: if a stale browser sends Host with the leaked Cloud Run port,
+  // strip it and emit a permanent redirect to the clean canonical URL.
   if (host?.includes(':8080')) {
     const cleanHost = host.replace(':8080', '');
-    // On force l'URL vers https://thedayinfo.com sans le port
     return NextResponse.redirect(`https://${cleanHost}${pathname}${search}`, 301);
   }
 
-  // --- ÉTAPE 2 : ASSETS STATIQUES ---
+  // Static assets: pass through without headers (they're not pages).
   if (STATIC_ASSET_RE.test(pathname)) {
     return NextResponse.next();
   }
 
-  // --- ÉTAPE 3 : API ROUTES ---
+  // API routes: apply security headers, no other rewrites.
   if (pathname.startsWith('/api')) {
     return applySecurityHeaders(NextResponse.next());
   }
 
-  // --- ÉTAPE 4 : INTERNATIONALISATION (Dossier [locale]) ---
-  // On RÉACTIVE le middleware pour que les liens internes fonctionnent
-  const response = intlMiddleware(request);
-
-  // --- ÉTAPE 5 : SÉCURITÉ ---
-  return applySecurityHeaders(response);
+  // Pages: just headers. No locale handling.
+  return applySecurityHeaders(NextResponse.next());
 }
 
 export const config = {

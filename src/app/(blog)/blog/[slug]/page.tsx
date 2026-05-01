@@ -16,14 +16,13 @@ import { SanitizedContent } from '@/components/ui/sanitized-content';
 type ArticlePageProps = {
   params: Promise<{
     slug: string;
-    locale: string;
   }>;
 };
 
 export const revalidate = 0;
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
-  const { slug, locale } = await params;
+  const { slug } = await params;
   const article = await getArticleBySlug(slug);
 
   // Récupérer le profil pour obtenir la vraie photo de l'auteur
@@ -33,10 +32,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     notFound();
   }
 
-  // Logique de traduction du contenu
-  const isEnglish = locale === 'en';
-  const displayTitle = (isEnglish && article.title_en) ? article.title_en : article.title;
-  const displayContent = (isEnglish && article.content_en) ? article.content_en : article.content;
+  const displayTitle = article.title;
+  const displayContent = article.content;
 
   // Utiliser la photo du profil si l'auteur est "Armel Yara"
   const authorAvatar = article.author === 'Armel Yara' && profile?.imageUrl

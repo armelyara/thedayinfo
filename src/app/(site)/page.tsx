@@ -4,8 +4,6 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, FolderGit2 } from 'lucide-react';
 import { getPublishedArticles, getProjects } from '@/lib/data-admin';
-import { getTranslations } from 'next-intl/server';
-
 
 import { ArticleCard } from '@/components/article/article-card';
 import { ProjectCard } from '@/components/project/project-card';
@@ -26,7 +24,6 @@ async function getFeaturedProjects(): Promise<Project[]> {
 }
 
 export default async function HomePage() {
-  const t = await getTranslations('HomePage');
   const recentArticles = await getRecentArticles();
   const featuredProjects = await getFeaturedProjects();
 
@@ -37,23 +34,22 @@ export default async function HomePage() {
         <div className="container px-4 md:px-6">
           <div className="mx-auto max-w-3xl space-y-4">
             <h1 className="text-4xl font-bold tracking-tighter text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
-              {t('hero.title')}
+              Résoudre des problèmes par la technologie.
             </h1>
             <p className="text-lg text-muted-foreground md:text-xl">
-              {t('hero.subtitle')}
+              Promoteur du dev.
             </p>
           </div>
           <div className="mt-8 flex justify-center gap-4">
-            {/* Tous les boutons en orange (primary) */}
             <Button asChild size="lg">
               <Link href="/projets">
-                {t('hero.viewProjects')}
+                Voir les projets
                 <FolderGit2 className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             <Button asChild size="lg">
               <Link href="/blog">
-                {t('hero.readBlog')}
+                Lire le blog
                 <BookOpen className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -66,9 +62,9 @@ export default async function HomePage() {
         <section id="projects" className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
           <div className="container px-4 md:px-6">
             <div className="mb-12 text-center">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">{t('projects.title')}</h2>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Projets Phares</h2>
               <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed">
-                {t('projects.subtitle')}
+                Quelques projets récents qui illustrent mon travail.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -77,10 +73,9 @@ export default async function HomePage() {
               ))}
             </div>
             <div className="mt-12 text-center">
-              {/* Bouton orange */}
               <Button asChild size="lg">
                 <Link href="/projets">
-                  {t('projects.viewAll')} <ArrowRight className="ml-2 h-4 w-4" />
+                  Tous les projets <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </div>
@@ -93,9 +88,9 @@ export default async function HomePage() {
         <section id="blog" className="w-full py-12 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
             <div className="mb-12 text-center">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">{t('blog.title')}</h2>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Derniers articles du blog</h2>
               <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed">
-                {t('blog.subtitle')}
+                Explorez mes dernières pensées et découvertes technologiques.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -104,10 +99,9 @@ export default async function HomePage() {
               ))}
             </div>
             <div className="mt-12 text-center">
-              {/* Bouton orange */}
               <Button asChild size="lg">
                 <Link href="/blog">
-                  {t('blog.visitBlog')} <ArrowRight className="ml-2 h-4 w-4" />
+                  Visiter le blog <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </div>
