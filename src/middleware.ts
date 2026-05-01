@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { routing } from './routing';
 
-const intlMiddleware = createMiddleware(routing);
+//const intlMiddleware = createMiddleware(routing);
 
 function applySecurityHeaders(response: NextResponse) {
   const cspHeader = `
@@ -77,8 +77,8 @@ export function middleware(request: NextRequest) {
   // Returning intlMiddleware's response (instead of NextResponse.next())
   // preserves the internal rewrite header that maps `/` → `/fr` so the
   // [locale] app directory matches.
-  const response = intlMiddleware(request);
-  return applySecurityHeaders(response);
+  //const response = intlMiddleware(request);
+  //return applySecurityHeaders(response);
 }
 
 export const config = {
