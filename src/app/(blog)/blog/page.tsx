@@ -5,7 +5,9 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
 
-export const revalidate = 3600; // Revalidate every hour
+// Firebase Admin is unavailable at build time (guarded by IS_BUILD), so this
+// page can't be statically pre-rendered. Force dynamic rendering instead.
+export const dynamic = 'force-dynamic';
 
 const MissingIndexError = ({ message }: { message: string }) => {
   // Extract the URL from the message

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, CheckCircle, XCircle, Home } from 'lucide-react';
@@ -8,6 +8,14 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function UnsubscribePage() {
+  return (
+    <Suspense fallback={null}>
+      <UnsubscribeContent />
+    </Suspense>
+  );
+}
+
+function UnsubscribeContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const { toast } = useToast();

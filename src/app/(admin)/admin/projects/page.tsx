@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus, FolderGit2 } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProjectsAdminPage() {
     const projects = await getProjectsAction();
 
