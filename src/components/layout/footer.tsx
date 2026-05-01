@@ -14,7 +14,7 @@ export function Footer() {
           <div className="md:col-span-1">
             <h3 className="text-lg font-semibold mb-2">The Day Info</h3>
             <p className="text-sm text-muted-foreground">
-              Résoudre des problèmes par la technologie. Promoteur du dev.
+              Résoudre des problèmes.
             </p>
             <div className="mt-4 text-xs text-muted-foreground">
               © {new Date().getFullYear()} Tous droits réservés.

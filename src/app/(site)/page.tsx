@@ -38,7 +38,7 @@ export default async function HomePage() {
         <div className="container px-4 md:px-6">
           <div className="mx-auto max-w-3xl space-y-4">
             <h1 className="text-4xl font-bold tracking-tighter text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
-              Résoudre des problèmes par la technologie.
+              Résoudre des problèmes.
             </h1>
             <p className="text-lg text-muted-foreground md:text-xl">
               Developer Advocate.
