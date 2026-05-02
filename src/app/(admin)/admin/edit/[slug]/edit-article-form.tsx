@@ -220,14 +220,14 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
             return (
               <FormItem className="flex flex-col">
                 <FormLabel>Programmer la Publication</FormLabel>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant={'outline'}
                           className={cn(
-                            'w-[240px] pl-3 text-left font-normal',
+                            'w-full sm:w-[240px] pl-3 text-left font-normal',
                             !field.value && 'text-muted-foreground'
                           )}
                         >
@@ -244,7 +244,23 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
                       <Calendar
                         mode="single"
                         selected={field.value || undefined}
-                        onSelect={(date) => field.onChange(date)}
+                        onSelect={(date) => {
+                          if (!date) {
+                            field.onChange(null);
+                            return;
+                          }
+                          const now = new Date();
+                          const isToday = date.toDateString() === now.toDateString();
+                          const target = new Date(date);
+                          if (field.value) {
+                            target.setHours(field.value.getHours(), field.value.getMinutes(), 0, 0);
+                          } else if (isToday) {
+                            target.setHours(now.getHours(), now.getMinutes() + 5, 0, 0);
+                          } else {
+                            target.setHours(9, 0, 0, 0);
+                          }
+                          field.onChange(target);
+                        }}
                         disabled={(date) =>
                           date < new Date(new Date().setHours(0, 0, 0, 0))
                         }
@@ -256,13 +272,14 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
                   {field.value && (
                     <Input
                       type="time"
-                      className="w-[120px]"
-                      defaultValue={field.value ? format(field.value, 'HH:mm') : ''}
+                      className="w-full sm:w-[120px]"
+                      value={format(field.value, 'HH:mm')}
                       onChange={(e) => {
-                        if (!field.value) return;
-                        const time = e.target.value.split(':');
-                        const hours = parseInt(time[0], 10);
-                        const minutes = parseInt(time[1], 10);
+                        if (!field.value || !e.target.value) return;
+                        const [h, m] = e.target.value.split(':');
+                        const hours = parseInt(h, 10);
+                        const minutes = parseInt(m, 10);
+                        if (Number.isNaN(hours) || Number.isNaN(minutes)) return;
                         const newDate = setMinutes(setHours(field.value, hours), minutes);
                         field.onChange(newDate);
                       }}

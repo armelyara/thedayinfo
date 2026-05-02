@@ -95,8 +95,8 @@ export default function AdminLayout({
   return (
     <Suspense>
       <div className="min-h-screen">
-        <header className="flex justify-between items-center p-4 border-b">
-          <h1 className="text-xl font-bold">Admin Panel</h1>
+        <header className="flex justify-between items-center gap-2 p-4 border-b">
+          <h1 className="text-lg sm:text-xl font-bold truncate">Admin Panel</h1>
           <LogoutButton />
         </header>
         <main>

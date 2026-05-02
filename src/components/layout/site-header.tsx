@@ -35,12 +35,12 @@ export function SiteHeader() {
           : 'border-b border-transparent'
       )}
     >
-      <div className="container flex h-14 max-w-screen-2xl items-center">
-        <Link href="/" className="mr-6 flex items-center space-x-2">
+      <div className="container flex h-14 max-w-screen-2xl items-center px-4 sm:px-6">
+        <Link href="/" className="mr-3 sm:mr-6 flex items-center space-x-2">
           <LogoIcon width={28} height={28} />
           <span className="hidden font-bold sm:inline-block">The Day Info</span>
         </Link>
-        <nav className="flex flex-1 items-center justify-end gap-6 text-sm">
+        <nav className="flex flex-1 items-center justify-end gap-3 sm:gap-6 text-xs sm:text-sm">
           {navLinks.map((link) => (
             <Link
               key={link.href}

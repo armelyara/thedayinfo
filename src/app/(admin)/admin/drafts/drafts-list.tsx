@@ -149,7 +149,7 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                                 </div>
                             )}
 
-                            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4 pt-4 border-t">
                                 <div className="text-xs text-muted-foreground">
                                     {draft.status === 'scheduled' && draft.scheduledFor && (
                                         <p className="font-semibold text-blue-700 mb-1">
@@ -163,7 +163,7 @@ export function DraftsList({ initialDrafts }: DraftsListProps) {
                                     }</p>
                                 </div>
 
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2">
                                     <Button
                                         variant="outline"
                                         size="sm"

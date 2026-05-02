@@ -215,24 +215,24 @@ export default function AdminDashboard() {
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* En-tête */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
         <div>
-          <h1 className="text-3xl font-headline font-bold text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-headline font-bold text-foreground">
             Tableau de Bord Admin
           </h1>
           <p className="text-muted-foreground mt-2">
             Vue d'ensemble de votre site d'actualités
           </p>
         </div>
-        <div className="flex gap-3">
-          <Link href="/admin/profile">
-            <Button variant="outline" className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <Link href="/admin/profile" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto flex items-center gap-2">
               <UserCircle className="w-4 h-4" />
               Modifier le Profil
             </Button>
           </Link>
-          <Link href="/admin/create-article">
-            <Button className="flex items-center gap-2">
+          <Link href="/admin/create-article" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto flex items-center gap-2">
               <PlusCircle className="w-4 h-4" />
               Nouvel Article
             </Button>
@@ -385,19 +385,19 @@ export default function AdminDashboard() {
                     href={article.status === 'published' ? `/blog/${article.slug}` : `/admin/edit/${article.slug}`}
                     className="block"
                   >
-                    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium">{article.title}</h3>
+                    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer lg:pr-[26rem]">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h3 className="font-medium break-words">{article.title}</h3>
                           <Badge variant={article.status === 'published' ? 'default' : 'secondary'}>
                             {article.status === 'published' ? 'Publié' : article.status === 'scheduled' ? 'Programmé' : 'Brouillon'}
                           </Badge>
                         </div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span>Par {article.author}</span>
-                          <span className="mx-2">•</span>
+                          <span className="hidden sm:inline">•</span>
                           <span>{article.category}</span>
-                          <span className="mx-2">•</span>
+                          <span className="hidden sm:inline">•</span>
                           <span>{format(new Date(article.publishedAt), 'dd/MM/yyyy', { locale: fr })}</span>
                         </div>
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
@@ -409,7 +409,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   </Link>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 z-10">
+                  <div className="mt-2 flex flex-wrap items-center gap-2 lg:mt-0 lg:absolute lg:right-4 lg:top-1/2 lg:-translate-y-1/2 lg:flex-nowrap z-10">
                     {article.status === 'published' && (
                       <Button
                         variant="outline"
