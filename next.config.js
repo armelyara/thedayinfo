@@ -26,7 +26,12 @@ const nextConfig = {
 
   experimental: {
     serverActions: {
-      bodySizeLimit: '10mb',
+      // Articles in flight can carry pending data:URL images that haven't
+      // finished uploading to Firebase Storage yet. The editor swaps them
+      // for the final src in the background, but if the user hits Publish
+      // before that completes, the whole inlined data: payload is sent.
+      // 50mb gives enough headroom for a typical multi-image article.
+      bodySizeLimit: '50mb',
     },
   },
   // Temporarily allow build with TS errors to unblock deployment — fix errors progressively
