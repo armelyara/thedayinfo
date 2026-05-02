@@ -4,7 +4,8 @@ import type { NextRequest } from 'next/server';
 function applySecurityHeaders(response: NextResponse) {
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com https://apis.google.com https://accounts.google.com;
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com https://apis.google.com https://accounts.google.com https://unpkg.com;
+    script-src-elem 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://apis.google.com https://accounts.google.com https://unpkg.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com;
     img-src 'self' blob: data: https: firebasestorage.googleapis.com;
     font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com;
@@ -19,7 +20,8 @@ function applySecurityHeaders(response: NextResponse) {
       https://firebasestorage.googleapis.com
       https://firestore.googleapis.com
       https://*.googleapis.com
-      https://generativelanguage.googleapis.com;
+      https://generativelanguage.googleapis.com
+      https://unpkg.com;
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, ' ').trim();
 
