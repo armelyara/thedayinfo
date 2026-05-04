@@ -52,4 +52,5 @@ src/lib/firebase-service-account.json
 /docs/**/*.md
 *.md
 !README.md
+!CLAUDE.md
 usr/
