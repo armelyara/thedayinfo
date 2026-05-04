@@ -166,16 +166,18 @@ export function ImageUpload({ onImageSelect, currentImage }: ImageUploadProps) {
       
       {preview ? (
         <div className="relative">
-          <img 
-            src={preview} 
-            alt="Preview" 
-            className="w-full h-48 object-cover rounded-lg border"
-          />
+          <div className="relative w-full max-h-96 rounded-lg border overflow-hidden bg-muted">
+            <img
+              src={preview}
+              alt="Preview"
+              className="w-full h-full object-contain"
+            />
+          </div>
           <Button
             type="button"
             variant="destructive"
             size="sm"
-            className="absolute top-2 right-2"
+            className="absolute top-2 right-2 z-10"
             onClick={clearImage}
             disabled={isProcessing}
           >
