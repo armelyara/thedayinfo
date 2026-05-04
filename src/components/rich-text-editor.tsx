@@ -47,7 +47,7 @@ import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered, Link as LinkIcon,
   Image as ImageIcon, Undo, Redo, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Palette, Quote, Code, Code2, Heading1, Heading2, Heading3, Sparkles, Table as TableIcon,
-  Highlighter, Minus, Upload,
+  Highlighter, Minus, Upload, CaseUpper, CaseLower,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -281,6 +281,17 @@ function Toolbar({
   const insertTable = () =>
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
 
+  const changeCase = (caseType: 'upper' | 'lower') => {
+    const { state } = editor;
+    const { from, to } = state.selection;
+    const text = state.doc.textBetween(from, to, '');
+
+    if (text) {
+      const newText = caseType === 'upper' ? text.toUpperCase() : text.toLowerCase();
+      editor.chain().focus().insertContentAt({ from, to }, newText).run();
+    }
+  };
+
   // Detect current font family / size for the Select value
   const currentFamily = (editor.getAttributes('textStyle') as any)?.fontFamily || '';
   const currentSize = (editor.getAttributes('textStyle') as any)?.fontSize || '';
@@ -421,6 +432,22 @@ function Toolbar({
         label="Code inline"
       >
         <Code className="h-4 w-4" />
+      </Btn>
+
+      <Sep />
+
+      {/* Text case transformation */}
+      <Btn
+        onClick={() => changeCase('upper')}
+        label="MAJUSCULES"
+      >
+        <CaseUpper className="h-4 w-4" />
+      </Btn>
+      <Btn
+        onClick={() => changeCase('lower')}
+        label="minuscules"
+      >
+        <CaseLower className="h-4 w-4" />
       </Btn>
 
       <Sep />
