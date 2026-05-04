@@ -4,8 +4,6 @@
 import { Resend } from 'resend';
 import type { Article, Subscriber } from './data-types';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 /**
  * Envoie une notification par email aux abonnés actifs concernant un nouvel article ou une mise à jour.
  * @param article L'objet article concerné.
@@ -21,6 +19,9 @@ export async function sendNewsletterNotification(
     console.warn("RESEND_API_KEY non configurée. Impossible d'envoyer la newsletter.");
     return;
   }
+
+  // Initialize Resend at runtime, not at module load time
+  const resend = new Resend(process.env.RESEND_API_KEY);
   
   if (!article || !article.title || !article.slug) {
     console.error("Données de l'article invalides pour la newsletter.");
@@ -125,11 +126,18 @@ export async function sendNewsletterNotification(
     });
 
     const results = await Promise.allSettled(emailPromises);
-    
+
     const successful = results.filter(result => result.status === 'fulfilled').length;
     const failed = results.filter(result => result.status === 'rejected').length;
 
-    console.log(`Newsletter envoyée: ${successful} succès, ${failed} échecs.`);
+    // Log errors for debugging
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`Failed to send email to ${activeSubscribers[index].email}:`, result.reason);
+      }
+    });
+
+    console.log(`Newsletter envoyée: ${successful} succès, ${failed} échecs sur ${activeSubscribers.length} abonnés actifs.`);
     
     return {
       message: `Newsletter envoyée à ${successful} abonnés.`,

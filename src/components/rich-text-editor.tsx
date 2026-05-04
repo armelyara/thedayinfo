@@ -378,7 +378,13 @@ export function RichTextEditor({
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('bold')} className="h-8 w-8 p-0"><Bold className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Gras (Ctrl+B)</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('italic')} className="h-8 w-8 p-0"><Italic className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Italique (Ctrl+I)</p></TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => execCommand('underline')} className="h-8 w-8 p-0"><Underline className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Souligné (Ctrl+U)</p></TooltipContent></Tooltip>
-          
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          {/* Casse du texte */}
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => changeCase('upper')} className="h-8 w-8 p-0"><CaseUpper className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>MAJUSCULES</p></TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="sm" onClick={() => changeCase('lower')} className="h-8 w-8 p-0"><CaseLower className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>minuscules</p></TooltipContent></Tooltip>
+
           <div className="w-px h-6 bg-border mx-1" />
   
           {/* Alignement */}
