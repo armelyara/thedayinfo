@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   PlusCircle,
   FileText,
@@ -19,7 +20,8 @@ import {
   Trash2,
   FolderGit2,
   Link2,
-  Check
+  Check,
+  Search
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -48,6 +50,8 @@ type DashboardStats = {
   activeSubscribers: number;
 };
 
+const ARTICLES_PAGE_SIZE = 5;
+
 export default function AdminDashboard() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
@@ -64,7 +68,22 @@ export default function AdminDashboard() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [articleToDelete, setArticleToDelete] = useState<Article | null>(null);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(ARTICLES_PAGE_SIZE);
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
+
+  const filteredArticles = searchQuery.trim()
+    ? articles.filter((a) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          a.title.toLowerCase().includes(q) ||
+          a.author.toLowerCase().includes(q) ||
+          a.category.toLowerCase().includes(q)
+        );
+      })
+    : articles;
+  const visibleArticles = filteredArticles.slice(0, visibleCount);
+  const remainingCount = filteredArticles.length - visibleArticles.length;
 
   useEffect(() => {
     // Verify session validity first
@@ -359,10 +378,10 @@ export default function AdminDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Articles Récents
+            Articles
           </CardTitle>
           <CardDescription>
-            Gérez vos derniers articles
+            Gérez tous vos articles ({articles.length} au total)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -376,7 +395,26 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <div className="space-y-4">
-              {articles.slice(0, 5).map((article) => (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Rechercher par titre, auteur ou catégorie..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setVisibleCount(ARTICLES_PAGE_SIZE);
+                  }}
+                  className="pl-9"
+                />
+              </div>
+
+              {filteredArticles.length === 0 ? (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  Aucun article ne correspond à votre recherche.
+                </div>
+              ) : (
+                visibleArticles.map((article) => (
                 <div
                   key={article.slug}
                   className="relative group"
@@ -460,13 +498,45 @@ export default function AdminDashboard() {
                     </Button>
                   </div>
                 </div>
-              ))}
+                ))
+              )}
 
-              {articles.length > 5 && (
-                <div className="text-center pt-4">
+              {filteredArticles.length > ARTICLES_PAGE_SIZE && (
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 border-t">
                   <p className="text-sm text-muted-foreground">
-                    Et {articles.length - 5} autres articles...
+                    Affichage de {visibleArticles.length} sur {filteredArticles.length} articles
                   </p>
+                  <div className="flex gap-2">
+                    {remainingCount > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setVisibleCount((c) => c + ARTICLES_PAGE_SIZE)
+                        }
+                      >
+                        Voir plus ({Math.min(remainingCount, ARTICLES_PAGE_SIZE)})
+                      </Button>
+                    )}
+                    {remainingCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setVisibleCount(filteredArticles.length)}
+                      >
+                        Tout afficher
+                      </Button>
+                    )}
+                    {visibleCount > ARTICLES_PAGE_SIZE && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setVisibleCount(ARTICLES_PAGE_SIZE)}
+                      >
+                        Réduire
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
