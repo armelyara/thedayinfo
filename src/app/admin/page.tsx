@@ -6,10 +6,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  PlusCircle, 
-  FileText, 
-  Eye, 
+import {
+  PlusCircle,
+  FileText,
+  Eye,
   MessageCircle,
   Mail,
   UserCheck,
@@ -17,7 +17,10 @@ import {
   UserCircle,
   BarChart3,
   Trash2,
-  FolderGit2
+  FolderGit2,
+  List,
+  Link2,
+  Check
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -61,6 +64,7 @@ export default function AdminDashboard() {
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [articleToDelete, setArticleToDelete] = useState<Article | null>(null);
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -147,6 +151,30 @@ export default function AdminDashboard() {
 
     setIsDeleteDialogOpen(false);
     setArticleToDelete(null);
+  };
+
+  const handleCopyLink = async (article: Article, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    const baseUrl = window.location.origin;
+    const articleUrl = `${baseUrl}/blog/${article.slug}`;
+
+    try {
+      await navigator.clipboard.writeText(articleUrl);
+      setCopiedSlug(article.slug);
+      toast({
+        title: 'Lien copié !',
+        description: 'Le lien de l\'article a été copié dans le presse-papiers.',
+      });
+
+      // Reset copied state after 2 seconds
+      setTimeout(() => setCopiedSlug(null), 2000);
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible de copier le lien.',
+      });
+    }
   };
 
 
@@ -247,7 +275,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Actions rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card className="cursor-pointer hover:shadow-md transition-shadow">
           <Link href="/admin/subscribers">
             <CardHeader>
@@ -285,6 +313,20 @@ export default function AdminDashboard() {
               </CardTitle>
               <CardDescription>
                 Accédez à vos articles en cours
+              </CardDescription>
+            </CardHeader>
+          </Link>
+        </Card>
+
+        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+          <Link href="/admin/articles">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <List className="w-5 h-5" />
+                Gérer les Articles
+              </CardTitle>
+              <CardDescription>
+                Voir et gérer tous vos articles
               </CardDescription>
             </CardHeader>
           </Link>
@@ -354,6 +396,20 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {article.status === 'published' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => handleCopyLink(article, e)}
+                        className="relative"
+                      >
+                        {copiedSlug === article.slug ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Link2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -387,10 +443,13 @@ export default function AdminDashboard() {
               ))}
               
               {articles.length > 5 && (
-                <div className="text-center pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Et {articles.length - 5} autres articles...
-                  </p>
+                <div className="text-center pt-4 border-t mt-4">
+                  <Link href="/admin/articles">
+                    <Button variant="outline" className="mt-4">
+                      <List className="w-4 h-4 mr-2" />
+                      Voir tous les {articles.length} articles
+                    </Button>
+                  </Link>
                 </div>
               )}
             </div>
