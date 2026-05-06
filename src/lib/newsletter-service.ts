@@ -53,7 +53,7 @@ export async function sendNewsletterNotification(
       ? `📝 Article mis à jour : ${article.title}`
       : `📰 Nouvel article : ${article.title}`;
 
-    const articleUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/article/${article.slug}`;
+    const articleUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/blog/${article.slug}`;
 
     // Créer un email personnalisé pour CHAQUE subscriber avec son propre token
     const emailPromises = activeSubscribers.map(subscriber => {

@@ -2,12 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getScheduledArticlesToPublish,
   publishScheduledArticle,
-  getAllSubscribers
 } from '@/lib/data-admin';
 import { verifySession } from '@/lib/auth';
-import { sendNewsletterNotification } from '@/lib/newsletter-service';
 import { revalidatePath } from 'next/cache';
-import type { Subscriber } from '@/lib/data-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,43 +40,21 @@ async function handler(request: NextRequest) {
       });
     }
 
-    let subscribers: Subscriber[] = [];
-    try {
-      subscribers = await getAllSubscribers();
-    } catch (subError) {
-      console.error('Erreur récupération abonnés:', subError);
-    }
-
     const publicationResults = [];
 
     for (const draft of draftsToPublish) {
       try {
         const publishedArticle = await publishScheduledArticle(draft);
 
-        let newsletterResult = { successful: 0, failed: 0 };
-
-        if (subscribers.length > 0) {
-          try {
-            const result = await sendNewsletterNotification(publishedArticle, subscribers);
-            if (result) {
-              newsletterResult = result;
-            }
-          } catch (emailError) {
-            console.error(`Erreur envoi newsletter pour ${draft.id}:`, emailError);
-          }
-        }
-
         publicationResults.push({
           draftId: draft.id,
           status: 'success',
           slug: publishedArticle.slug,
           title: publishedArticle.title,
-          newsletterSent: newsletterResult.successful > 0,
-          emailsCount: newsletterResult.successful
         });
         revalidatePath('/');
         revalidatePath('/admin/drafts');
-        revalidatePath(`/article/${publishedArticle.slug}`);
+        revalidatePath(`/blog/${publishedArticle.slug}`);
         if (publishedArticle.category) {
             revalidatePath(`/category/${publishedArticle.category.toLowerCase().replace(/ & /g, '-').replace(/\s+/g, '-')}`);
         }
