@@ -1,6 +1,7 @@
 'use client';
 
-import { useEditor, EditorContent, Extension, Node, mergeAttributes } from '@tiptap/react';
+import { useEditor, EditorContent, Extension, Node, mergeAttributes, ReactNodeViewRenderer } from '@tiptap/react';
+import { ResizableImageView } from '@/components/rich-text-image-view';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import { Color } from '@tiptap/extension-color';
@@ -138,21 +139,34 @@ const HtmlEmbed = Node.create({
 });
 
 // =============================================================================
-// Custom Image extension with upload-tracking and style attrs
+// Custom Image extension with upload-tracking + manual resize
 // =============================================================================
+const BASE_IMG_STYLE = 'max-width: 100%; height: auto; border-radius: 8px;';
+
 const ResizableImage = Image.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
       'data-upload-id': { default: null, rendered: true },
-      style: {
-        default: 'max-width: 100%; height: auto; border-radius: 8px;',
-        parseHTML: (el: HTMLElement) => el.getAttribute('style'),
-        renderHTML: (attrs: { style?: string }) =>
-          attrs.style ? { style: attrs.style } : {},
+      width: {
+        default: null,
+        parseHTML: (el: HTMLElement) => {
+          const fromStyle = el.style?.width;
+          const fromAttr = el.getAttribute('width');
+          const raw = fromStyle || fromAttr;
+          if (!raw) return null;
+          const n = parseInt(raw, 10);
+          return Number.isFinite(n) && n > 0 ? n : null;
+        },
+        renderHTML: (attrs: { width?: number | null }) =>
+          attrs.width
+            ? { style: `width: ${attrs.width}px; ${BASE_IMG_STYLE}` }
+            : { style: BASE_IMG_STYLE },
       },
-      width: { default: null },
     };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(ResizableImageView);
   },
 });
 
@@ -912,7 +926,7 @@ export function RichTextEditor({
         </div>
 
         <div className="border-t px-3 py-1 text-xs text-muted-foreground flex justify-between bg-muted/30">
-          <span>Glissez-déposez une image ou collez-la (Ctrl+V) — upload Firebase automatique</span>
+          <span>Glissez-déposez ou collez une image · cliquez pour la sélectionner et la redimensionner</span>
           <span>
             {wordCount} mots · {charCount} caractères
           </span>
