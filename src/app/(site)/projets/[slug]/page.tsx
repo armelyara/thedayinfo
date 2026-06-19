@@ -72,13 +72,13 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
       </header>
 
       {imageSrc && (
-        <div className="relative w-full h-96 mb-8 rounded-lg overflow-hidden shadow-lg">
+        <div className="relative w-full aspect-square max-w-sm mx-auto mb-8 rounded-lg overflow-hidden shadow-lg bg-muted">
           <Image
             src={imageSrc}
             alt={imageAlt}
             fill
             priority
-            className="object-cover"
+            className="object-contain"
             data-ai-hint={project.image?.aiHint}
           />
         </div>
