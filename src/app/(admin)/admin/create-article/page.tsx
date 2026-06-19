@@ -32,12 +32,19 @@ const formSchema = z.object({
   author: z.string().min(2, { message: "L'auteur doit comporter au moins 2 caractères." }),
   category: z.string({ required_error: 'Veuillez sélectionner une catégorie.' }),
   content: z.string().min(100, { message: 'Le contenu doit comporter au moins 100 caractères.' }),
+  // Image is optional — HTML-mode articles embed their own visuals
   image: z.object({
-    src: z.string().min(1, "L'image est requise."),
-    alt: z.string().min(1, "La description de l'image est requise."),
-  }),
+    src: z.string().optional().default(''),
+    alt: z.string().optional().default(''),
+  }).optional().default({ src: '', alt: '' }),
   scheduledFor: z.date().optional(),
 });
+
+/** Returns true when the content string looks like raw HTML (has script/style tags). */
+function looksLikeHtmlContent(content: string): boolean {
+  if (!content) return false;
+  return /<script[\s>]/i.test(content) || /<style[\s>]/i.test(content) || /<html[\s>]/i.test(content);
+}
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -49,7 +56,17 @@ export default function CreateArticlePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
   const [currentDraftId, setCurrentDraftId] = useState<string>();
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
-  const [htmlMode, setHtmlMode] = useState(false);
+  const [htmlMode, setHtmlMode] = useState(
+    () => typeof window !== 'undefined' && localStorage.getItem('article_html_mode') === 'true'
+  );
+
+  const toggleHtmlMode = () => {
+    setHtmlMode((v) => {
+      const next = !v;
+      localStorage.setItem('article_html_mode', String(next));
+      return next;
+    });
+  };
   // Synchronous mirror of currentDraftId — React state updates are async, so two
   // saves fired before the first response returns would both see id=undefined
   // and create duplicate drafts. The ref is updated immediately on save success.
@@ -128,6 +145,12 @@ export default function CreateArticlePage() {
               scheduledFor: draft.scheduledFor ? new Date(draft.scheduledFor) : undefined,
             });
 
+            // Auto-restore HTML mode if the content contains script/style tags
+            if (looksLikeHtmlContent(draft.content || '')) {
+              setHtmlMode(true);
+              localStorage.setItem('article_html_mode', 'true');
+            }
+
             currentDraftIdRef.current = draft.id;
             setCurrentDraftId(draft.id);
             setLastSaved(draft.lastSaved);
@@ -183,6 +206,12 @@ export default function CreateArticlePage() {
                 image: mostRecentBackup.image || { src: '', alt: '' },
                 scheduledFor: mostRecentBackup.scheduledFor ? new Date(mostRecentBackup.scheduledFor) : undefined,
               });
+
+              // Auto-restore HTML mode if content looks like raw HTML
+              if (looksLikeHtmlContent(mostRecentBackup.content || '')) {
+                setHtmlMode(true);
+                localStorage.setItem('article_html_mode', 'true');
+              }
 
               if (mostRecentBackup.id) {
                 currentDraftIdRef.current = mostRecentBackup.id;
@@ -488,7 +517,7 @@ export default function CreateArticlePage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setHtmlMode((v) => !v)}
+                      onClick={toggleHtmlMode}
                       className="flex items-center gap-2 text-xs"
                     >
                       {htmlMode ? (
