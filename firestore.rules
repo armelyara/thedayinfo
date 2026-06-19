@@ -63,5 +63,18 @@ service cloud.firestore {
     match /settings/{document} {
       allow read, write: if isAdmin();
     }
+    //  Collection profils publics    
+    //  safe, public-readable subset for displaying authors to anyone.
+    // Your app writes {displayName, photoURL, bio} here (e.g. on profile save
+    // or via a Cloud Function), and reads author info from here instead of /users.
+    match /publicProfiles/{userId} {
+      allow read: if true;
+      allow create, update: if (isOwner(userId) || isAdmin())
+        && (!('displayName' in request.resource.data) || isValidString(request.resource.data.displayName, 1, 80))
+        && (!('photoURL'    in request.resource.data) || isValidUrl(request.resource.data.photoURL))
+        && (!('bio'         in request.resource.data) || isValidString(request.resource.data.bio, 0, 500));
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
   }
 }
