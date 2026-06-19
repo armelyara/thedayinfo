@@ -12,7 +12,7 @@ import { RichTextEditor } from '@/components/rich-text-editor';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Save, Send, Clock, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { CalendarIcon, Save, Send, Clock, AlertTriangle, ArrowLeft, Code2, PenLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, setHours, setMinutes } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -49,6 +49,7 @@ export default function CreateArticlePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
   const [currentDraftId, setCurrentDraftId] = useState<string>();
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  const [htmlMode, setHtmlMode] = useState(false);
   // Synchronous mirror of currentDraftId — React state updates are async, so two
   // saves fired before the first response returns would both see id=undefined
   // and create duplicate drafts. The ref is updated immediately on save success.
@@ -481,14 +482,63 @@ export default function CreateArticlePage() {
               name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contenu</FormLabel>
+                  <div className="flex items-center justify-between mb-2">
+                    <FormLabel className="mb-0">Contenu</FormLabel>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setHtmlMode((v) => !v)}
+                      className="flex items-center gap-2 text-xs"
+                    >
+                      {htmlMode ? (
+                        <>
+                          <PenLine className="h-3.5 w-3.5" />
+                          Éditeur classique
+                        </>
+                      ) : (
+                        <>
+                          <Code2 className="h-3.5 w-3.5" />
+                          Importer HTML/CSS/JS
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
                   <FormControl>
-                    <RichTextEditor
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Racontez votre histoire avec style..."
-                      height={500}
-                    />
+                    {htmlMode ? (
+                      <div className="space-y-3">
+                        <p className="text-xs text-muted-foreground">
+                          Collez votre code HTML complet ci-dessous. Le CSS et le JS intégrés seront préservés lors de la publication.
+                        </p>
+                        <textarea
+                          value={field.value}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          placeholder={'<h1>Mon article</h1>\n<style>...</style>\n<script>...</script>'}
+                          className="w-full min-h-[400px] rounded-md border border-input bg-muted/40 px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                          spellCheck={false}
+                        />
+                        {field.value && (
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">Aperçu :</p>
+                            <iframe
+                              srcDoc={field.value}
+                              sandbox="allow-scripts"
+                              className="w-full rounded-md border bg-white"
+                              style={{ minHeight: '400px' }}
+                              title="Aperçu de l'article"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <RichTextEditor
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Racontez votre histoire avec style..."
+                        height={500}
+                      />
+                    )}
                   </FormControl>
                   <FormMessage />
                 </FormItem>
