@@ -282,16 +282,19 @@ export default function CreateArticlePage() {
       if (result.status === 'draft') {
         toast({ title: 'Brouillon sauvegardé', description: 'Votre article a été sauvegardé en tant que brouillon.' });
         setCurrentDraftId(result.id);
-        localStorage.removeItem('current_editing_draft_id');
+        // Keep article_html_mode — user will restore this draft and edit it in the same mode
+        localStorage.setItem('current_editing_draft_id', result.id);
         router.push('/admin/drafts');
       } else if (result.status === 'scheduled') {
         toast({ title: 'Article programmé', description: 'Votre article a été programmé avec succès.' });
         setCurrentDraftId(result.id);
         localStorage.removeItem('current_editing_draft_id');
+        localStorage.removeItem('article_html_mode'); // Clear — article is done on this page
         router.push('/admin/drafts');
       } else if (result.status === 'published' && 'slug' in result) {
         toast({ title: 'Article publié !', description: 'Votre article est maintenant en ligne.' });
         localStorage.removeItem('current_editing_draft_id');
+        localStorage.removeItem('article_html_mode'); // Clear — article is done
         router.push(`/article/${result.slug}`);
       }
 
