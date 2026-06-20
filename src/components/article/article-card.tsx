@@ -10,8 +10,17 @@ type ArticleCardProps = {
 };
 
 export function ArticleCard({ article }: ArticleCardProps) {
-  // Supprimer les balises HTML du contenu pour l'aperçu
-  const plainTextContent = article.content.replace(/<[^>]*>?/gm, '');
+  // Supprimer les balises HTML du contenu pour l'aperçu.
+  // On supprime d'abord les blocs entiers <style>, <script> et <head>
+  // (balise + contenu intérieur) pour éviter que du CSS/JS ne s'affiche,
+  // puis on enlève les balises HTML restantes.
+  const plainTextContent = article.content
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<head[\s\S]*?<\/head>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
