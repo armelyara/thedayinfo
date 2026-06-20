@@ -12,6 +12,7 @@ import { ArticleClientWrapper } from '@/components/article/article-client-wrappe
 import { SubscriptionModal } from '@/components/newsletter/subscription-modal';
 import ViewTracker from '@/components/article/view-tracker';
 import { SanitizedContent } from '@/components/ui/sanitized-content';
+import { HtmlArticleFrame } from '@/components/article/html-article-frame';
 
 type ArticlePageProps = {
   params: Promise<{
@@ -20,6 +21,12 @@ type ArticlePageProps = {
 };
 
 export const revalidate = 0;
+
+/** Returns true when the content is a self-contained HTML document (has script/style/html tags). */
+function isHtmlArticle(content: string): boolean {
+  if (!content) return false;
+  return /<script[\s>]/i.test(content) || /<style[\s>]/i.test(content) || /<html[\s>]/i.test(content);
+}
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
@@ -34,12 +41,56 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   const displayTitle = article.title;
   const displayContent = article.content;
+  const htmlMode = isHtmlArticle(displayContent);
 
   // Utiliser la photo du profil si l'auteur est "Armel Yara"
   const authorAvatar = article.author === 'Armel Yara' && profile?.imageUrl
     ? profile.imageUrl
     : '/default-avatar.png';
 
+  // ─── HTML-mode article: render the full document in an isolated iframe ───
+  if (htmlMode) {
+    return (
+      <div className="w-full">
+        {/* Client-side view tracking */}
+        <ViewTracker articleSlug={article.slug} />
+
+        {/* Full-width sandboxed iframe — preserves all CSS, JS and animations */}
+        <HtmlArticleFrame content={displayContent} title={displayTitle} />
+
+        {/* Standard engagement section below the article */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+          <AiSummary articleContent={displayContent} />
+
+          <RelatedContent
+            currentArticleTitle={displayTitle}
+            articleContent={displayContent}
+          />
+
+          <Feedback
+            articleSlug={article.slug}
+            initialViews={article.views}
+            initialComments={article.comments || []}
+          />
+
+          <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg text-center border">
+            <h3 className="text-lg font-semibold mb-2">📧 Restez informé</h3>
+            <p className="text-muted-foreground mb-4">
+              Recevez une notification par email à chaque nouvel article ou modification
+            </p>
+            <SubscriptionModal />
+          </div>
+
+          <ArticleClientWrapper
+            articleSlug={article.slug}
+            initialComments={article.comments || []}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Normal article: standard prose rendering ───
   return (
     <article className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       {/* Client-side view tracking with deduplication */}
