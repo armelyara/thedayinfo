@@ -5,8 +5,6 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
 
-// Cache the blog list for 5 minutes — reduces Cloud Run invocations.
-// New articles appear within 5 min without any server hit in between.
 export const revalidate = 300;
 
 const MissingIndexError = ({ message }: { message: string }) => {

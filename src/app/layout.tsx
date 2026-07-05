@@ -7,7 +7,7 @@ import { ThemeProvider } from '@/components/layout/theme-provider';
 export const metadata: Metadata = {
   metadataBase: new URL('https://thedayinfo.com'),
   title: 'The Day Info',
-  description: "Résoudre des problèmes par la technologie. Promoteur du dev.",
+  description: "Résoudre des problèmes par la technologie Promoteur du dev.",
 };
 
 export const viewport: Viewport = {

@@ -20,8 +20,7 @@ type ArticlePageProps = {
   }>;
 };
 
-// Cache article pages for 5 minutes — reduces Cloud Run cold invocations.
-// On publish/edit, the admin can trigger an on-demand revalidation if needed.
+
 export const revalidate = 300;
 
 /** Returns true when the content is a self-contained HTML document (has script/style/html tags). */
@@ -34,7 +33,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
 
-  // Récupérer le profil pour obtenir la vraie photo de l'auteur
+  // Retrieval of the author's real photo
   const profile = await getProfile();
 
   if (!article || article.status !== 'published') {
