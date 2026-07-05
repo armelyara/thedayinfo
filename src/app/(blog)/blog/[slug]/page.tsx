@@ -20,7 +20,9 @@ type ArticlePageProps = {
   }>;
 };
 
-export const revalidate = 0;
+// Cache article pages for 5 minutes — reduces Cloud Run cold invocations.
+// On publish/edit, the admin can trigger an on-demand revalidation if needed.
+export const revalidate = 300;
 
 /** Returns true when the content is a self-contained HTML document (has script/style/html tags). */
 function isHtmlArticle(content: string): boolean {

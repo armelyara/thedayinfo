@@ -3,8 +3,8 @@ import { ProjectList } from '@/components/project/project-list';
 import { getProjects } from '@/lib/data-admin';
 import { FolderGit2 } from 'lucide-react';
 
-// Force dynamic rendering to fetch fresh project data
-export const dynamic = 'force-dynamic';
+// Projects change rarely — cache for 1 hour to minimize Cloud Run usage.
+export const revalidate = 3600;
 
 export default async function ProjectsPage() {
   const projects = await getProjects();

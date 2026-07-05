@@ -1,6 +1,9 @@
 import { Mail, Twitter, Facebook, Linkedin } from 'lucide-react';
 import { socialLinks } from '@/lib/social-config';
 
+// Pure static page — cache for 1 week, no Firestore calls needed.
+export const revalidate = 604800;
+
 export default function ContactPage() {
   return (
     <div className="container mx-auto max-w-4xl px-4 py-12">

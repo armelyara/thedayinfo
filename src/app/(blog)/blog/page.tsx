@@ -5,9 +5,9 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
 
-// Firebase Admin is unavailable at build time (guarded by IS_BUILD), so this
-// page can't be statically pre-rendered. Force dynamic rendering instead.
-export const dynamic = 'force-dynamic';
+// Cache the blog list for 5 minutes — reduces Cloud Run invocations.
+// New articles appear within 5 min without any server hit in between.
+export const revalidate = 300;
 
 const MissingIndexError = ({ message }: { message: string }) => {
   // Extract the URL from the message

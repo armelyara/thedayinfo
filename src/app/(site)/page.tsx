@@ -9,9 +9,8 @@ import { ArticleCard } from '@/components/article/article-card';
 import { ProjectCard } from '@/components/project/project-card';
 import type { Article, Project } from '@/lib/data-types';
 
-// Homepage queries Firestore Admin which is unavailable at build time
-// (IS_BUILD guard). Render dynamically to avoid prerender failure.
-export const dynamic = 'force-dynamic';
+// Cache homepage for 5 minutes — content only changes when admin publishes.
+export const revalidate = 300;
 
 async function getRecentArticles(): Promise<Article[]> {
   const articlesResult = await getPublishedArticles();

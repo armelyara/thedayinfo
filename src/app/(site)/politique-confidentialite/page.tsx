@@ -1,3 +1,6 @@
+// Pure static privacy page — cache for 1 week.
+export const revalidate = 604800;
+
 export default function PolitiqueConfidentialitePage() {
     return (
       <div className="container mx-auto max-w-4xl px-4 py-12">
