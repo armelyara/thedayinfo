@@ -10,6 +10,7 @@ import { ProjectCard } from '@/components/project/project-card';
 import type { Article, Project } from '@/lib/data-types';
 
 // Cache homepage for 5 minutes — content only changes when admin publishes.
+export const dynamic = 'force-dynamic';
 export const revalidate = 300;
 
 async function getRecentArticles(): Promise<Article[]> {

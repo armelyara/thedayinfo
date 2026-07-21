@@ -4,6 +4,7 @@ import { getProfile } from '@/lib/data-admin';
 import { SanitizedContent } from '@/components/ui/sanitized-content';
 import { User } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 3600; // Revalidate every hour
 
 export default async function AboutPage() {

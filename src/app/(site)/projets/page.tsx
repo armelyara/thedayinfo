@@ -4,6 +4,7 @@ import { getProjects } from '@/lib/data-admin';
 import { FolderGit2 } from 'lucide-react';
 
 // Projects change rarely — cache for 1 hour to minimize Cloud Run usage.
+export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 export default async function ProjectsPage() {

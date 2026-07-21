@@ -21,6 +21,7 @@ type ArticlePageProps = {
 };
 
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 300;
 
 /** Returns true when the content is a self-contained HTML document (has script/style/html tags). */

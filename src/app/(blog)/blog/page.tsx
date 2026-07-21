@@ -5,6 +5,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 300;
 
 const MissingIndexError = ({ message }: { message: string }) => {
