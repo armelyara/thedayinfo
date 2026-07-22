@@ -38,7 +38,7 @@ export async function updateItemAction(
     revalidatePath('/admin/drafts');
 
     if (actionType === 'publish' && 'slug' in result) {
-      revalidatePath(`/article/${result.slug}`);
+      revalidatePath(`/blog/${result.slug}`);
     }
 
     return result;

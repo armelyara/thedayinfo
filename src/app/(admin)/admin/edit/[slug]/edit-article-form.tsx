@@ -139,7 +139,7 @@ export default function EditArticleForm({ item, isDraft }: EditArticleFormProps)
         redirectUrl = '/admin/drafts';
       } else if (result.status === 'published') {
         successMessage = 'Article mis à jour et publié !';
-        redirectUrl = `/article/${(result as Article).slug}`;
+        redirectUrl = `/blog/${(result as Article).slug}`;
       }
 
       toast({

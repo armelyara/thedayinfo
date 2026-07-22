@@ -295,7 +295,7 @@ export default function CreateArticlePage() {
         toast({ title: 'Article publié !', description: 'Votre article est maintenant en ligne.' });
         localStorage.removeItem('current_editing_draft_id');
         localStorage.removeItem('article_html_mode'); // Clear — article is done
-        router.push(`/article/${result.slug}`);
+        router.push(`/blog/${result.slug}`);
       }
 
     } catch (error) {

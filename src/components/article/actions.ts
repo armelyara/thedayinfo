@@ -10,7 +10,7 @@ import type { Comment } from '@/lib/data-types';
 export async function postCommentAction(slug: string, comments: Comment[]): Promise<Comment[]> {
     const success = await updateArticleComments(slug, comments);
     if (success) {
-        revalidatePath(`/article/${slug}`);
+        revalidatePath(`/blog/${slug}`);
         return comments;
     }
     // In case of failure, return original comments to avoid UI inconsistency

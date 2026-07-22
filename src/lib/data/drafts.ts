@@ -1,11 +1,77 @@
 'use server';
 
 import { Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
+import { randomUUID } from 'crypto';
 import type { Article, ArticleImage, Draft } from '../data-types';
 import { sendNewsletterNotification } from '../newsletter-service';
 import { getDb } from './db';
 import { getAllSubscribers } from './subscribers';
 import { translateArticleFlow } from '@/ai/flows/translate-article';
+
+function getStorageBucketName(): string | undefined {
+  for (const raw of [process.env.FIREBASE_WEBAPP_CONFIG, process.env.FIREBASE_CONFIG]) {
+    if (!raw) continue;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed.storageBucket) return parsed.storageBucket;
+    } catch {
+      // Malformed config — try the next source
+    }
+  }
+  return process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+}
+
+const INLINE_IMAGE_REGEX = /src=(["'])(data:image\/([a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=]+))\1/g;
+
+/**
+ * Uploads inline base64 images (data: URLs) found in article HTML to Firebase
+ * Storage and replaces them with download URLs. Firestore rejects any field
+ * larger than ~1 MiB, so pasted images that haven't been uploaded by the
+ * editor's background upload (e.g. user hit Publish too fast, or HTML mode)
+ * must be extracted server-side before the document is written.
+ */
+async function uploadInlineImagesToStorage(content: string): Promise<string> {
+  if (!content || !content.includes('data:image/')) return content;
+
+  const bucketName = getStorageBucketName();
+  if (!bucketName) {
+    console.warn('[uploadInlineImages] Storage bucket introuvable — contenu laissé tel quel');
+    return content;
+  }
+
+  const bucket = getStorage().bucket(bucketName);
+  const uploaded = new Map<string, string>();
+  const matches = Array.from(content.matchAll(INLINE_IMAGE_REGEX));
+
+  for (const match of matches) {
+    const dataUrl = match[2];
+    if (uploaded.has(dataUrl)) continue;
+
+    const mime = match[3];
+    const ext = mime === 'svg+xml' ? 'svg' : mime;
+    const buffer = Buffer.from(match[4], 'base64');
+    const path = `article-images/${Date.now()}_${randomUUID()}.${ext}`;
+    const token = randomUUID();
+
+    await bucket.file(path).save(buffer, {
+      metadata: {
+        contentType: `image/${mime}`,
+        metadata: { firebaseStorageDownloadTokens: token },
+      },
+    });
+
+    const url = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+    uploaded.set(dataUrl, url);
+    console.log(`[uploadInlineImages] ${Math.round(buffer.length / 1024)} KB téléversés vers ${path}`);
+  }
+
+  let result = content;
+  for (const [dataUrl, url] of uploaded) {
+    result = result.split(dataUrl).join(url);
+  }
+  return result;
+}
 
 /**
  * Publishes an article — either creating a new one or updating an existing one.
@@ -18,6 +84,9 @@ async function publishArticle(
 ): Promise<Article> {
   const db = await getDb();
   const articlesCollection = db.collection('articles');
+
+  // Firestore rejects fields > 1 MiB: move any inline base64 image to Storage first
+  const content = await uploadInlineImagesToStorage(articleData.content);
 
   const isUpdate = !!existingSlug;
   const now = new Date();
@@ -48,7 +117,7 @@ async function publishArticle(
       title: articleData.title,
       author: articleData.author,
       category: articleData.category,
-      content: articleData.content,
+      content: content,
       image: articleData.image,
 
       // 2. Update published date since this is a RE-PUBLICATION
@@ -82,6 +151,7 @@ async function publishArticle(
 
     finalData = {
       ...articleData,
+      content,
       publishedAt: AdminTimestamp.fromDate(now),
       status: 'published',
       views: 0,
@@ -178,12 +248,14 @@ async function saveAsDraftOrScheduled(draftData: Partial<Draft>): Promise<Draft>
       }
     }
 
+    const content = await uploadInlineImagesToStorage(draftData.content || '');
+
     const dataToSave = {
       id,
       title: draftData.title.trim(),
       author: draftData.author.trim(),
       category: draftData.category || '',
-      content: draftData.content || '',
+      content,
       image: draftData.image || { src: '', alt: '' },
       status,
       lastSaved: AdminTimestamp.now(),

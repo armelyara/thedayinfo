@@ -35,7 +35,7 @@ export async function saveArticleAction(articleData: {
     revalidatePath('/admin');
     revalidatePath('/admin/drafts');
     if ('slug' in savedItem) {
-        revalidatePath(`/article/${savedItem.slug}`);
+        revalidatePath(`/blog/${savedItem.slug}`);
     }
 
     return savedItem;
@@ -68,7 +68,7 @@ export async function publishScheduledArticleAction(draftId: string): Promise<Ar
     revalidatePath('/');
     revalidatePath('/admin');
     revalidatePath('/admin/drafts');
-    revalidatePath(`/article/${publishedArticle.slug}`);
+    revalidatePath(`/blog/${publishedArticle.slug}`);
 
     return publishedArticle;
 }

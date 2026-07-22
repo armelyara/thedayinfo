@@ -21,7 +21,7 @@ export async function postCommentAdminAction(slug: string, comments: Comment[]) 
     
     if (result) {
         // Revalider la page de l'article pour afficher les nouveaux commentaires
-        revalidatePath(`/article/${slug}`);
+        revalidatePath(`/blog/${slug}`);
     }
     
     return result;

@@ -69,7 +69,7 @@ export async function saveArticleAction(articleData: {
     revalidatePath('/admin');
     revalidatePath('/admin/drafts');
     if (articleData.actionType === 'publish' && 'slug' in result) {
-      revalidatePath(`/article/${result.slug}`);
+      revalidatePath(`/blog/${result.slug}`);
     }
 
     return result;
