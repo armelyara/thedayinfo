@@ -127,8 +127,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </div>
       </header>
 
-      <div className="relative w-full h-96 mb-8 rounded-lg overflow-hidden shadow-lg">
-        {article.image?.src ? (
+      {article.image?.src && (
+        <div className="relative w-full h-96 mb-8 rounded-lg overflow-hidden shadow-lg">
           <Image
             src={article.image.src}
             alt={article.image.alt || article.title}
@@ -137,12 +137,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             className="object-cover"
             data-ai-hint={article.image.aiHint}
           />
-        ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center">
-            <span className="text-muted-foreground">Illustration non disponible</span>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <SanitizedContent content={displayContent} className="mb-12" />
 

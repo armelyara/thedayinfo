@@ -20,19 +20,21 @@ export function ArticleCard({ article }: ArticleCardProps) {
 
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-      <CardHeader className="p-0">
-        <div className="relative h-48 w-full overflow-hidden bg-muted">
-          <Link href={`/blog/${article.slug}`} className="group block h-full">
-            <Image
-              src={article.image.src}
-              alt={article.image.alt}
-              fill
-              className="object-contain transition-transform duration-300 group-hover:scale-105"
-              data-ai-hint={article.image.aiHint}
-            />
-          </Link>
-        </div>
-      </CardHeader>
+      {article.image?.src && (
+        <CardHeader className="p-0">
+          <div className="relative h-48 w-full overflow-hidden bg-muted">
+            <Link href={`/blog/${article.slug}`} className="group block h-full">
+              <Image
+                src={article.image.src}
+                alt={article.image.alt}
+                fill
+                className="object-contain transition-transform duration-300 group-hover:scale-105"
+                data-ai-hint={article.image.aiHint}
+              />
+            </Link>
+          </div>
+        </CardHeader>
+      )}
 
       <CardContent className="flex flex-1 flex-col p-6">
         <Badge variant="secondary" className="mb-2 w-fit">{article.category}</Badge>
