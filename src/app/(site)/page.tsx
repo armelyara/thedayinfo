@@ -40,21 +40,20 @@ export default async function HomePage() {
             <h1 className="text-4xl font-bold tracking-tighter text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
               Initiative axée sur la recherche appliquée
             </h1>
-
-          </div>
-          <div className="mt-8 flex justify-center gap-4">
-            <Button asChild size="lg">
-              <Link href="/projets">
-                Voir les projets
-                <FolderGit2 className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-            <Button asChild size="lg">
-              <Link href="/blog">
-                Lire le blog
-                <BookOpen className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
+            <div className="mt-8 flex justify-center gap-4">
+              <Button asChild size="lg">
+                <Link href="/projets">
+                  Voir les projets
+                  <FolderGit2 className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+              <Button asChild size="lg">
+                <Link href="/blog">
+                  Lire le blog
+                  <BookOpen className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
