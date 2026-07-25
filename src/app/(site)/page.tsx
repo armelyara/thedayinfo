@@ -38,11 +38,9 @@ export default async function HomePage() {
         <div className="container px-4 md:px-6">
           <div className="mx-auto max-w-3xl space-y-4">
             <h1 className="text-4xl font-bold tracking-tighter text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
-              Résoudre des problèmes.
+              Initiative axée sur la recherche appliquée.
             </h1>
-            <p className="text-lg text-muted-foreground md:text-xl">
-              Developer Advocate.
-            </p>
+
           </div>
           <div className="mt-8 flex justify-center gap-4">
             <Button asChild size="lg">
@@ -92,9 +90,9 @@ export default async function HomePage() {
         <section id="blog" className="w-full py-12 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
             <div className="mb-12 text-center">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Derniers articles du blog</h2>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Articles du blog</h2>
               <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed">
-                Explorez mes réflexions et découvertes technologiques.
+                Explorez mes réflexions et mes expériences@.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
