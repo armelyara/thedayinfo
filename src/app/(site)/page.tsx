@@ -37,7 +37,7 @@ export default async function HomePage() {
       <section className="flex h-[calc(100vh-80px)] min-h-[500px] w-full items-center justify-center bg-background text-center">
         <div className="container px-4 md:px-6">
           <div className="mx-auto max-w-3xl space-y-4">
-            <h1 className="text-4xl font-bold tracking-tighter text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
+            <h1 className="whitespace-nowrap text-4xl font-bold tracking-tighter text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
               Initiative axée sur la recherche appliquée.
             </h1>
 
