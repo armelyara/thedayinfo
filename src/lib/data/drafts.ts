@@ -107,31 +107,54 @@ async function publishArticle(
 
     const existingDoc = await articlesCollection.doc(slug).get();
     if (!existingDoc.exists) {
-      throw new Error(`Article avec slug "${slug}" non trouvé pour mise à jour.`);
+      // Article was deleted — fall back to create mode with original slug
+      console.warn(`[publishArticle] Article "${slug}" not found. Falling back to create mode.`);
+      
+      // Check if slug is available, if not generate a new one
+      let counter = 1;
+      const originalSlug = slug;
+      while (true) {
+        const docSnapshot = await articlesCollection.doc(slug).get();
+        if (!docSnapshot.exists) break;
+        slug = `${originalSlug}-${counter}`;
+        counter++;
+      }
+
+      finalData = {
+        ...articleData,
+        content,
+        publishedAt: AdminTimestamp.fromDate(now),
+        status: 'published',
+        views: 0,
+        comments: [],
+        viewHistory: [],
+        slug: slug,
+      };
+    } else {
+      const existingData = existingDoc.data()!;
+
+      // Construction explicite des données pour éviter les erreurs de fusion
+      finalData = {
+        // 1. Use the NEW content data
+        title: articleData.title,
+        author: articleData.author,
+        category: articleData.category,
+        content: content,
+        image: articleData.image,
+
+        // 2. Update published date since this is a RE-PUBLICATION
+        publishedAt: AdminTimestamp.fromDate(now),
+        status: 'published',
+
+        // 3. Preserve historical data from the existing article
+        views: existingData.views || 0,
+        comments: existingData.comments || [],
+        viewHistory: existingData.viewHistory || [],
+
+        // 4. Keep the original slug
+        slug: slug,
+      };
     }
-    const existingData = existingDoc.data()!;
-
-    // Construction explicite des données pour éviter les erreurs de fusion
-    finalData = {
-      // 1. Use the NEW content data
-      title: articleData.title,
-      author: articleData.author,
-      category: articleData.category,
-      content: content,
-      image: articleData.image,
-
-      // 2. Update published date since this is a RE-PUBLICATION
-      publishedAt: AdminTimestamp.fromDate(now),
-      status: 'published',
-
-      // 3. Preserve historical data from the existing article
-      views: existingData.views || 0,
-      comments: existingData.comments || [],
-      viewHistory: existingData.viewHistory || [],
-
-      // 4. Keep the original slug
-      slug: slug,
-    };
 
   } else {
     // =============================================================
