@@ -38,7 +38,7 @@ export default async function HomePage() {
         <div className="container px-4 md:px-6">
           <div className="mx-auto space-y-4">
             <h1 className="whitespace-nowrap text-4xl font-bold tracking-tighter text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
-              Initiative pour les développeurs axée sur la recherche appliquée
+              Initiative axée sur la recherche appliquée.
             </h1>
             <div className="mt-8 flex justify-center gap-4">
               <Button asChild size="lg">
