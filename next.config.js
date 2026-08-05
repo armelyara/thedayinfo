@@ -68,6 +68,15 @@ const nextConfig = {
 
   async redirects() {
     return [
+      // Canonical host: force www → non-www so Google indexes a single domain.
+      // Destination host is hard-coded (not derived from the request host), so this
+      // cannot leak the internal Cloud Run :8080 port into Location headers.
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.thedayinfo.com' }],
+        destination: 'https://thedayinfo.com/:path*',
+        permanent: true,
+      },
       {
         source: '/article/:slug',
         destination: '/blog/:slug',

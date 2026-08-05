@@ -1,4 +1,5 @@
 // src/app/projets/page.tsx
+import type { Metadata } from 'next';
 import { ProjectList } from '@/components/project/project-list';
 import { getProjects } from '@/lib/data-admin';
 import { FolderGit2 } from 'lucide-react';
@@ -6,6 +7,12 @@ import { FolderGit2 } from 'lucide-react';
 // Projects change rarely — cache for 1 hour to minimize Cloud Run usage.
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: 'Projets',
+  description: "Projets de recherche appliquée et de développement : IA, bioinformatique, APIs et outils logiciels.",
+  alternates: { canonical: '/projets' },
+};
 
 export default async function ProjectsPage() {
   const projects = await getProjects();

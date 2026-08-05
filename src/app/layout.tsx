@@ -6,8 +6,24 @@ import { ThemeProvider } from '@/components/layout/theme-provider';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://thedayinfo.com'),
-  title: 'The Day Info',
-  description: "Résoudre des problèmes par la technologie Promoteur du dev.",
+  title: {
+    default: 'The Day Info — Recherche appliquée, IA & développement',
+    template: '%s | The Day Info',
+  },
+  description: "Initiative axée sur la recherche appliquée : IA, développement logiciel et solutions technologiques.",
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'The Day Info',
+    locale: 'fr_FR',
+    url: 'https://thedayinfo.com',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@the_day_info',
+  },
 };
 
 export const viewport: Viewport = {

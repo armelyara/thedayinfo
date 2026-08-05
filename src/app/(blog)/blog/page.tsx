@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { getPublishedArticles } from '@/lib/data-admin';
 import type { Article } from '@/lib/data-types';
 import { ArticleCard } from '@/components/article/article-card';
@@ -7,6 +8,12 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 300;
+
+export const metadata: Metadata = {
+  title: 'Blog',
+  description: "Articles sur l'IA, le développement logiciel, la data science et les technologies appliquées.",
+  alternates: { canonical: '/blog' },
+};
 
 const MissingIndexError = ({ message }: { message: string }) => {
   // Extract the URL from the message

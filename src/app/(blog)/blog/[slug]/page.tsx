@@ -1,7 +1,9 @@
 // src/app/blog/[slug]/page.tsx
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { getArticleBySlug, getProfile } from '@/lib/data-admin';
+import { SITE_URL, excerptFromHtml, articleJsonLd } from '@/lib/seo';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CalendarDays, User } from 'lucide-react';
@@ -24,6 +26,41 @@ type ArticlePageProps = {
 export const dynamic = 'force-dynamic';
 export const revalidate = 300;
 
+export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const article = await getArticleBySlug(slug);
+
+  if (!article || article.status !== 'published') {
+    return { title: 'Article introuvable', robots: { index: false, follow: false } };
+  }
+
+  const description = excerptFromHtml(article.content);
+  const url = `${SITE_URL}/blog/${article.slug}`;
+  const images = article.image?.src ? [{ url: article.image.src, alt: article.image.alt || article.title }] : undefined;
+
+  return {
+    title: article.title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'article',
+      title: article.title,
+      description,
+      url,
+      publishedTime: article.publishedAt,
+      authors: [article.author],
+      section: article.category,
+      images,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description,
+      images: images?.map((i) => i.url),
+    },
+  };
+}
+
 /** Returns true when the content is a self-contained HTML document (has script/style/html tags). */
 function isHtmlArticle(content: string): boolean {
   if (!content) return false;
@@ -45,6 +82,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const displayContent = article.content;
   const htmlMode = isHtmlArticle(displayContent);
 
+  // Structured data (BlogPosting) for rich results
+  const jsonLd = articleJsonLd(article);
+
   // Utiliser la photo du profil si l'auteur est "Armel Yara"
   const authorAvatar = article.author === 'Armel Yara' && profile?.imageUrl
     ? profile.imageUrl
@@ -54,6 +94,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   if (htmlMode) {
     return (
       <div className="w-full">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         {/* Client-side view tracking */}
         <ViewTracker articleSlug={article.slug} />
 
@@ -95,6 +139,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   // ─── Normal article: standard prose rendering ───
   return (
     <article className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Client-side view tracking with deduplication */}
       <ViewTracker articleSlug={article.slug} />
 

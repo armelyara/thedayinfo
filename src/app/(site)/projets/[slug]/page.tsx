@@ -1,4 +1,5 @@
 // src/app/projets/[slug]/page.tsx
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -10,9 +11,40 @@ import type { Project } from '@/lib/data-types';
 import { Github, ExternalLink, Calendar, CheckCircle, Wrench, BookOpen } from 'lucide-react';
 import { SanitizedContent } from '@/components/ui/sanitized-content';
 import { cn } from '@/lib/utils';
+import { SITE_URL, projectJsonLd } from '@/lib/seo';
 
 // Force dynamic rendering since we skip static generation during build
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const project = await getProjectBySlug(params.slug);
+
+  if (!project) {
+    return { title: 'Projet introuvable', robots: { index: false, follow: false } };
+  }
+
+  const url = `${SITE_URL}/projets/${project.slug}`;
+  const images = project.image?.src ? [{ url: project.image.src, alt: project.image.alt || project.title }] : undefined;
+
+  return {
+    title: project.title,
+    description: project.description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'article',
+      title: project.title,
+      description: project.description,
+      url,
+      images,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: project.title,
+      description: project.description,
+      images: images?.map((i) => i.url),
+    },
+  };
+}
 
 const statusConfig = {
   'terminé': { icon: CheckCircle, label: 'Terminé', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
@@ -64,6 +96,10 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
 
   return (
     <article className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(projectJsonLd(project)) }}
+      />
       <header className="mb-8">
         <h1 className="text-4xl font-headline font-extrabold tracking-tight lg:text-5xl mb-4">
           {project.title}

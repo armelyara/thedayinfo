@@ -1,8 +1,10 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getArticlesByCategory } from '@/lib/data-admin';
 import { ArticleCard } from '@/components/article/article-card';
 import { categories } from '@/components/layout/main-layout';
 import type { Article } from '@/lib/data-types';
+import { SITE_URL } from '@/lib/seo';
 
 type CategoryPageProps = {
   params: {
@@ -12,6 +14,21 @@ type CategoryPageProps = {
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600; // Revalidate every hour
+
+export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const { name } = await params;
+  const category = categories.find((c) => c.slug === name);
+
+  if (!category) {
+    return { title: 'Catégorie introuvable', robots: { index: false, follow: false } };
+  }
+
+  return {
+    title: `Catégorie : ${category.name}`,
+    description: `Tous les articles de la catégorie ${category.name} sur The Day Info.`,
+    alternates: { canonical: `${SITE_URL}/blog/category/${category.slug}` },
+  };
+}
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { name } = await params;

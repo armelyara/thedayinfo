@@ -1,4 +1,5 @@
 // src/app/about/page.tsx
+import type { Metadata } from 'next';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getProfile } from '@/lib/data-admin';
 import { SanitizedContent } from '@/components/ui/sanitized-content';
@@ -6,6 +7,12 @@ import { User } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600; // Revalidate every hour
+
+export const metadata: Metadata = {
+  title: 'À propos',
+  description: "À propos de The Day Info et de son auteur : recherche appliquée, IA et développement logiciel.",
+  alternates: { canonical: '/about' },
+};
 
 export default async function AboutPage() {
   const profile = await getProfile();

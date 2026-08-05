@@ -8,6 +8,7 @@ import { getPublishedArticles, getProjects } from '@/lib/data-admin';
 import { ArticleCard } from '@/components/article/article-card';
 import { ProjectCard } from '@/components/project/project-card';
 import type { Article, Project } from '@/lib/data-types';
+import { organizationJsonLd } from '@/lib/seo';
 
 // Cache homepage for 5 minutes — content only changes when admin publishes.
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,10 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-1 flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+      />
       {/* Hero Section */}
       <section className="flex h-[calc(100vh-80px)] min-h-[500px] w-full items-center justify-center bg-background text-center">
         <div className="container px-4 md:px-6">
