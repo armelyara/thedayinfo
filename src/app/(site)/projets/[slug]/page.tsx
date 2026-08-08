@@ -46,6 +46,21 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
+/**
+ * Builds a safe href for the associated blog article. `blogArticleSlug` should be a
+ * bare slug, but historical data sometimes holds a full URL or a leading-slash path.
+ * Guard against producing malformed links like `/blog/https://.../projets/...`.
+ */
+function blogArticleHref(value: string): string {
+  const trimmed = value.trim();
+  // Full URL (internal or external): use it as-is.
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  // Absolute internal path already pointing somewhere: use as-is.
+  if (trimmed.startsWith('/')) return trimmed;
+  // Otherwise treat it as a bare blog slug.
+  return `/blog/${trimmed}`;
+}
+
 const statusConfig = {
   'terminé': { icon: CheckCircle, label: 'Terminé', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
   'en-cours': { icon: Wrench, label: 'En cours', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
@@ -175,7 +190,7 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
             )}
             {project.blogArticleSlug && (
               <Button asChild variant="outline" className="w-full">
-                <Link href={`/blog/${project.blogArticleSlug}`}>
+                <Link href={blogArticleHref(project.blogArticleSlug)}>
                   <BookOpen className="mr-2 h-4 w-4" /> Lire l'article associé
                 </Link>
               </Button>
