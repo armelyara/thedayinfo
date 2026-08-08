@@ -7,10 +7,10 @@ import { ThemeProvider } from '@/components/layout/theme-provider';
 export const metadata: Metadata = {
   metadataBase: new URL('https://thedayinfo.com'),
   title: {
-    default: 'The Day Info — Recherche appliquée, IA & développement',
+    default: 'The Day Info — Recherche appliquée',
     template: '%s | The Day Info',
   },
-  description: "Initiative axée sur la recherche appliquée : IA, développement logiciel et solutions technologiques.",
+  description: "Initiative pour les développeurs axée sur la recherche appliquée",
   alternates: {
     canonical: '/',
   },
