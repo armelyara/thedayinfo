@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { getArticleBySlug, getProfile } from '@/lib/data-admin';
+import { stripCommentPII } from '@/lib/data/articles';
 import { SITE_URL, excerptFromHtml, articleJsonLd } from '@/lib/seo';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -85,6 +86,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   // Structured data (BlogPosting) for rich results
   const jsonLd = articleJsonLd(article);
 
+  // Never ship commenter emails (PII) to the browser.
+  const publicComments = await stripCommentPII(article.comments || []);
+
   // Utiliser la photo du profil si l'auteur est "Armel Yara"
   const authorAvatar = article.author === 'Armel Yara' && profile?.imageUrl
     ? profile.imageUrl
@@ -116,7 +120,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           <Feedback
             articleSlug={article.slug}
             initialViews={article.views}
-            initialComments={article.comments || []}
+            initialComments={publicComments}
           />
 
           <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg text-center border">
@@ -129,7 +133,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
           <ArticleClientWrapper
             articleSlug={article.slug}
-            initialComments={article.comments || []}
+            initialComments={publicComments}
           />
         </div>
       </div>
@@ -201,7 +205,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         <Feedback
           articleSlug={article.slug}
           initialViews={article.views}
-          initialComments={article.comments || []}
+          initialComments={publicComments}
         />
 
         {/* Section d'abonnement newsletter */}
@@ -216,7 +220,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         {/* Section des commentaires publics - Wrapper client */}
         <ArticleClientWrapper
           articleSlug={article.slug}
-          initialComments={article.comments || []}
+          initialComments={publicComments}
         />
       </section>
     </article>

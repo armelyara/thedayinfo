@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { saveDraftAction } from '@/lib/data-admin';
-import { verifySession } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         if (!session) {
             return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
         }
-        const decoded = await verifySession(session);
+        const decoded = await requireAdmin(session);
         if (!decoded) {
             return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
         }

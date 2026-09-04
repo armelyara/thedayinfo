@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { verifySession } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 
 const LOGIN_PATH = '/login';
 const CLEAR_SESSION_PATH = `/api/auth/clear-session?redirect=${encodeURIComponent(LOGIN_PATH)}`;
@@ -19,7 +19,7 @@ export default async function AdminLayout({
       redirect(LOGIN_PATH);
     }
 
-    const decoded = await verifySession(session);
+    const decoded = await requireAdmin(session);
     if (!decoded) {
       // Server Components can't call cookieStore.delete() in Next.js 14, so we
       // redirect through a Route Handler that clears the cookie before sending

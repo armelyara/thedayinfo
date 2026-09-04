@@ -137,6 +137,39 @@ export async function getSessionUser(request: NextRequest) {
   return await verifySession(session);
 }
 
+/**
+ * Authorizes an ADMIN. A valid Firebase session is necessary but NOT sufficient:
+ * the account must additionally carry the `admin: true` custom claim, OR its UID
+ * must be listed in the ADMIN_UIDS env var (comma-separated bootstrap allowlist).
+ *
+ * This closes the privilege-escalation hole where any authenticated Firebase
+ * user was treated as admin. Prefer custom claims in steady state; ADMIN_UIDS
+ * exists so you can never be locked out while migrating.
+ *
+ * Returns the decoded claims when the caller is an admin, otherwise null.
+ */
+export async function requireAdmin(session: string | undefined) {
+  if (!session) return null;
+  const decoded = await verifySession(session);
+  if (!decoded) return null;
+
+  if (decoded.admin === true) return decoded;
+
+  const allow = (process.env.ADMIN_UIDS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (decoded.uid && allow.includes(decoded.uid)) return decoded;
+
+  console.warn('[requireAdmin] Authenticated non-admin blocked:', decoded.uid);
+  return null;
+}
+
+/** Convenience wrapper around requireAdmin for NextRequest-based routes. */
+export async function requireAdminRequest(request: NextRequest) {
+  return requireAdmin(request.cookies.get('session')?.value);
+}
+
 export async function createSessionCookie(idToken: string, options: { expiresIn: number }) {
   await initializeFirebaseAdmin();
   // If in build, return an empty string to avoid errors

@@ -3,15 +3,14 @@ import { cookies } from 'next/headers';
 import { createSessionCookie, initializeFirebaseAdmin } from '@/lib/auth';
 import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
 import { LoginSchema, validateSchema } from '@/lib/validation-schemas';
+import { getClientIp } from '@/lib/client-ip';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    // 1. Extraire l'IP du client
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-      request.headers.get('x-real-ip') ||
-      'unknown';
+    // 1. Extraire l'IP du client (côté proxy de confiance, non falsifiable)
+    const ip = getClientIp(request);
 
     // 2. Vérifier le rate limit : 5 tentatives par 15 minutes
     const rateLimitResult = await checkRateLimitFirestore(

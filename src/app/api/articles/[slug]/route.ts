@@ -1,7 +1,9 @@
 // src/app/api/articles/[slug]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getArticleBySlug } from '@/lib/data-admin';
+import { toPublicArticle } from '@/lib/data/articles';
 import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
+import { getClientIp } from '@/lib/client-ip';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,9 +19,7 @@ export async function GET(
       );
     }
 
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-      request.headers.get('x-real-ip') ||
-      'unknown';
+    const ip = getClientIp(request);
 
     const rateLimitResult = await checkRateLimitFirestore(
       `article-view:${ip}`,
@@ -46,7 +46,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(article);
+    return NextResponse.json(await toPublicArticle(article));
   } catch (error) {
     console.error('Erreur API articles:', error);
     return NextResponse.json(

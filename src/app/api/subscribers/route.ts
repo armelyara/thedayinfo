@@ -1,18 +1,17 @@
 import { NextResponse } from 'next/server';
 import { addSubscriber, getSubscribers } from '@/lib/data-admin';
 import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { checkRateLimitFirestore } from '@/lib/rate-limit-firestore';
 import { SubscriberSchema, validateSchema } from '@/lib/validation-schemas';
+import { getClientIp } from '@/lib/client-ip';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
     // Rate limiting : 3 abonnements par heure
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
-               request.headers.get('x-real-ip') || 
-               'unknown';
+    const ip = getClientIp(request);
     
     const rateLimitResult = await checkRateLimitFirestore(
       `subscribe:${ip}`,
@@ -71,7 +70,7 @@ export async function GET() {
   }
 
   try {
-    const decodedClaims = await verifySession(sessionCookie);
+    const decodedClaims = await requireAdmin(sessionCookie);
     if (!decodedClaims) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }

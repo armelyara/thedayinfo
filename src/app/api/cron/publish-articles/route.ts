@@ -3,8 +3,9 @@ import {
   getScheduledArticlesToPublish,
   publishScheduledArticle,
 } from '@/lib/data-admin';
-import { verifySession } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { timingSafeEqual } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,15 +13,22 @@ async function handler(request: NextRequest) {
   const cronSecret = request.headers.get('x-cron-secret');
   const isInternal = request.headers.get('x-internal-request') === 'true';
   const expectedSecret = process.env.CRON_SECRET_TOKEN;
-  
+
   let isAuthorized = false;
 
-  if (cronSecret === expectedSecret) {
-    isAuthorized = true;
-  } else if (isInternal) {
+  // Constant-time secret comparison (only when both are present and same length).
+  if (cronSecret && expectedSecret) {
+    const a = Buffer.from(cronSecret);
+    const b = Buffer.from(expectedSecret);
+    if (a.length === b.length && timingSafeEqual(a, b)) {
+      isAuthorized = true;
+    }
+  }
+
+  if (!isAuthorized && isInternal) {
     const sessionCookie = request.cookies.get('session');
     if (sessionCookie) {
-      const decodedUser = await verifySession(sessionCookie.value).catch(() => null);
+      const decodedUser = await requireAdmin(sessionCookie.value).catch(() => null);
       if (decodedUser) isAuthorized = true;
     }
   }

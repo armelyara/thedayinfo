@@ -14,7 +14,7 @@ export type Comment = {
     author: string;
     text: string;
     avatar: string;
-    email: string; // Email of the subscriber who posted the comment
+    email?: string; // Email of the subscriber who posted the comment — server-side only, stripped from public responses (PII)
     parentId?: number | null;
     likes?: number;
 };

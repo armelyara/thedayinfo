@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminArticles } from '@/lib/data-admin';
 import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +13,7 @@ export async function GET() {
   }
 
   try {
-    const decodedClaims = await verifySession(sessionCookie);
+    const decodedClaims = await requireAdmin(sessionCookie);
     if (!decodedClaims) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }

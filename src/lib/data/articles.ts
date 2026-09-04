@@ -4,6 +4,25 @@ import type { Article, Comment, ViewHistory } from '../data-types';
 import { getDb } from './db';
 import type { DocumentData, DocumentSnapshot } from 'firebase-admin/firestore';
 
+/** Comment without PII, safe to expose to unauthenticated clients. */
+export type PublicComment = Omit<Comment, 'email'>;
+export type PublicArticle = Omit<Article, 'comments'> & { comments: PublicComment[] };
+
+/** Removes the `email` field (PII) from every comment. */
+export async function stripCommentPII(comments: Comment[] = []): Promise<PublicComment[]> {
+  return comments.map(({ email, ...rest }) => rest);
+}
+
+/**
+ * Projects an Article for public (unauthenticated) consumption: strips commenter
+ * emails so they are never sent to the browser via API responses or SSR props.
+ * Internal/admin code keeps using the full Article (with emails) where needed.
+ */
+export async function toPublicArticle(article: Article): Promise<PublicArticle> {
+  const { comments, ...rest } = article;
+  return { ...rest, comments: await stripCommentPII(comments) };
+}
+
 // Shared mapper: converts a Firestore admin document snapshot to an Article object
 // Accepts both QueryDocumentSnapshot (from queries) and DocumentSnapshot (from .get())
 function mapArticle(doc: DocumentSnapshot<DocumentData>): Article {
