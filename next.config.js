@@ -10,7 +10,7 @@ const nextConfig = {
         const config = JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG);
         return {
           NEXT_PUBLIC_FIREBASE_API_KEY: config.apiKey,
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: config.authDomain,
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: config.projectId + '.firebaseapp.com',
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: config.projectId,
           NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: config.storageBucket,
           NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: config.messagingSenderId,
