@@ -9,6 +9,10 @@ env:
     secret: GEMINI_API_KEY
   - variable: NEXT_PUBLIC_SITE_URL
     value: https://thedayinfo.com
+  - variable: ADMIN_UIDS
+    value: "1QicacPDa8UPXA8AhNXDBDMG6r52"
+  - variable: ADMIN_EMAILS
+    value: "[EMAIL_ADDRESS]"
     availability:
       - BUILD
       - RUNTIME
